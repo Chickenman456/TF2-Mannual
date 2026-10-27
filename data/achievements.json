@@ -1,0 +1,194 @@
+{
+  "_note": "Achievement items. Which achievement unlocks which item comes from the achievement_rewards section of TF2's items_game.txt; this file only names the other games and their achievements (from each game's Steam achievement page), plus items crafted from achievement rewards. \"icons\" lists each achievement (app:api name) in the order of its Steam icon in web/ui/achievements.webp (16 across, 64px).",
+  "games": {
+    "440": "Team Fortress 2",
+    "630": "Alien Swarm",
+    "31280": "Poker Night at the Inventory (2010)",
+    "38830": "CrimeCraft GangWars",
+    "92800": "SpaceChem",
+    "99900": "Spiral Knights",
+    "102700": "A.V.A: Alliance of Valiant Arms",
+    "104700": "Super Monday Night Combat",
+    "234710": "Poker Night 2",
+    "3897800": "Poker Night at the Inventory"
+  },
+  "achievements": {
+    "ASW_PARA_HAT": [
+      "Hat Trick",
+      "Complete 2 co-op missions online."
+    ],
+    "com.telltalegames.CelebrityPoker.SpecialItem.TheHeavy": [
+      "Special Item: The Heavy",
+      "Knock out The Heavy after he's bought in with his special item."
+    ],
+    "com.telltalegames.CelebrityPoker.SpecialItem.Max": [
+      "Special Item: Max",
+      "Knock out Max after he's bought in with his special item."
+    ],
+    "com.telltalegames.CelebrityPoker.SpecialItem.Tycho": [
+      "Special Item: Tycho",
+      "Knock out Tycho after he's bought in with his special item."
+    ],
+    "com.telltalegames.CelebrityPoker.SpecialItem.StrongBad": [
+      "Special Item: Strong Bad",
+      "Knock out Strong Bad after he's bought in with his special item."
+    ],
+    "SPACECHEM_TF2_1": [
+      "Moustache Research Assistant",
+      "Beat the assignment \"Moustachium 602\"."
+    ],
+    "SPACECHEM_TF2_2": [
+      "Moustache Scientist",
+      "Beat the assignment \"Moustachium 604\"."
+    ],
+    "SPACECHEM_TF2_3": [
+      "Director of Moustache Research",
+      "Beat the assignment \"Moustachium 608\"."
+    ],
+    "REACHED_TERMINAL_1": [
+      "Mission Accomplished",
+      "Reach the first Clockworks Terminal."
+    ],
+    "achieve_play_04": [
+      "1st One Down",
+      "1st game played after creating character"
+    ],
+    "ACHIEVEMENT_140402": [
+      "Key to the City",
+      "Achieve level 6 and gain access to Sunrise City."
+    ],
+    "TF2Crossover_Achievement_1": [
+      "Rookie Agent",
+      "Achieve Agent Level 5"
+    ],
+    "TF2Crossover_Achievement_4": [
+      "All-Star Agent",
+      "Achieve Agent Level 20"
+    ],
+    "com.telltalegames.PokerNight2.UnlockVentureBrothersItem": [
+      "Orb 'n' Legends",
+      "Win Brock's bounty item."
+    ],
+    "com.telltalegames.PokerNight2.UnlockBorderlandsItem": [
+      "Trophy Wife",
+      "Win Claptrap's bounty item."
+    ],
+    "com.telltalegames.PokerNight2.UnlockArmyOfDarknessItem": [
+      "Book 'Em",
+      "Win Ash's bounty item."
+    ],
+    "com.telltalegames.PokerNight2.UnlockSamAndMaxItem": [
+      "Banjo Hero",
+      "Win Sam's bounty item."
+    ],
+    "com.telltalegames.PokerNight2.UnlockPortalItem": [
+      "Personality Goes a Long Way",
+      "Win GLaDOS's bounty item."
+    ],
+    "ach_14": [
+      "Special Item: Max",
+      "Knock out Max after he's bought in with his special item."
+    ],
+    "ach_15": [
+      "Special Item: Strong Bad",
+      "Knock out Strong Bad after he's bought in with his special item."
+    ],
+    "ach_16": [
+      "Special Item: The Heavy",
+      "Knock out The Heavy after he's bought in with his special item."
+    ],
+    "ach_17": [
+      "Special Item: Tycho",
+      "Knock out Tycho after he's bought in with his special item."
+    ]
+  },
+  "crafted": {
+    "_note": "Crafted from the items these achievements give (the SpaceChem Moustachium Bar, 'Fish' and Spacemetal Scrap).",
+    "432": {
+      "app": 92800,
+      "from": [
+        "SPACECHEM_TF2_1",
+        "SPACECHEM_TF2_2",
+        "SPACECHEM_TF2_3"
+      ]
+    },
+    "433": {
+      "app": 92800,
+      "from": [
+        "SPACECHEM_TF2_1",
+        "SPACECHEM_TF2_2",
+        "SPACECHEM_TF2_3"
+      ]
+    }
+  },
+  "icons": [
+    "102700:achieve_play_04",
+    "104700:TF2Crossover_Achievement_1",
+    "104700:TF2Crossover_Achievement_4",
+    "234710:com.telltalegames.PokerNight2.UnlockArmyOfDarknessItem",
+    "234710:com.telltalegames.PokerNight2.UnlockBorderlandsItem",
+    "234710:com.telltalegames.PokerNight2.UnlockPortalItem",
+    "234710:com.telltalegames.PokerNight2.UnlockSamAndMaxItem",
+    "234710:com.telltalegames.PokerNight2.UnlockVentureBrothersItem",
+    "31280:com.telltalegames.CelebrityPoker.SpecialItem.Max",
+    "31280:com.telltalegames.CelebrityPoker.SpecialItem.StrongBad",
+    "31280:com.telltalegames.CelebrityPoker.SpecialItem.TheHeavy",
+    "31280:com.telltalegames.CelebrityPoker.SpecialItem.Tycho",
+    "38830:ACHIEVEMENT_140402",
+    "3897800:ach_14",
+    "3897800:ach_15",
+    "3897800:ach_16",
+    "3897800:ach_17",
+    "440:TF_DEMOMAN_ACHIEVE_PROGRESS1",
+    "440:TF_DEMOMAN_ACHIEVE_PROGRESS2",
+    "440:TF_DEMOMAN_ACHIEVE_PROGRESS3",
+    "440:TF_DOMINATE_FOR_GOGGLES",
+    "440:TF_ENGINEER_ACHIEVE_PROGRESS1",
+    "440:TF_ENGINEER_ACHIEVE_PROGRESS2",
+    "440:TF_ENGINEER_ACHIEVE_PROGRESS3",
+    "440:TF_HALLOWEEN_BOSS_KILL",
+    "440:TF_HALLOWEEN_BOSS_KILL_MELEE",
+    "440:TF_HALLOWEEN_COLLECT_PUMPKINS",
+    "440:TF_HALLOWEEN_DOMINATE_FOR_HAT",
+    "440:TF_HALLOWEEN_DOOMSDAY_MILESTONE",
+    "440:TF_HALLOWEEN_DOOMSDAY_WIN_MINIGAMES",
+    "440:TF_HALLOWEEN_EYEBOSS_KILL",
+    "440:TF_HALLOWEEN_HELLTOWER_MILESTONE",
+    "440:TF_HALLOWEEN_HELLTOWER_SKULL_ISLAND_REWARD",
+    "440:TF_HALLOWEEN_LOOT_ISLAND",
+    "440:TF_HALLOWEEN_MERASMUS_COLLECT_LOOT",
+    "440:TF_HEAVY_ACHIEVE_PROGRESS1",
+    "440:TF_HEAVY_ACHIEVE_PROGRESS2",
+    "440:TF_HEAVY_ACHIEVE_PROGRESS3",
+    "440:TF_MAPS_DOOMSDAY_ACHIEVE_PROGRESS1",
+    "440:TF_MAPS_FOUNDRY_ACHIEVE_PROGRESS1",
+    "440:TF_MEDIC_ACHIEVE_PROGRESS1",
+    "440:TF_MEDIC_ACHIEVE_PROGRESS2",
+    "440:TF_MEDIC_ACHIEVE_PROGRESS3",
+    "440:TF_MVM_COMPLETE_POP_FILE",
+    "440:TF_PASS_TIME_GRIND",
+    "440:TF_PASS_TIME_HAT",
+    "440:TF_PYRO_ACHIEVE_PROGRESS1",
+    "440:TF_PYRO_ACHIEVE_PROGRESS2",
+    "440:TF_PYRO_ACHIEVE_PROGRESS3",
+    "440:TF_REPLAY_EDIT_TIME",
+    "440:TF_REPLAY_YOUTUBE_VIEWS_TIER2",
+    "440:TF_SCOUT_ACHIEVE_PROGRESS1",
+    "440:TF_SCOUT_ACHIEVE_PROGRESS2",
+    "440:TF_SCOUT_ACHIEVE_PROGRESS3",
+    "440:TF_SNIPER_ACHIEVE_PROGRESS1",
+    "440:TF_SNIPER_ACHIEVE_PROGRESS2",
+    "440:TF_SNIPER_ACHIEVE_PROGRESS3",
+    "440:TF_SOLDIER_ACHIEVE_PROGRESS1",
+    "440:TF_SOLDIER_ACHIEVE_PROGRESS2",
+    "440:TF_SOLDIER_ACHIEVE_PROGRESS3",
+    "440:TF_SPY_ACHIEVE_PROGRESS1",
+    "440:TF_SPY_ACHIEVE_PROGRESS2",
+    "440:TF_SPY_ACHIEVE_PROGRESS3",
+    "630:ASW_PARA_HAT",
+    "92800:SPACECHEM_TF2_1",
+    "92800:SPACECHEM_TF2_2",
+    "92800:SPACECHEM_TF2_3",
+    "99900:REACHED_TERMINAL_1"
+  ]
+}

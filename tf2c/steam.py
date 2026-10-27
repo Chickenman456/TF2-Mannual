@@ -73,12 +73,57 @@ def qualities_of(desc):
     return out
 
 
+EFFECT_LINE = re.compile(r"Unusual Effect:\s*(.+?)\s*$")
+
+
+def effect_of(desc):
+    """The unusual effect name on a backpack item ("Burning Flames"), or None."""
+    for d in desc.get("descriptions") or []:
+        m = EFFECT_LINE.search(re.sub(r"<[^>]+>", "", str(d.get("value", ""))))
+        if m:
+            return m.group(1)
+    return None
+
+
 ECON_IMG = "https://community.akamai.steamstatic.com/economy/image/%s/128fx128f"
 
 
+def _text(v):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", str(v or ""))).strip()
+
+
+def _lines(v):
+    """Description text with the tags gone but its line breaks kept."""
+    t = re.sub(r"<br\s*/?>", "\n", str(v or ""), flags=re.I)
+    return re.sub(r"[ \t]+", " ", re.sub(r"<[^>]+>", "", t)).strip()
+
+
+def backpack_entry(asset, desc, k):
+    """One backpack item for the in-app backpack view, as a compact list:
+    [assetid, defindex, name, name color, type line, quality, unusual effect, description, flags, icon, market name]
+    description: Steam's description lines in order, as [text, color] (attributes, the item's own text,
+    collection or case contents...), with runs of blank lines folded into one.
+    flags: 1 not tradable, 2 marketable. Market name is Steam's market_hash_name when it differs from the name."""
+    quality = next((t.get("localized_tag_name") or t.get("name") for t in desc.get("tags") or []
+                    if t.get("category") == "Quality"), "") or ""
+    lines = []
+    for d in desc.get("descriptions") or []:
+        t = _lines(d.get("value"))
+        if not t and (not lines or not lines[-1][0]):
+            continue
+        lines.append([t, (d.get("color") or "").lower()])
+    while lines and not lines[-1][0]:
+        lines.pop()
+    return [str(asset.get("assetid") or asset.get("id") or ""), k or 0, desc.get("name") or desc.get("market_hash_name") or "",
+            (desc.get("name_color") or "").lower(), _text(desc.get("type")), quality, effect_of(desc) or "",
+            lines, (0 if desc.get("tradable", 1) else 1) | (2 if desc.get("marketable") else 0), desc.get("icon_url") or "",
+            desc.get("market_hash_name") if desc.get("market_hash_name") not in (None, desc.get("name")) else ""]
+
+
 def fetch_backpack(steamid, progress=lambda m: None, names=None):
-    """Returns ({defindex: count}, total_items, {defindex: official icon URL}, {quality: {defindex: count}})."""
-    owned, icons, quals, start, page, total = {}, {}, {}, None, 0, 0
+    """Returns ({defindex: count}, total_items, {defindex: official icon URL}, {quality: {defindex: count}},
+    {unusual effect name: {defindex: count}}, [every backpack item, see backpack_entry])."""
+    owned, icons, quals, fx, start, page, total, items = {}, {}, {}, {}, None, 0, 0, []
     while True:
         page += 1
         progress("Reading backpack page %d" % page)
@@ -92,7 +137,7 @@ def fetch_backpack(steamid, progress=lambda m: None, names=None):
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 403:
-                    raise SteamError("This backpack is private. In Steam, set Profile > Edit Profile > Privacy Settings > Inventory to Public, then sync again.")
+                    raise SteamError("This backpack is private. In Steam, set Profile > Edit Profile > Privacy Settings > Inventory to Public (Friends Only isn't enough), then sync again.")
                 if e.code == 429 and attempt < 3:
                     progress("Steam asked us to slow down, waiting…")
                     time.sleep(8 * (attempt + 1))
@@ -109,8 +154,13 @@ def fetch_backpack(steamid, progress=lambda m: None, names=None):
             d = descs.get((a.get("classid"), a.get("instanceid")))
             if d:
                 k = defindex_of(d, names)
+                items.append(backpack_entry(a, d, k))
                 if k:
                     owned[k] = owned.get(k, 0) + 1
+                    e = effect_of(d)
+                    if e:
+                        ed = fx.setdefault(e, {})
+                        ed[k] = ed.get(k, 0) + 1
                     for q in qualities_of(d):
                         qd = quals.setdefault(q, {})
                         qd[k] = qd.get(k, 0) + 1
@@ -122,4 +172,4 @@ def fetch_backpack(steamid, progress=lambda m: None, names=None):
             start = data["last_assetid"]
             time.sleep(1.5)
         else:
-            return owned, total, icons, quals
+            return owned, total, icons, quals, fx, items

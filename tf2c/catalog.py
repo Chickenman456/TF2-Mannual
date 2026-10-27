@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 13
+CATALOG_VERSION = 28
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -31,7 +31,7 @@ def source_files(tf_dir):
 
 def signature(sources, data_dir):
     parts = ["v%d" % CATALOG_VERSION]
-    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json")]:
+    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json", "achievements.json", "effects.json")]:
         try:
             st = os.stat(p)
             parts.append("%d:%d" % (st.st_size, int(st.st_mtime)))
@@ -109,9 +109,83 @@ def find_reskins(R, weapon_ids, slots):
     return out
 
 
+EFFECT_GROUPS = (("cosmetic_unusual_effects", "cosmetic"), ("taunt_unusual_effects", "taunt"), ("weapon_unusual_effects", "weapon"))
+# Effects that aren't unboxed, and that the game puts on any kind of item: the sparkle on Community and
+# Self-Made items, and the World Traveler's Hat's Map Stamps.
+SPECIAL_EFFECTS = {"4": "other_particles", "20": "cosmetic_unusual_effects"}
+
+
+def effects(ig, loc, data_dir):
+    """Unusual effects: [id, name, kind, sheet cell or -1]. Names come from the game; the released
+    list and preview images are bundled in data/effects.json. Effects added after that list (higher
+    ids) are included too, just without a preview."""
+    try:
+        known = json.load(open(os.path.join(data_dir, "effects.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        known = {}
+    released = set(known.get("released", []))
+    cell = {i: n for n, i in enumerate(known.get("cells", []))}
+    top = max(released) if released else 0
+    parts = ig.get("attribute_controlled_attached_particles", {})
+    out, seen = [], set()
+    for k, group in SPECIAL_EFFECTS.items():
+        name = loc.get("attrib_particle%s" % k)
+        if name and k in (parts.get(group) or {}):
+            seen.add(("special", name))
+            out.append([int(k), name, "special", cell.get(int(k), -1)])
+    for group, kind in EFFECT_GROUPS:
+        for k, v in (parts.get(group) or {}).items():
+            if not k.isdigit() or k in SPECIAL_EFFECTS:
+                continue
+            i = int(k)
+            name = loc.get("attrib_particle%d" % i)
+            if not name or (released and i not in released and i < top) or (kind, name) in seen:
+                continue
+            seen.add((kind, name))
+            out.append([i, name, kind, cell.get(i, -1)])
+    return sorted(out, key=lambda e: e[0])
+
+
 def _read(path):
     with open(path, "rb") as f:
         return decode_text(f.read())
+
+
+def _tint(r, key):
+    for b in ("attributes", "static_attrs"):
+        v = (r.get(b) or {}).get(key)
+        if isinstance(v, dict):
+            v = v.get("value")
+        if v is not None:
+            try:
+                return int(float(str(v).strip()))
+            except ValueError:
+                pass
+    return 0
+
+
+def overlays(R, keep):
+    """Backpack icons drawn in layers, the way the game draws paint: the item's image_inventory, then
+    image_inventory_overlay (and _overlay2) tinted with its "set item tint RGB" (and "RGB 2").
+    {defindex: [[overlay path, rgb], ...]} for items with a tint; a team paint's _red_ mask takes the RED
+    colour (tint RGB) and its _blu_ mask the BLU one (tint RGB 2)."""
+    out = {}
+    for k in keep:
+        r = R[k]
+        ov = [(r.get(f) or "").strip().replace("\\", "/").lower() for f in ("image_inventory_overlay", "image_inventory_overlay2")]
+        c1, c2 = _tint(r, "set item tint RGB"), _tint(r, "set item tint RGB 2")
+        if not any(ov) or not (c1 or c2):
+            continue
+        layers = []
+        for i, p in enumerate(ov):
+            if not p:
+                continue
+            rgb = c2 if "_blu" in p.rsplit("/", 1)[-1] else c1 if "_red" in p.rsplit("/", 1)[-1] else (c1 if i == 0 else (c2 or c1))
+            if rgb:
+                layers.append([p, rgb])
+        if layers:
+            out[str(k)] = layers
+    return out
 
 
 def build(sources, data_dir, firstseen=None, progress=lambda m: None):
@@ -129,6 +203,29 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     force_reskin = _ids(cur.get("reskins", {}))
     not_reskin = _ids(cur.get("not_reskins", {}))
     not_genuine = _ids(k for k in cur.get("not_genuine", {}) if not k.startswith("_"))
+    def notes(section):
+        out = {}
+        for k, v in cur.get(section, {}).items():
+            if not k.startswith("_"):
+                for i in _ids([k]):
+                    out[i] = v
+        return out
+    one_of_one = notes("one_of_one")
+    one_day = notes("one_day")
+    include = notes("include")
+    not_single = notes("not_single_quality")
+    code_items = notes("code_items")
+    code_from = notes("code_from")
+    code_unreleased = notes("code_unreleased")
+    unused = notes("unused")
+    unob_notes = notes("unobtainable")
+    not_limited = notes("not_limited")
+    force_limited = notes("limited")   # curated: no new copies any more, whatever the wiki's tags say
+    try:
+        ach_names = json.load(open(os.path.join(data_dir, "achievements.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        ach_names = {}
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         wiki_crates = json.load(open(os.path.join(data_dir, "crates.json"), encoding="utf-8"))
     except (OSError, ValueError):
@@ -145,6 +242,36 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     loc = parse_loc(_read(en_path))
     if os.path.exists(proto_path):
         loc.update(parse_loc(_read(proto_path)))
+
+    # Achievement items: which achievement (in TF2 or another game) unlocks which item, from the
+    # achievement_rewards section of items_game.txt. {defindex: [[app id, name, description, group, api name]]}
+    # group: "m" TF2 class milestone, "e" other TF2 achievement, "g" another game, "c" crafted from rewards
+    unlocks = {}
+    for key, v in (ig.get("achievement_rewards") or {}).items():
+        if isinstance(v, dict):
+            app = int(v.get("SourceAppID") or 440)
+            defs = [v["DefIndex"]] if v.get("DefIndex") else list((v.get("Items") or {}).keys())
+        else:
+            app, defs = 440, [v]
+        if app == 440:
+            nm, ds = loc.get((key + "_NAME").lower()), loc.get((key + "_DESC").lower(), "")
+            grp = "m" if re.match(r"TF_(SCOUT|SOLDIER|PYRO|DEMOMAN|HEAVY|ENGINEER|MEDIC|SNIPER|SPY)_ACHIEVE_PROGRESS\d$", key) else "e"
+        else:
+            nm, ds = (ach_names.get("achievements", {}).get(key) or [None, ""])
+            grp = "g"
+        if not nm:
+            nm, ds = key, ""
+        for d in defs:
+            if str(d).isdigit():
+                unlocks.setdefault(int(d), []).append([app, nm, ds, grp, key])
+    for d, v in (ach_names.get("crafted") or {}).items():
+        if d.isdigit() and isinstance(v, dict):
+            for key in v.get("from", []):
+                nm, ds = (ach_names.get("achievements", {}).get(key) or [key, ""])
+                unlocks.setdefault(int(d), []).append([int(v.get("app") or 0), nm, ds, "c", key])
+    for d in _ids(k for k in cur.get("achievement_items", {}) if not k.startswith("_")):
+        unlocks.setdefault(d, [])
+    earnable |= set(unlocks) - always_unob   # still earned through their achievements
 
     prefabs = ig.get("prefabs", {})
     pcache = {}
@@ -211,8 +338,26 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         r = R[k]
         return bool((r.get("attributes") or {}).get("cannot trade") or (r.get("static_attrs") or {}).get("cannot trade"))
 
+    def expired_on(k):
+        """Items that deleted themselves from every backpack on a date (spells, transmogrifiers...)."""
+        e = str(R[k].get("expiration_date") or "")
+        return e if re.match(r"\d{4}-\d\d-\d\d", e) and e < now else None
+
     def category(k):
+        c = _category(k)
+        slot = R[k].get("item_slot")
+        if (c is None or c == "l") and k in unlocks and k not in hidden and R[k].get("image_inventory") \
+                and slot not in WEAPON_SLOTS and slot not in ("head", "misc", "taunt"):
+            return "o"   # an achievement reward that's no cosmetic or weapon (SpaceChem materials, Haunted Metal...)
+        return c
+
+    def _category(k):
         r = R[k]
+        if k in include:
+            return include[k]
+        if expired_on(k) and k not in hidden and r.get("image_inventory") and not L(r.get("item_name"), "").startswith("#") \
+                and L(r.get("item_name"), ""):
+            return "x"
         if k in hidden or not r.get("image_inventory") or r.get("name", "").endswith("(Armory)"):
             return None
         slot = r.get("item_slot")
@@ -226,10 +371,25 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             return "m" if tname(k) in MEDAL_TYPES else "c"
         if slot == "taunt":
             return "t"
+        if slot == "action":
+            # Action items (the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal...)
+            nm = display_name(k)
+            if not nm or nm.startswith(("#", "TF_")):
+                return None
+            return "s" if r.get("baseitem") == "1" else "a"   # the stock Spellbook Magazine, Grappling Hook and Power Up Canteen
+        if r.get("item_class") == "tool" and slot not in WEAPON_SLOTS:
+            # Tools (CEconTool: keys, paint, name tags, strange parts, kits...). War Paints are handled above.
+            nm = display_name(k)
+            if not nm or nm.startswith(("#", "TF_")) or r.get("name", "").lower().startswith(("test ", "unused ")):
+                return None
+            return "l"
         if slot in WEAPON_SLOTS:
             if r.get("item_class") in ("slot_token", "class_token"):
                 return None
-            if r.get("baseitem") == "1" or k <= 30 or 190 <= k <= 212:
+            if r.get("baseitem") == "1":
+                nm = display_name(k)   # a class's stock weapon (the Scattergun, the Medi Gun...)
+                return None if not nm or nm.startswith(("#", "TF_", "Upgradeable ")) else "s"
+            if k <= 30 or 190 <= k <= 212:
                 return None
             nm = display_name(k)
             if nm.startswith(("Upgradeable ", "TF_", "#")):
@@ -368,6 +528,11 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     # ---- the checklist itself ---------------------------------------------
     progress("Building the checklist")
     cat = {k: category(k) for k in R}
+    # a tool that's also an achievement reward under a second defindex (the Spellbook Page): one entry, with the rewards
+    other_names = {display_name(k) for k, c in cat.items() if c == "o"}
+    for k, c in cat.items():
+        if c == "l" and display_name(k) in other_names:
+            cat[k] = "o"
     ids = sorted(k for k, c in cat.items() if c)
 
     coldate = {}
@@ -389,15 +554,19 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             dates[k] = coldate[k]
         else:
             s = R[k].get("first_sale_date", "")
-            if s and s > "2010/10/05":
+            # 2010/09/29 is the Mann-Conomy date stamped on everything older; for tools it's when they came out
+            if s and (s > "2010/10/05" or cat[k] == "l"):
                 dates[k] = s.replace("/", "-")
+            elif cat[k] == "s" and (k <= 30 or k == 735):
+                dates[k] = "2007-10-10"   # the classes' stock weapons: there from TF2's release (the Sapper's defindex is newer)
             elif cat[k] == "m" and re.search(r"\b(20[0-3]\d)\b", display_name(k)):
                 dates[k] = re.search(r"\b(20[0-3]\d)\b", display_name(k)).group(1)
     # Items this app has never seen before and that carry no date: they are
     # new since the bundled date list, so the day we first see them is close.
     if known_dates:
         for k in ids:
-            if k not in dates:
+            # expired items, tools, action items, stock weapons and other items are mostly old: date them by their neighbours
+            if k not in dates and cat[k] not in ("x", "l", "a", "s", "o"):
                 dates[k] = firstseen.setdefault(str(k), today)
     anchors = sorted((k, v) for k, v in dates.items())
     keys = [a[0] for a in anchors]
@@ -407,6 +576,9 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             cand = [anchors[j] for j in (i - 1, i) if 0 <= j < len(anchors)]
             dates[k] = min(cand, key=lambda x: abs(x[0] - k))[1] if cand else today
 
+    for k in ids:   # nothing can come out after it expired
+        if cat[k] == "x" and dates[k] > expired_on(k)[:10]:
+            dates[k] = expired_on(k)[:4]
     year_ago = (datetime.date.today() - datetime.timedelta(days=365)).isoformat()
     reskin_of = find_reskins(R, [k for k in ids if cat[k] == "w"], WEAPON_SLOTS)
     imgs, items, sounds = {}, [], {}
@@ -417,20 +589,31 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         classes = r.get("used_by_classes") or {}
         classes = {c.lower() for c in classes} if isinstance(classes, dict) else set()
         mask = sum(1 << i for i, c in enumerate(CLASSES) if c in classes)
-        if not mask and cat[k] in ("c", "m", "t"):
+        if not mask and cat[k] in ("c", "m", "t", "x", "o", "l", "a"):
             mask = 511
         unt = untradable(k)
-        unob = k in always_unob or (k not in earnable and (cat[k] == "m" or
-                (unt and (tname(k) == "Community Medal" or dates[k] < year_ago))))
+        unob = k not in force_limited and k not in unused and (k in always_unob or (k not in earnable and (cat[k] == "m" or
+                (unt and (tname(k) == "Community Medal" or dates[k] < year_ago)))))
         warp = any(t.startswith("paintkit") and t != "paintkit_base" for t in prefab_str(k).split())
         t = tname(k) or ("War Paint" if warp else "")
         if t.startswith(("#", "TF_")):
             t = "Cosmetic"
+        t = t.replace("\\n", " ").strip()
         nm = display_name(k)
-        flags = (1 if warp else 0) | (2 if unob else 0) | (4 if unt else 0) | (8 if r.get("holiday_restriction") else 0)
+        if cat[k] == "l" and nm == "Kit" and t:
+            nm = t   # the plain Killstreak Kit: its name is just "Kit", the type says which
+        flags = (1 if warp else 0) | (2 if unob else 0) | (4 if unt else 0) | (8 if str(r.get("holiday_restriction") or "").lower().startswith("halloween") else 0)
         if "paintkit_tool" in prefab_str(k):
             flags |= 128   # the War Paint itself, as opposed to a decorated weapon
             mask = 511     # any class can use one
+        if k in one_of_one:
+            flags |= 2048  # a single copy exists (curated)
+        if k in one_day:
+            flags |= 4096  # only stays in a backpack for a day
+        if cat[k] == "x":
+            flags |= 8192  # expired: deleted itself on a fixed date
+        if r.get("item_slot") == "action":
+            flags |= 16384  # goes in the action slot
         if cat[k] == "m" and k not in not_genuine:
             flags |= 256   # medals are handed out in Genuine quality
         if cat[k] == "w" and not warp:
@@ -448,7 +631,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         pair = tuple(os.path.splitext(os.path.basename((r.get(f) or "").replace("\\", "/")))[0].lower()
                      for f in ("mouse_pressed_sound", "drop_sound"))
         si = sounds.setdefault(pair, len(sounds)) if pair[0] else -1
-        items.append([k, display_name(k), t, cat[k], mask, rarity.get(k, 0), ii, flags, dates[k],
+        items.append([k, nm, t, cat[k], mask, rarity.get(k, 0), ii, flags, dates[k],
                       desc(k) if cat[k] != "m" else "", region, si])
 
     # The same item listed twice under two defindexes (e.g. the two Pyrovision
@@ -466,6 +649,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             if not it[7] & 4:
                 f[7] &= ~4
             f[8] = min(f[8], it[8])
+            f[4] |= it[4]           # the Shotgun: one stock weapon, four classes
         else:
             first_of[key] = it
     items = [it for it in items if it[0] not in dup]
@@ -479,6 +663,15 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     case_out = [{"id": c["id"], "s": c["s"], "n": c["n"], "col": c["col"], "r": c["r"], "d": c["d"]}
                 for c in cases if c["col"] in colids]
 
+    # achievement unlocks, folded onto the item the checklist shows
+    achievement = {}
+    for d, rows in unlocks.items():
+        k = dup.get(d, d)
+        if k in keep:
+            achievement.setdefault(k, [])
+            for r in rows:
+                if r not in achievement[k]:
+                    achievement[k].append(r)
     byname = {}
     for it in items:
         byname.setdefault((it[1], it[3]), it[0])
@@ -488,9 +681,47 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             continue
         slot = r.get("item_slot")
         c2 = "w" if slot in WEAPON_SLOTS else ("t" if slot == "taunt" else ("c" if slot in ("head", "misc") else None))
+        if c2 == "w" and (display_name(k), "w") not in byname and (display_name(k), "s") in byname:
+            c2 = "s"   # an Upgradeable copy of a stock weapon (what a Strange or Unusual stock weapon is)
         if c2 and (display_name(k), c2) in byname:
             alias[str(k)] = byname[(display_name(k), c2)]
+            achievement.setdefault(alias[str(k)], [])
+            for r in unlocks.get(k, []):
+                if r not in achievement[alias[str(k)]]:
+                    achievement[alias[str(k)]].append(r)
+    achievement = {k: v for k, v in achievement.items() if v}
+    # Wearable or usable items the checklist leaves out (stock and Upgradeable weapons, hidden items):
+    # an unusual effect on one of these still counts. {defindex: [name, "cosmetic"|"taunt"|"weapon"]}
+    equip = {}
+    for k, r in R.items():
+        if k in keep or str(k) in alias or not r.get("image_inventory"):
+            continue
+        slot = r.get("item_slot")
+        kind = "weapon" if slot in WEAPON_SLOTS else ("taunt" if slot == "taunt" else ("cosmetic" if slot in ("head", "misc") else None))
+        if kind and r.get("item_class") not in ("slot_token", "class_token", "tool", "supply_crate"):
+            nm = display_name(k)
+            if nm and not nm.startswith(("#", "TF_")):
+                equip[str(k)] = [nm, kind]
 
     return {"built": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "imgs": list(imgs), "items": items,
             "cols": cols, "cases": case_out, "alias": alias,
-            "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])]}
+            "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])],
+            "notes": {str(k): v for k, v in one_day.items() if k in keep},
+            "not_single": sorted(k for k in not_single if k in keep),
+            "code_items": {str(k): v for k, v in code_items.items() if k in keep},
+            "code_from": {str(k): v for k, v in code_from.items() if k in keep},
+            "code_unreleased": {str(k): v for k, v in code_unreleased.items() if k in keep},
+            "unob_notes": {str(k): v for k, v in unob_notes.items() if k in keep},
+            "unused": {str(k): v for k, v in unused.items() if k in keep},
+            "not_limited": sorted(k for k in (set(not_limited) | set(achievement)) - set(force_limited) if k in keep),
+            "force_limited": {str(k): v for k, v in sorted(force_limited.items()) if k in keep},
+            "achievement": {str(k): v for k, v in sorted(achievement.items())},
+            "games": {k: v for k, v in (ach_names.get("games") or {}).items() if k.isdigit()},
+            "equip": equip,
+            "bp_mkt": sorted(k for k, r in R.items() if k not in keep and not untradable(k) and r.get("image_inventory")
+                             and (r.get("item_class") == "supply_crate" or (r.get("tool") or {}).get("type") == "decoder_ring")),
+            "ach_icons": [k for k in ach_names.get("icons", []) if isinstance(k, str)],
+            "ach_alt": {k: [i for i in v if isinstance(i, int)] for k, v in cur.get("achievement_variants", {}).items() if k.isdigit()},
+            "expired": {str(k): expired_on(k)[:10] for k in keep if cat.get(k) == "x"},
+            "overlay": overlays(R, keep),
+            "effects": effects(ig, loc, data_dir)}

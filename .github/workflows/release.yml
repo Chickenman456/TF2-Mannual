@@ -20,9 +20,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pyinstaller==6.10.0
-      - run: pyinstaller --onefile --name TF2-Catalog --icon assets/tf2catalog.ico --add-data "web;web" --add-data "data;data" tf2_catalog.py
-      - run: Compress-Archive -Path dist/TF2-Catalog.exe -DestinationPath TF2-Catalog-windows.zip
+      - run: pyinstaller --onefile --name The-Mann-ual --icon assets/tf2catalog.ico --add-data "web;web" --add-data "data;data" tf2_catalog.py
+      - run: Compress-Archive -Path dist/The-Mann-ual.exe -DestinationPath The-Mann-ual-windows.zip
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name || inputs.tag }}
-          files: TF2-Catalog-windows.zip
+          files: The-Mann-ual-windows.zip

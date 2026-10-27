@@ -1,9 +1,15 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TF2 Catalog</title>
+<title>The Mann-ual</title>
 <link rel="icon" type="image/png" href="ui/favicon.png">
+<script src="game.js" defer></script>
+<script src="store3d.js" defer></script>
+<script src="pfx.js" defer></script>
+<script src="vgui.js" defer></script>
+<script src="wpi.js" defer></script>
+<script src="preview.js" defer></script>
 <style>
-/* TF2 Catalog. Interface art and fonts are TF2's own (bundled under the Source SDK license);
+/* The Mann-ual (TF2 Catalog). Interface art and fonts are TF2's own (bundled under the Source SDK license);
    item icons come from Steam's image servers, the TF2 Wiki, or a local TF2 install.
    Layout: TF2 backpack screen. Sticky control strip (sync, views, filters) over stacked panels of backpack slots.
    Colors, fonts, borders and art come from TF2's ClientScheme.res and the game's own vgui textures. */
@@ -35,6 +41,10 @@ a{color:var(--Unique)}
 /* BackpackTitle: HudFontMediumBold, TanLight */
 h1{font-family:var(--head);font-weight:400;font-size:30px;margin:0;text-transform:uppercase;line-height:1;letter-spacing:.01em}
 h1 small{display:block;font-size:12px;color:var(--TanDark);letter-spacing:.14em;margin-bottom:3px}
+h1.logo{line-height:0}
+h1.logo img{display:block;height:58px;width:auto;max-width:100%}
+@media (max-width:640px){h1.logo img{height:42px}}
+@media (min-width:1100px){.top h1.logo img{height:auto;width:100%;max-width:310px}}
 .grow{flex:1;min-width:0}
 /* DarkComboBoxBorder / TextEntry */
 .in{background:#1F1C1B;border:1px solid var(--TanDark);border-radius:2px;padding:7px 9px;min-width:0;color:var(--TanLight)}
@@ -71,7 +81,6 @@ select.in{padding:6px 8px;font-family:var(--head);font-size:14px}
 .tabs,.seg,.chips,.clsbar{display:flex;gap:4px;flex-wrap:wrap}
 .seg{gap:2px}
 .seg .btn{font-size:14px;padding:7px 11px}
-.tabs .btn{font-size:16px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--head);font-size:14px;text-transform:uppercase;padding:6px 10px;border-radius:4px;background:#1F1C1B;color:var(--TanDark);cursor:pointer;user-select:none;box-shadow:inset 0 0 0 1px var(--TanDark)}
 .chip input{position:absolute;opacity:0;pointer-events:none}
 .chip::before{content:"";width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 1px var(--TanDark)}
@@ -79,6 +88,10 @@ select.in{padding:6px 8px;font-family:var(--head);font-size:14px}
 .chip:has(input:checked)::before{background:var(--CreditsGreen);box-shadow:none}
 .chip:has(input:focus-visible){outline:2px solid var(--Unique);outline-offset:2px}
 label.chk{display:flex;gap:6px;align-items:center;cursor:pointer;color:var(--ink-2);font-size:13px}
+label.vol{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--ink-2);font-size:13px}
+label.vol input{flex:1;max-width:240px;accent-color:var(--TFOrange)}
+label.vol input:disabled{opacity:.45}
+label.vol output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
 label.chk input{accent-color:var(--TFOrange)}
 .search{width:220px}
 #filtBtn .caret{display:inline-block;margin-left:6px;transition:transform .15s}
@@ -93,6 +106,8 @@ label.chk input{accent-color:var(--TFOrange)}
 .fcol{background:#00000026;box-shadow:inset 0 0 0 1px #4A443D;border-radius:6px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .fcol h3{margin:0;font-family:var(--head);font-weight:400;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--TanLight)}
 .fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fna{opacity:.35;transition:opacity .2s}
+.fna:hover,.fna:focus-within{opacity:.6}
 .fld>.lbl{font-size:11px;letter-spacing:.1em;display:flex;align-items:center;gap:5px}
 .fld .in{width:100%}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -167,6 +182,11 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .tick{position:absolute;top:6px;left:9px;color:var(--CreditsGreen);font-weight:700;font-size:15px;line-height:1;text-shadow:0 1px 0 #000}
 .unob{position:absolute;top:7px;left:9px;font-size:11px;font-family:var(--head);color:var(--AttribNegative);line-height:1}
 .slot.own .unob{left:26px}
+.unob.lim{color:#C9B27C}
+.unob.unu{color:#9C8FB5}
+.unob.code{color:#E4AE39}
+.unob.exp{color:#9E9E9E}
+.unob.rare{color:#FFD700;text-shadow:0 0 6px #FFD70066}
 .links{position:absolute;left:5px;right:5px;bottom:7px;display:flex;justify-content:center;gap:4px;opacity:0;transition:opacity .1s}
 .links a{height:24px;padding:0 7px;border-radius:3px;background:var(--TanDark);color:var(--TanLight);font-family:var(--head);font-size:12px;text-transform:uppercase;display:grid;place-items:center;text-decoration:none}
 .links a:hover{background:var(--TFOrange)}
@@ -174,7 +194,18 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .slot:hover .nm,.slot:hover .q,.slot:focus-within .nm,.slot:focus-within .q{visibility:hidden}
 .badges{position:absolute;top:6px;right:8px;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .badges .pk{width:20px;height:15px;filter:drop-shadow(0 1px 0 #000)}
-.wishmark{color:var(--Unique);font-size:14px;line-height:1;text-shadow:0 1px 0 #000}
+.wishmark{width:16px;height:16px;display:block;filter:drop-shadow(0 1px 0 #000)}
+.clockb{color:var(--TanLight);display:block;line-height:0}.clockb .gi{width:16px;height:16px;filter:drop-shadow(0 1px 0 #000)}
+.tick .gi{width:15px;height:15px;filter:drop-shadow(0 1px 0 #000)}
+.act .gi{width:13px;height:13px}
+.act.on{color:#E4AE39}
+.tabg{width:15px;height:15px;vertical-align:-2px}
+#filtBtn .caret .gi{width:11px;height:11px;vertical-align:1px}
+.good .gi,.empty .gi{width:14px;height:14px;vertical-align:-2px}
+.fxi{width:var(--is);height:var(--is);background:url(ui/effects.webp) no-repeat;background-size:calc(var(--is)*16) calc(var(--is)*var(--r));background-position:calc(var(--is)*var(--x)*-1) calc(var(--is)*var(--y)*-1);flex:none}
+.slot.miss .fxi{filter:grayscale(1) brightness(.5)}
+.fxs .nm{color:#B88DD9}
+.fxnote{margin:14px 0;padding:12px 14px;font-size:13px;line-height:1.45;color:var(--TanLight)}
 .acts{position:absolute;top:5px;right:5px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity .1s}
 .slot:hover .acts,.slot:focus-within .acts{opacity:1}
 .slot:hover .badges,.slot:focus-within .badges{opacity:0}
@@ -193,6 +224,90 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .tip .col .h{color:var(--TanLight);font-family:var(--head);font-size:14px;margin-bottom:2px}
 .tip .col .cur{font-weight:700}
 .tip .col .cur::before{content:"» "}
+.tip .ach{margin-top:10px;font-size:12px;line-height:1.35;color:var(--AttribNeutral)}
+.tip .ach .h{color:#E4AE39;font-family:var(--head);font-size:14px;margin-bottom:2px}
+.tip .ach b{color:var(--TanLight);font-weight:700}
+.tip .ach .gm{color:var(--TanDark)}
+.tip .ach .d{margin:0 0 5px}
+.ffoot .chk{margin-right:auto}
+.bpbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 16px 12px}
+.bpbar .grow{flex:1}
+.bpbar.end{padding-top:12px;justify-content:flex-end}
+.pager{display:flex;align-items:center;gap:8px}
+.pager .pg{font-family:var(--head);color:var(--TanLight);min-width:104px;text-align:center}
+.pager .btn .gi{width:13px;height:13px}
+.gi.left{transform:rotate(90deg)}.gi.right{transform:rotate(-90deg)}
+.slot.bps{cursor:default}
+/* views in three groups, the search box and Filters button beside them */
+.finder{display:flex;gap:8px;align-items:center}
+@media (max-width:700px){.finder{width:100%}.finder .search{flex:1;width:auto}}
+.fld .wopts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px}
+.fcol .seg{flex-wrap:wrap}
+/* dialogs: the settings, and the item preview (TF2's store preview panel) */
+.modal{position:fixed;inset:0;z-index:70;background:#000b;display:grid;place-items:center;padding:16px}
+.modal .mbox{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;margin:0;gap:12px}
+.mhead{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.mhead h2{margin:0;font-family:var(--head);font-weight:400;font-size:24px;text-transform:uppercase;line-height:1.1}
+.mrow{display:flex;flex-direction:column;gap:8px;border-top:1px solid #4A443D;padding-top:12px}
+.mrow h3{margin:0;font-family:var(--head);font-weight:400;font-size:16px;text-transform:uppercase;color:var(--TanLight)}
+.mrow p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.45}
+.mrow .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mrow .path{color:var(--TanLight);word-break:break-all}
+.modal .pvbox{width:min(1000px,100%)}
+.pvstage{position:relative;height:min(62vh,580px);background:radial-gradient(ellipse at 50% 30%,#4A423B,#1F1C1B 75%);border-radius:4px;cursor:grab;touch-action:none;overflow:hidden}
+.pvstage:active{cursor:grabbing}
+.pvstage canvas{width:100%;height:100%;display:block}
+.pvmsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;pointer-events:none}
+.pvhint{position:absolute;left:12px;bottom:8px;pointer-events:none}
+.pvbar{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-end}
+.pvbar .clsbar .btn{padding:4px 8px;min-height:32px}
+/* achievement items: Steam's achievement colors (blue #66C0F4 on #1B2838) and the achievement's own Steam icon */
+.slot.achv::after{content:"";position:absolute;inset:4px;border-radius:7px;pointer-events:none;box-shadow:inset 0 0 0 2px #66C0F4,inset 0 0 18px rgba(102,192,244,.28)}
+.achb{display:block;width:26px;height:26px;border:1px solid #66C0F4;border-radius:2px;background:#1B2838 url(ui/achievements.webp) no-repeat;background-size:calc(26px*16) calc(26px*var(--r));background-position:calc(var(--x)*-26px) calc(var(--y)*-26px);box-shadow:0 1px 3px #000a}
+.tip .ach{background:#1B2838;border-left:3px solid #66C0F4;border-radius:2px;padding:8px 10px;text-align:left}
+.tip .ach .h{color:#66C0F4}
+.tip .ach .row{display:flex;gap:9px;align-items:flex-start;margin-top:6px}
+.tip .ach .row .achb{width:40px;height:40px;flex:none;background-size:calc(40px*16) calc(40px*var(--r));background-position:calc(var(--x)*-40px) calc(var(--y)*-40px)}
+.tip .ach b{color:#fff}
+.tip .ach .gm{color:#66C0F4}
+.tip .ach .d{color:#8F98A0;margin:2px 0 0}
+.tip .bl{font-size:13px;line-height:1.3;color:var(--AttribNeutral);white-space:pre-line}
+.tip .bl.gap{height:8px}
+.tip{max-height:calc(100vh - 16px);overflow:hidden}
+.jump{position:fixed;right:16px;bottom:16px;z-index:40;display:flex;flex-direction:column;gap:6px}
+.jump[hidden]{display:none}
+.jump .btn{width:40px;height:40px;padding:0;display:grid;place-items:center;box-shadow:0 4px 12px #000a}
+.jump .gi{width:15px;height:15px}
+.gi.up{transform:rotate(180deg)}
+.unob ~ .badges{top:24px}   /* below the availability tag */
+@media (min-width:1600px){.sec.bp .grid{grid-template-columns:repeat(10,minmax(0,1fr))}}   /* ten across, like TF2's backpack */
+/* Wide screens: sync, views and filters stack in a column on the right, the way TF2's menus stack their
+   buttons in one column, and the items get the rest of the screen. Narrow screens keep them on top. */
+@media (min-width:1100px){
+  :root{--side:340px}
+  body{padding-right:var(--side)}
+  .top,.top.follow,.top.follow.away{position:fixed!important;top:0;right:0;bottom:0;width:var(--side);overflow-y:auto;overscroll-behavior:contain;
+    transform:none!important;opacity:1!important;pointer-events:auto!important;box-shadow:-6px 0 14px #000a;border-left:1px solid #4A443D;transition:none}
+  .top .bar{flex-direction:column;align-items:stretch;gap:12px;padding-block:18px 10px}
+  .top .bar>.grow{display:none}
+  .top .sync{flex-wrap:wrap}
+  .top #sid{width:100%;flex:1 1 100%}
+  .top #syncBtn{flex:1;justify-content:center}
+  .top .bar>*{min-width:0}
+  .top .meter{min-width:0;flex-wrap:wrap;row-gap:2px}
+  .top .meter #ptxt{flex-basis:100%}
+  .top .tools{flex-direction:column;align-items:stretch;gap:10px}
+  .top .tools>.grow{display:none}
+  .top .finder{width:100%}
+  .top .finder .search{flex:1}
+  .top .search{width:100%}
+  #filtBtn,.top .fsum,#closeBtn{display:none!important}
+  .top .filters[hidden]{display:block!important}
+  .top .ffoot{justify-content:stretch}
+  .top .ffoot .btn{flex:1;justify-content:center}
+  .jump{right:calc(var(--side) + 16px)}
+  main{padding-block:14px 80px}
+}
 .tip .s{margin-top:10px;font-family:var(--head);font-size:15px}
 .empty{text-align:center;padding:60px 20px;color:var(--ink-2)}
 .disclaimer{max-width:900px;margin:8px auto 0;padding-block:18px 28px;text-align:center;font-size:12px;line-height:1.5;color:var(--TanDark);border-top:1px solid #4A443D}
@@ -224,97 +339,282 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .top.notrans{transition:none!important}
 @media (prefers-reduced-motion:reduce){.top.follow{transition:opacity .2s}.top.follow.away{transform:none}}
 @media (prefers-reduced-motion:reduce){.acts{transition:none}}
+
+/* ---- views and filters, v2: one row of tabs per group, uniform dropdown and checkbox fields ---- */
+.views{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.views .tabs{gap:3px}
+.tabs .btn{font-size:15px;padding:7px 12px}
+.fform{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px;padding-block:12px;border-top:1px solid #4A443D;align-items:end}
+.fform .wide{grid-column:1/-1}
+.fform .fld>.lbl{font-size:12px}
+.fform #qnote{margin:-4px 0 0}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px 14px}
+.tgrid.wopts{margin-top:4px;padding:7px 0 0 14px;border-top:1px dashed #4A443D}
+.tgrid.wopts[hidden]{display:none}
+#show,#qual,#avail{font-size:14px}
+@media (min-width:1100px){
+  .top .views{flex-direction:column;align-items:stretch;gap:0}
+  .top .views .tabs{flex-direction:column;gap:2px;padding:6px 0}
+  .top .views .tabs+.tabs{border-top:1px solid #4A443D}
+  .top .views .tabs .btn{justify-content:flex-start;text-align:left;padding:6px 12px;font-size:14px}
+  .top .fform{grid-template-columns:1fr 1fr;gap:9px 10px;padding-block:10px}
+  .top .tgrid{grid-template-columns:1fr 1fr;gap:6px 8px}
+  .top .tgrid .chk{font-size:12px}
+}
+
+/* ---- the Mann Co. Store item preview (CTFStorePreviewItemPanel2, storepreviewitempanel.res): sizes in the res file's
+   units (--u px each), fonts and colours from ClientScheme.res ---- */
+.spv{position:fixed;inset:0;z-index:60;display:flex;overflow:auto;--u:2px}
+.spv-bg{position:fixed;inset:0;background:rgba(0,0,0,.5)}
+.spv-frame{position:relative;flex:none;margin:auto;width:calc(var(--u)*480);height:calc(var(--u)*300);color:#EBE2CA;font-family:"TF2 Secondary",Verdana,sans-serif}
+.spv-frame>*{position:absolute;box-sizing:border-box}
+.spv-nine[data-nine=frame]{left:0;top:0;width:100%;height:100%}
+.spv-foot1{background:#322E29}
+.spv-foot2{background:#322E29;border-radius:0 0 calc(var(--u)*3) calc(var(--u)*3)}
+.spv [hidden]{display:none!important}
+.spv .pl{display:none}
+.spv.player .pl{display:block}
+.spv:not(.player):not(.item) .spv-model{display:none}
+.spv-model{z-index:2;overflow:hidden}
+.spv .ico{filter:none!important;width:var(--is);height:var(--is)}
+.spv .ph{font-family:"TF2 Build",sans-serif;color:#766B5E;text-align:center;font-size:calc(var(--u)*9)}
+.spv-note{position:absolute;left:8%;right:8%;bottom:calc(var(--u)*34);text-align:center;font-size:calc(var(--u)*8.04);line-height:1.3;color:#EBE2CA;z-index:3;pointer-events:none;text-shadow:0 1px 3px #000}
+.spv-note:empty{display:none}
+.zspfig{position:absolute;inset:0;width:100%!important;height:100%!important}
+.zspfig canvas{width:100%!important;height:100%!important;display:block;cursor:grab;touch-action:none}
+.zspfig canvas:active{cursor:grabbing}
+.zldspin{position:absolute!important;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;background:#f5e5c1;opacity:.85;-webkit-mask:url(ui/tflogo.webp) center/100% 100% no-repeat;mask:url(ui/tflogo.webp) center/100% 100% no-repeat;animation:zspin 1.6s linear infinite;pointer-events:none;z-index:5;display:none}
+@keyframes zspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.zldspin{animation-duration:4s}}
+.spv-name{font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*13.27);line-height:1.1;color:#EBE2CA;overflow-wrap:anywhere}
+.spv-details{overflow-y:auto;overflow-x:hidden;z-index:3;scrollbar-width:thin;scrollbar-color:#766B5E transparent;font-size:calc(var(--u)*8.04);line-height:1.25;padding-right:calc(var(--u)*5)}
+.spv-rows{display:flex;flex-direction:column;align-items:flex-start;padding-bottom:calc(var(--u)*4)}
+.spv-lvl{color:#766B5E}
+.spv-row{display:flex;gap:calc(var(--u)*3)}
+.spv-row .k{color:#ADA592;flex:none}
+.spv-row .neg{color:#C8503C}
+.spv .md{margin-top:calc(var(--u)*6)}
+.spv .big{margin-top:calc(var(--u)*7)}
+.spv-price{font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*9.5);line-height:1.2}
+.spv-attrs div{white-space:pre-wrap}
+.spv-col .h{color:#EBE2CA;font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*9.5);margin:calc(var(--u)*2) 0 calc(var(--u)*1)}
+.spv-col .cs{color:#ADA592}
+.spv-col .cur{font-weight:700}
+.spv-col .cur::before{content:"\00BB  "}
+.spv-btn{display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:0;padding:0 4px;border-radius:calc(var(--u)*3);background:#756B5E;color:#EBEBEB;font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*13.27);text-transform:uppercase;text-decoration:none;cursor:pointer;white-space:nowrap;z-index:4}
+.spv-btn:hover,.spv-btn:focus-visible{background:#91493B;color:#fff}
+.spv-btn:focus-visible{outline:2px solid #EBE2CA;outline-offset:1px}
+.spv-wiki{position:static;width:calc(var(--u)*150);height:calc(var(--u)*20);font-size:calc(var(--u)*10.43);text-transform:none}
+.spv-cart{background:#4C6B22;text-transform:none;font-size:calc(var(--u)*10.5)}
+.spv-cart:hover,.spv-cart:focus-visible{background:#56752C}
+.spv-cart:active{background:#426118}
+.spv-team button,.spv-ic,.spv-rot,.spv-arrow,.spv-glyph,.spv-close{position:absolute;border:0;padding:0;margin:0;background:none;cursor:pointer}
+.spv-team{z-index:5}
+.spv-team img{width:100%;height:100%;display:block;opacity:.3}
+.spv-team button:hover img{opacity:.5}
+.spv-team button.on img{opacity:1}
+.spv-cycle{z-index:5;display:flex!important;align-items:center;justify-content:center;text-align:center;font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*8.53);line-height:1.1;color:#EBE2CA;pointer-events:none}
+.spv:not(.player) .spv-cycle{display:none!important}
+.spv-glyph,.spv-close{z-index:5;background:#766B5E;opacity:.78;-webkit-mask:var(--g) center/100% 100% no-repeat;mask:var(--g) center/100% 100% no-repeat}
+.spv-glyph:hover{background:#807568;opacity:1}
+.spv-glyph[data-spv=options]:hover,.spv-close:hover{background:#F6F7D5;opacity:1}
+.spv-close{opacity:1}
+.spv-rot,.spv-arrow{z-index:5;display:flex;align-items:center;justify-content:center;font-family:"TF2 Build",sans-serif;line-height:1;color:#766B5E;user-select:none;-webkit-user-select:none;touch-action:none}
+.spv-rot{font-size:calc(var(--u)*33.18)}
+.spv-arrow{font-size:calc(var(--u)*13.27)}
+.spv-rot:hover,.spv-arrow:hover{color:#807568}
+.spv-rot:active,.spv-arrow:active{color:#ECE3CB}
+.spv.player .spv-rot{display:flex}
+.spv-icons>*{z-index:6}
+.spv-ic{background:#756B5E;border-radius:calc(var(--u)*2)}
+.spv-ic:hover,.spv-ic.sel{background:#fff}
+.spv-ic .blk{position:absolute;background:#5A5047;border-radius:calc(var(--u)*1.5)}
+.spv-ic:hover .blk,.spv-ic.sel .blk{background:#3B3532}
+.spv-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+.spv-icon canvas{width:calc(var(--u)*176);height:calc(var(--u)*176);object-fit:contain;filter:drop-shadow(0 calc(var(--u)*2) calc(var(--u)*4) #0008)}
+.spv-icon .small div.ico{--is:128px}
+.spv-icon .small img{display:block;width:128px;height:128px}
+.spv-icon .zldspin{position:absolute!important}
+.spv-note .spv-link{position:static;display:inline-flex;pointer-events:auto;margin-top:calc(var(--u)*5);height:calc(var(--u)*15);padding:0 calc(var(--u)*6);font-size:calc(var(--u)*8)}
+.spv-ic .im{position:absolute;display:flex;align-items:center;justify-content:center}
+.spv-ici .ico{--is:calc(var(--u)*17)}
+.spv-ici .ph{font-size:calc(var(--u)*4);overflow:hidden}
+.spv-ic img{position:absolute;display:block}
+.spv-menu{z-index:30;max-height:calc(var(--u)*190);overflow-y:auto;min-width:calc(var(--u)*130);background:#2E2B2A;border:1px solid #756B5E;border-radius:4px;padding:3px;box-shadow:0 4px 14px #000a;scrollbar-width:thin;scrollbar-color:#766B5E transparent}
+.spv-menu button{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;color:#EBE2CA;font-family:"TF2 Secondary",sans-serif;font-size:calc(var(--u)*8.5);text-align:left;padding:3px 6px;border-radius:3px;cursor:pointer}
+.spv-menu button:hover{background:#91493B}
+.spv-menu button.on{color:#F6C64F}
+.spv-menu i{width:10px;height:10px;border-radius:2px;flex:none;box-shadow:inset 0 0 0 1px #0006}
+.spv-menu .h{font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*8.53);color:#ADA592;padding:6px 6px 2px}
+.spv-styles{z-index:6;align-items:center;gap:calc(var(--u)*4);font-family:"TF2 Build",sans-serif;font-size:calc(var(--u)*7);color:#A49B87;text-transform:uppercase}
+.spv.player .spv-styles{display:flex}
+.spv-styles>span{flex:none;width:calc(var(--u)*34);text-align:right}
+.spv-styles select{flex:1;min-width:0;height:100%;border:1px solid #756B5E;border-radius:calc(var(--u)*2);background:#2B2725F2;color:#EBE2CA;font-family:"TF2 Secondary",sans-serif;font-size:calc(var(--u)*7.5);padding:0 calc(var(--u)*3);cursor:pointer}
+.spv-styles select:hover,.spv-styles select:focus-visible{border-color:#A49B87;outline:none}
+.spv-styles option{background:#2E2B2A;color:#EBE2CA}
+.spv-menu .h.sp{color:#A87FD9}
+.spv-menu button.spell i{background-size:100% 100%}
+.spv-cycle.spell{color:#C9A4F2}
+.spv-fs{position:fixed;inset:0;background:#000;z-index:70;opacity:0;transition:opacity .32s}
+.spv-fs.on{opacity:1}
+.spv-fs .zspfig{position:absolute!important;inset:0!important}
+.spv-fs .ui{position:absolute;inset:0;z-index:5;pointer-events:none}
+.spv-fs .ui>*{transition:opacity 2s}
+.spv-fs .ui button{pointer-events:auto}
+/* the turn, exit and team buttons fade when the mouse rests; the options, Style and Unusual controls stay */
+.spv-fs.idle .ui>:not(.spv-styles):not(.op):not(.spv-menu){opacity:0}
+.spv-fs .ui .spv-styles{display:flex;position:absolute;left:50%;transform:translateX(-50%);width:calc(var(--u)*170);height:calc(var(--u)*15);pointer-events:auto}
+.spv-fs .ui .spv-menu{position:absolute;pointer-events:auto}
+.spv-fs .spv-menu button{position:static;z-index:auto}
+.spv-fs .ui .spv-styles>span{text-shadow:0 1px 3px #000,0 0 2px #000}
+.spv-fs .spv-glyph.op{right:98px;top:69px;width:28px;height:28px;background:#766B5E;opacity:.78}
+.spv-fs .spv-glyph.op:hover{background:#F6F7D5;opacity:1}
+.spv-fs .op[hidden]{display:none}
+.spv-fs button{position:absolute;background:none;border:0;padding:0;cursor:pointer;z-index:2}
+.spv-fs .rot{top:calc(50% - 22px);width:45px;height:45px;font:40px "TF2 Build",sans-serif;color:#766B5E;touch-action:none}
+.spv-fs .rot:hover{color:#807568}
+.spv-fs .rot:active{color:#ECE3CB}
+.spv-fs .rl{left:calc(50% - 450px)}
+.spv-fs .rr{left:calc(50% + 405px)}
+@media (max-width:960px){.spv-fs .rl{left:12px}.spv-fs .rr{left:auto;right:12px}}
+.spv-fs .ib img{width:100%;height:100%;display:block;opacity:.78}
+.spv-fs .ib:hover img{opacity:1;filter:brightness(2.1)}
+.spv-fs .zm{right:101px;top:67px;width:34px;height:34px}
+.spv-fs .cx{right:54px;top:67px;width:31px;height:31px}
+.spv-fs .tm{left:22px;width:85px;height:85px}
+.spv-fs .tm img{width:100%;height:100%;opacity:.3}
+.spv-fs .tm.on img{opacity:1}
+.spv-fs .tm:hover img{opacity:.5}
+.spv-fs .tm.on:hover img{opacity:1}
+.slot[data-id],.slot[data-bpi]{cursor:pointer}
+/* ---- war paints: the game's war paint window (CTFItemInspectionPanel), vgui.js + wpi.js from the TF2 UI redesign prototype ---- */
+@font-face{font-family:TF2Build;src:url(fonts/tf2build.ttf) format("truetype")}
+@font-face{font-family:TF2Secondary;src:url(fonts/tf2secondary.ttf) format("truetype")}
+@font-face{font-family:OCRA;src:url(ctk/ocra.ttf) format('truetype')}
+.vgroot{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;user-select:none;-webkit-user-select:none}
+.vg{position:absolute;overflow:hidden;box-sizing:border-box;margin:0;padding:0;border:0;background:none no-repeat;font:inherit;color:inherit;text-align:left;outline:none;-webkit-tap-highlight-color:transparent}
+button.vg{cursor:default;appearance:none;-webkit-appearance:none}
+button.vg:focus-visible{outline:none}
+.vgt{position:absolute;inset:0;display:flex;pointer-events:none;overflow:hidden;box-sizing:border-box}
+.vgb{position:absolute;inset:0;z-index:-1;pointer-events:none;box-sizing:border-box;border:0 solid transparent}
+.vgcv{position:absolute;left:0;top:0;pointer-events:none}
+.vgneedle{position:absolute;background:#b40000;pointer-events:none;z-index:200000}
+.vgarrow{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+.vgtt{display:inline-block}
+.vgt>.vgtt{white-space:inherit}
+.vgscroll{overflow-y:auto!important;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#756b5e transparent}
+.vgscroll::-webkit-scrollbar{width:11px}.vgscroll::-webkit-scrollbar-thumb{background:#756b5e}
+.vgnub{position:absolute;left:0;right:0;background:#766b5e;border-radius:2px}
+.vgmenu{position:absolute;z-index:3000;max-height:600px;overflow-y:auto;background:#2b2725;border:2px solid #766b5e;display:flex;flex-direction:column;min-width:260px}
+.vgmenu button{all:unset;font:20px TF2Secondary;color:#F5E5C1;padding:5px 14px;cursor:default}.vgmenu button:hover{background:#766b5e}
+#mgrid{cursor:grab}#mgrid.zdrag{cursor:grabbing;user-select:none;-webkit-user-select:none}#mgrid.zdrag *{pointer-events:none}
+.vgwp{top:0;z-index:5;pointer-events:none}.vgwp>.vg{pointer-events:auto}
+.vgmodel canvas{position:absolute;left:0;top:0;cursor:grab;touch-action:none}.vgmodel canvas:active{cursor:grabbing}
+.vgcombo{position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgb(235,226,202);display:flex;align-items:center;cursor:default}
+.vgcombo.off{box-shadow:inset 0 0 0 1px rgb(117,107,94)}
+.vgctx{flex:1;padding-left:4px;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.vgcar{font-style:normal;width:16px;height:100%;position:relative;flex:none}
+.vgcar::after{content:'';position:absolute;left:50%;top:50%;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid rgb(235,226,202);transform:translate(-50%,-30%)}
+.vgcombo.off .vgcar::after{border-top-color:rgb(117,107,94)}
+.vgcmenu{position:absolute;z-index:5000;background:rgba(0,0,0,.77);overflow-y:auto;box-shadow:inset 0 0 0 1px rgb(235,226,202);scrollbar-width:thin;scrollbar-color:rgb(178,178,178) transparent;pointer-events:auto}
+.vgcmi{color:rgb(235,226,202);white-space:nowrap;overflow:hidden;cursor:default;box-sizing:border-box}
+.vgcmi.on{background:rgb(235,226,202);color:rgb(117,107,94)}
+.vgsl{position:absolute;inset:0;cursor:default}.vgsl i,.vgsl span{position:absolute;display:block;white-space:nowrap}
+.vgte{all:unset;position:absolute;inset:0;box-sizing:border-box;caret-color:rgb(178,178,178);box-shadow:inset 0 0 0 1px rgba(117,107,94,.6)}
+.vgte:disabled{opacity:.6}
+/* the window sits over the page like the store preview: the page dims behind it, the panel in the store's brown frame; it shows
+   the inspection panel's middle (name, weapon, war paint controls) out of the game's 1920x1080 layout */
+.wpov{position:fixed;inset:0;z-index:80;overflow:hidden}
+.wpbg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.wpframe{position:absolute;left:50%;top:50%;width:1120px;height:910px;transform-origin:0 0;box-sizing:border-box;overflow:hidden;border-radius:14px;
+  border:22px solid transparent;border-image:url(ui/store/panel_brown_opaque.webp) 23 fill / 22px stretch;color:#EBE2CA;font-family:TF2Secondary,sans-serif}
+.wpstage{position:absolute;left:-422px;top:-192px;width:1920px;height:1080px;z-index:0}
+.wphost{position:absolute;inset:0}
+.wpback{position:absolute;left:14px;bottom:12px;z-index:10;height:52px;padding:0 30px;border:0;border-radius:6px;background:#756B5E;color:#EBEBEB;font:28px TF2Build,sans-serif;text-transform:uppercase;cursor:pointer}
+.wpback:hover,.wpback:focus-visible{background:#91493B;color:#fff;outline:none}
+.wpnote{position:absolute;left:180px;right:30px;bottom:20px;z-index:10;font-size:20px;line-height:1.3;color:#A49B87;pointer-events:none}
+.wpnote .wplink{pointer-events:auto;margin-left:10px;height:34px;padding:0 16px;border:0;border-radius:5px;background:#756B5E;color:#EBEBEB;font:18px TF2Build,sans-serif;text-transform:uppercase;cursor:pointer}
+.wpnote .wplink:hover{background:#91493B}
 </style>
 </head><body>
 
 <div class="top">
   <div class="bar gut">
-    <h1>TF2 Catalog</h1>
+    <h1 class="logo"><img src="ui/mannual_logo.webp" alt="The Mann-ual" width="720" height="189"></h1>
     <div class="grow"></div>
     <div class="sync">
       <input id="sid" class="in" placeholder="Steam ID or profile link" aria-label="Steam ID or profile link" autocomplete="off" spellcheck="false">
       <button id="syncBtn" class="btn big" type="button">Sync</button>
-      <button id="muteBtn" class="btn ibtn" type="button" title="Sound on" aria-label="Mute sounds" aria-pressed="false"><span class="gi" style="--g:url(ui/glyph_commentary.webp)"></span></button>
-      <button id="setBtn" class="btn ibtn" type="button" title="Where item data comes from" aria-label="Settings"><span class="gi" style="--g:url(ui/glyph_options.webp)"></span></button>
+      <button id="setBtn" class="btn ibtn" type="button" title="Settings" aria-label="Settings"><span class="gi" style="--g:url(ui/glyph_options.webp)"></span></button>
     </div>
     <div class="meter"><b id="pct">0%</b><div class="track"><div class="fill" id="pfill" style="width:0"></div></div><span id="ptxt" class="sub"></span></div>
   </div>
   <div class="status gut" id="status"></div>
   <div class="tools gut">
-    <div class="tabs" role="tablist">
-      <button class="btn" type="button" data-view="class">By Class</button>
-      <button class="btn" type="button" data-view="year">By Year</button>
-      <button class="btn" type="button" data-view="case">Cases &amp; Collections</button>
-      <button class="btn" type="button" data-view="wishlist">★ Wishlist <span id="wcount"></span></button>
-    </div>
+    <nav class="views" aria-label="Views">
+      <div class="tabs" role="group" aria-label="Checklist">
+        <button class="btn" type="button" data-view="class" title="Every item, grouped by the class that uses it">By Class</button>
+        <button class="btn" type="button" data-view="year" title="Every item, grouped by release year">By Year</button>
+        <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
+      </div>
+      <div class="tabs" role="group" aria-label="Special lists">
+        <button class="btn" type="button" data-view="craft" title="Cosmetics you can get by crafting">Craft Hats</button>
+        <button class="btn" type="button" data-view="achieve" title="Items unlocked by achievements, in TF2 or other games">Achievement Items</button>
+        <button class="btn" type="button" data-view="effects" title="Every unusual effect, and which of your items have it">Unusual Effects</button>
+      </div>
+      <div class="tabs" role="group" aria-label="Yours">
+        <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
+        <button class="btn" type="button" data-view="wishlist"><span class="gi tabg" style="--g:url(ui/gi_star.webp)"></span> Wishlist <span id="wcount"></span></button>
+      </div>
+    </nav>
     <div class="grow"></div>
-    <input id="q" class="in search" placeholder="Search items…" aria-label="Search items">
-    <button class="btn" id="filtBtn" type="button" aria-expanded="false" aria-controls="filters">Filters<span id="fcount"></span><span class="caret" aria-hidden="true">▾</span></button>
+    <div class="finder">
+      <input id="q" class="in search" placeholder="Search items…" aria-label="Search items">
+      <button class="btn" id="filtBtn" type="button" aria-expanded="false" aria-controls="filters">Filters<span id="fcount"></span><span class="caret" aria-hidden="true"><span class="gi" style="--g:url(ui/gi_arrow.webp)"></span></span></button>
+    </div>
   </div>
   <div class="fsum gut" id="fsum" hidden></div>
   <div class="filters" id="filters" hidden>
-   <div class="fgrid gut">
-    <section class="fcol" aria-label="What to collect">
-      <h3>What to collect</h3>
-      <div class="fld"><span class="lbl">Item types</span>
-      <div class="chips" aria-label="Item types">
-      <label class="chip"><input type="checkbox" data-type="c" checked>Cosmetics</label>
-      <label class="chip"><input type="checkbox" data-type="t" checked>Taunts</label>
-      <label class="chip"><input type="checkbox" data-type="w">Weapons</label>
-      <span class="chipgrp"><label class="chip"><input type="checkbox" data-type="p">War paints</label><label class="chip sub" title="Weapons that come with a war paint already applied"><input type="checkbox" data-type="d">Decorated weapons</label></span>
-      <label class="chip"><input type="checkbox" data-type="m">Community medals</label>
+   <div class="fform gut">
+    <div class="fld"><label class="lbl" for="show">Ownership</label><select id="show" class="in">
+      <option value="all">All items</option><option value="own">Owned</option><option value="miss">Missing</option><option value="dupe">Dupes (own 2 or more)</option></select></div>
+    <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
+      <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
+    <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
+      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited (tradable, no new copies)</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
+    <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
+    <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
+    <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
+      <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option></select></div>
+    <div class="fld" id="orderFld"><label class="lbl" for="order">Sections</label><select id="order" class="in"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
+    <p class="sub wide" id="qnote"></p>
+    <div class="fld wide"><span class="lbl">Class</span><div class="clsbar" id="clsbar" aria-label="Class filter"></div></div>
+    <div class="fld wide"><span class="lbl">Item types</span>
+      <div class="tgrid" aria-label="Item types">
+        <label class="chk"><input type="checkbox" data-type="c" checked> Cosmetics</label>
+        <label class="chk"><input type="checkbox" data-type="t" checked> Taunts</label>
+        <label class="chk"><input type="checkbox" data-type="w"> Weapons</label>
+        <label class="chk" title="Each class's default weapons. Everyone has these, so they count as owned; pick a quality to collect the Strange, Unusual or other copies"><input type="checkbox" data-type="s"> Stock weapons</label>
+        <label class="chk"><input type="checkbox" data-type="p"> War paints</label>
+        <label class="chk" title="Weapons that come with a war paint already applied"><input type="checkbox" data-type="d"> Decorated weapons</label>
+        <label class="chk" title="Items for the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal..."><input type="checkbox" data-type="a"> Action items</label>
+        <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
+        <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools"><input type="checkbox" data-type="l"> Tools</label>
+        <label class="chk" title="Items that deleted themselves from every backpack on a set date"><input type="checkbox" data-type="x"> Expired items</label>
+        <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
+      </div>
+      <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
+        <label class="chk"><input type="checkbox" id="noresk"> Hide reskins</label>
+        <label class="chk"><input type="checkbox" id="nobk"> Hide Botkillers</label>
+        <label class="chk"><input type="checkbox" id="nofest"> Hide Festives</label>
+      </div>
     </div>
+    <div class="fld wide"><span class="lbl">Options</span>
+      <div class="tgrid">
+        <label class="chk" title="Only show items a single class can use"><input type="checkbox" id="solo"> Hide multi-class items</label>
+        <label class="chk"><input type="checkbox" id="hidedone"> Hide completed sections</label>
       </div>
-      <div class="fld"><span class="lbl">Quality</span>
-      <div class="seg qseg" aria-label="Quality">
-        <button class="btn" type="button" data-q="" title="No quality filter: every item, owned in any quality">Any</button>
-        <button class="btn" type="button" data-q="vintage" style="--qc:#476291">Vintage</button>
-        <button class="btn" type="button" data-q="genuine" style="--qc:#4D7455">Genuine</button>
-        <button class="btn" type="button" data-q="strange" style="--qc:#CF6A32">Strange</button>
-        <button class="btn" type="button" data-q="haunted" style="--qc:#38F3AB">Haunted</button>
-        <button class="btn" type="button" data-q="collectors" style="--qc:#AA0000">Collector's</button>
-      </div>
-      <span class="sub" id="qnote"></span></div>
-    </section>
-    <section class="fcol stack" aria-label="Class and status">
-      <h3>Class &amp; status</h3>
-      <div class="fld"><span class="lbl">Class</span><div class="clsbar" id="clsbar" aria-label="Class filter"></div></div>
-      <div class="frow">
-        <div class="fld"><span class="lbl">Show</span><div class="seg">
-      <button class="btn" type="button" data-show="all">All</button>
-      <button class="btn" type="button" data-show="own">Owned</button>
-      <button class="btn" type="button" data-show="miss">Missing</button>
-      <button class="btn" type="button" data-show="dupe" title="Items you own more than one of">Dupes</button>
-    </div></div>
-        <div class="fld"><span class="lbl">Availability</span><div class="seg" aria-label="Availability">
-      <button class="btn" type="button" data-avail="any">Any</button>
-      <button class="btn" type="button" data-avail="ob">Obtainable</button>
-      <button class="btn" type="button" data-avail="unob">Unobtainable</button>
-    </div></div>
-      </div>
-    </section>
-    <section class="fcol" aria-label="Refine and sort">
-      <h3>Refine &amp; sort</h3>
-      <div class="frow">
-        <div class="fld"><span class="lbl">Grade</span><select id="grade" class="in" aria-label="Filter by grade"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
-        <div class="fld"><span class="lbl"><span class="pk" aria-hidden="true"></span>Halloween</span><select id="hol" class="in" aria-label="Halloween / Full Moon restricted items"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
-      </div>
-      <div class="frow">
-        <div class="fld"><span class="lbl">Sort items by</span><select id="sort" class="in" aria-label="Sort items by">
-        <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option>
-      </select></div>
-        <div class="fld" id="orderFld"><span class="lbl">Section order</span><select id="order" class="in" aria-label="Section order"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
-      </div>
-      <div class="fld checks">
-        <label class="chk" title="Only show items a single class can use"><input type="checkbox" id="solo"> Hide multi-class</label>
-        <label class="chk"><input type="checkbox" id="hidedone"> Hide completed</label>
-        <span class="wopts" id="wopts">
-      <label class="chk"><input type="checkbox" id="noresk"> Hide reskins</label>
-      <label class="chk"><input type="checkbox" id="nobk"> Hide Botkillers</label>
-      <label class="chk"><input type="checkbox" id="nofest"> Hide Festives</label>
-    </span>
-      </div>
-    </section>
+    </div>
    </div>
    <div class="ffoot gut"><button class="btn" id="resetBtn" type="button">Reset filters</button><button class="btn" id="closeBtn" type="button" data-fopen>Done</button></div>
   </div>
@@ -322,10 +622,21 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 <main id="main" class="gut"></main>
 <footer class="disclaimer gut">
   <span class="mannco" role="img" aria-label="Mann Co."></span>
-  <p>Disclaimer: this is mostly AI slop, minus some code borrowed from the TF2 SDK. It was built mostly for my own convenience. Please forgive me.</p>
+  <p>AI Slop software "made" by Chickenman with Claude. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
 </footer>
+<div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="mbox panel">
+    <div class="mhead"><h2 id="setTitle">Settings</h2><button class="btn ibtn" type="button" data-setclose aria-label="Close settings"><span class="gi" style="--g:url(ui/gi_x.webp)"></span></button></div>
+    <section class="mrow"><h3>Sound</h3><label class="chk"><input type="checkbox" id="sndOn"> Play TF2's interface and item sounds</label>
+      <label class="vol" for="sndVol"><span>Volume</span><input type="range" id="sndVol" min="0" max="100" step="1" value="100" aria-describedby="sndVolV"><output id="sndVolV">100%</output></label></section>
+    <section class="mrow"><h3>Top bar</h3><label class="chk"><input type="checkbox" id="pinbar"> Bring the top bar back when scrolling up</label>
+      <p>On wide screens the controls stay in the column on the right, so this only changes smaller windows.</p></section>
+    <section class="mrow" id="gameSet"></section>
+  </div>
+</div>
 <div class="tip" id="tip" hidden></div>
+<div class="jump" id="jump" hidden><button class="btn ibtn" type="button" data-jump="top" title="Back to the top" aria-label="Back to the top"><span class="gi up" style="--g:url(ui/gi_arrow.webp)"></span></button><button class="btn ibtn" type="button" data-jump="end" title="Skip to the bottom" aria-label="Skip to the bottom"><span class="gi" style="--g:url(ui/gi_arrow.webp)"></span></button></div>
 
 <script>
 "use strict";
@@ -335,17 +646,21 @@ const RAR = [null,
   {n:'Civilian',c:'#B0C3D9'},{n:'Freelance',c:'#5E98D9'},{n:'Mercenary',c:'#4B69FF'},{n:'Commando',c:'#8847FF'},
   {n:'Assassin',c:'#D32CE6'},{n:'Elite',c:'#EB4B4B'},{n:'Immortal',c:'#E4AE39'},{n:'Unusual',c:'#8650AC'}];
 const CLASSES = ['Scout','Soldier','Pyro','Demoman','Heavy','Engineer','Medic','Sniper','Spy'];
-const CATNAME = {c:'Cosmetic', t:'Taunt', w:'Weapon', m:'Medal', p:'War paint', d:'Decorated weapon'};
+const CATNAME = {c:'Cosmetic', t:'Taunt', w:'Weapon', s:'Stock weapon', a:'Action item', m:'Medal', p:'War paint', d:'Decorated weapon', l:'Tool', x:'Expired item', o:'Other item'};
 const ITEMS = {}, COLS = {}, CASE_BY_COL = {}, NAMES = {};
 let ALL_IDS = [];
-const ALIAS = {}, VARIANTS = {};  // promo copies stored under a second defindex
+const ALIAS = {}, VARIANTS = {};
+const FX = {}, FX_KIND = {cosmetic:'Cosmetic effects', taunt:'Taunt effects', weapon:'Weapon effects', special:'Special effects'};
+let EQUIP = {}, GAMES = {}, ACHINFO = {}, ACHALT = {}, ACHICON = {}, ACHROWS = 1;  // promo copies stored under a second defindex
 function initCatalog(raw){
 RAW = raw;
 for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd] of RAW.items){
   if (flags&1) cat = flags&128 ? 'p' : 'd';  // war paints, and weapons that come painted, get their own sections
   const classes = CLASSES.filter((_,i)=>mask>>i&1);
-  ITEMS[id] = {id, name, type, cat, mask, classes, rar, desc, region: region || '', snd: snd == null ? -1 : snd, img: RAW.imgs[img] || '',
-    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), date, year: +date.slice(0,4),
+  // paint cans, team paints and spells: the game draws the icon, then its overlay in the item's tint ("base|overlay@rgb|...")
+  const ovl = (RAW.overlay || {})[id], im = RAW.imgs[img] || '';
+  ITEMS[id] = {id, name, type, cat, mask, classes, rar, desc, region: region || '', snd: snd == null ? -1 : snd, img: im && ovl ? [im, ...ovl.map(([p, c]) => p + '@' + c)].join('|') : im,
+    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), rare: !!(flags&2048), day: !!(flags&4096), action: !!(flags&16384), expired: !!(flags&8192) && ((RAW.expired || {})[id] || true), note: (RAW.notes || {})[id] || '', date, year: +date.slice(0,4),
     ckey: classes.length===1 ? CLASSES.indexOf(classes[0]) : (classes.length===9 ? 10 : 9), cols: [], cases: []};
   NAMES[name.toLowerCase()] = id;
 }
@@ -355,22 +670,31 @@ for (const c of RAW.cols){
   for (const i of c.i){ const it = ITEMS[i]; if (!it) continue; it.cols.push(c.id); for (const cs of (CASE_BY_COL[c.id]||[])) it.cases.push(cs); }
 }
 ALL_IDS = Object.keys(ITEMS).map(Number);
+for (const [id, name, kind, cell] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase()};
+EQUIP = RAW.equip || {}; GAMES = RAW.games || {}; ACHINFO = RAW.achievement || {}; ACHALT = RAW.ach_alt || {};
+(RAW.ach_icons || []).forEach((k, i) => { ACHICON[k] = i; }); ACHROWS = Math.max(1, Math.ceil((RAW.ach_icons || []).length / 16));
 for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k] = VARIANTS[k] || []).push(+v); }
 }
 
 /* ---------------- state ---------------- */
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], override:{}, lastSync:'',
-         view:'class', show:'all', types:{c:true,t:true,w:false,m:false,p:false,d:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all',
-         quality:'', qowned:{}, grade:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false};
+         view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false,x:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all',
+         quality:'', qowned:{}, fx:{}, grade:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
 const BUY_QUAL = ['vintage','genuine','strange','haunted','collectors','unusual'];  // qualities tracked from sync
-const QPOSS = {}; let NOMARKET = new Set(), ONLY = {};
+const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODEONLY = new Set(), CRAFT = new Set(), ACH = new Set();
+const CODEQ = {};
 function initExtra(x){
   for (const [q, ids] of Object.entries((x && x.q) || {})) QPOSS[q] = new Set(ids.map(i => +(ALIAS[i] || i)));
   NOMARKET = new Set(((x && x.nomarket) || []).map(Number));
+  LIMITED = new Set(((x && x.limited) || []).map(k => +(ALIAS[k] || k)));
+  CODEONLY = new Set(((x && x.code) || []).map(k => +(ALIAS[k] || k)));
+  CRAFT = new Set(((x && x.craft) || []).map(k => +(ALIAS[k] || k)));
+  for (const [k, q] of Object.entries(RAW.code_items || {})) CODEQ[+k] = q;
+  ACH = new Set(Object.keys(RAW.achievement || {}).map(Number));
   ONLY = {}; for (const [k, q] of Object.entries((x && x.only) || {})) if (QUAL[q]) ONLY[+(ALIAS[k] || k)] = q;
 }
 const closed = {};
@@ -386,7 +710,7 @@ function migrate(x){
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
   if (x.types && x.types.p !== undefined && x.types.d === undefined) x.types = {...x.types, d: x.types.p};
-  delete x.nowp; delete x.hideunob; return x;
+  delete x.nowp; delete x.hideunob; delete x.pending; return x;
 }
 function status(html){ $('#status').innerHTML = html; }
 
@@ -401,7 +725,9 @@ function save(){
 
 /* ---------------- ownership & obtainability ---------------- */
 // manual ticks are per quality: 123 for the normal checklist, "vintage:123" for Vintage
-const mk = id => S.quality ? S.quality + ':' + id : id;
+// Under the Code filter each item counts in the quality its codes gave out: a Genuine Balloonicorn, not a Unique one
+const qOf = id => S.quality || (S.avail === 'code' && QUAL[CODEQ[id]] ? CODEQ[id] : '');
+const mk = id => { const q = qOf(id); return q ? q + ':' + id : id; };
 function synced(id, q){
   const src = q ? (S.qowned[q] || {}) : S.owned;
   let n = src[id] || 0;
@@ -411,13 +737,33 @@ function synced(id, q){
 function owns(id){
   const k = mk(id);
   if (S.manualMissing.includes(k)) return 0;
-  return synced(id, S.quality) || (S.manualOwned.includes(k) ? 1 : 0);
+  let n = synced(id, qOf(id));
+  // the Achievement tab: a reward that came out as a different item in earlier years counts too
+  // (the Ghostly Gibus achievement used to give the Ghastly, Ghastlier or Ghastlierest Gibus)
+  if (S.view === 'achieve') for (const v of ACHALT[id] || []) n += synced(v, qOf(id));
+  // everyone has the stock weapons: the plain copy is owned; a quality (Strange, Unusual...) still needs a real one
+  return n || (S.manualOwned.includes(k) || (ITEMS[id].cat === 's' && !qOf(id)) ? 1 : 0);
 }
+/* availability: ob (new copies still come out), limited (tradable, none new), rare (1 of 1: a single copy),
+   code (untradable, promo codes only), unob (gone). Your own lock mark overrides it. */
+function availOf(id){
+  const o = S.override[String(id)], it = ITEMS[id];
+  if (o !== undefined) return o ? 'unob' : 'ob';
+  if ((RAW.unused || {})[id]) return 'unused';   // in the game files, never given out
+  if (it.expired) return 'expired';
+  if (it.rare) return 'rare';
+  const cq = CODEQ[id];   // the quality whose copies came from promo codes
+  if (cq && (S.quality ? cq === S.quality : !(RAW.force_limited || {})[id])) return (RAW.code_unreleased || {})[id] ? 'unused' : 'code';   // a code whose product never came out
+  if (it.unob) return CODEONLY.has(id) ? 'code' : 'unob';
+  return LIMITED.has(id) ? 'limited' : 'ob';
+}
+const AVTAG = {unob:['UNOBTAINABLE','unob'], code:['CODE','unob code'], expired:['EXPIRED','unob exp'], limited:['LIMITED','unob lim'], unused:['UNRELEASED','unob unu'], rare:['1 OF 1','unob rare']};
 function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? ITEMS[id].unob : o; }
 
 /* ---------------- filtering & sorting ---------------- */
+const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
 function inScope(id){
-  const it = ITEMS[id]; if (!it || !S.types[it.cat]) return false;
+  const it = ITEMS[id]; if (!it || (anyType() && !S.types[it.cat])) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if (S.grade === 'any' ? !it.rar : (S.grade !== '' && it.rar !== +S.grade)) return false;
   if (S.noresk && it.reskin) return false;
@@ -429,16 +775,23 @@ function inScope(id){
   if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
   return true;
 }
+// What the totals count: everything your filters, search and availability choice allow.
+// Owned / Missing / Dupes only changes which of those are shown, not the totals.
+function counted(id){
+  if (!inScope(id)) return false;
+  const q = $('#q').value.trim().toLowerCase();
+  if (q && !ITEMS[id].name.toLowerCase().includes(q)) return false;
+  if (S.avail !== 'any' && availOf(id) !== S.avail) return false;
+  if (S.view === 'craft' && !CRAFT.has(id)) return false;
+  if (S.view === 'achieve' && !ACH.has(id)) return false;
+  return true;
+}
 function visible(id){
-  const it = ITEMS[id], q = $('#q').value.trim().toLowerCase();
-  if (q && !it.name.toLowerCase().includes(q)) return false;
   const o = owns(id);
   if (S.show==='own' && !o) return false;
   if (S.show==='miss' && o) return false;
   if (S.show==='dupe' && o < 2) return false;
-  if (S.avail === 'ob' && isUnob(id)) return false;
-  if (S.avail === 'unob' && !isUnob(id)) return false;
-  return true;
+  return counted(id);
 }
 const SORTS = {
   grade: (a,b) => (b.rar - a.rar) || a.name.localeCompare(b.name),
@@ -448,7 +801,7 @@ const SORTS = {
   copies:(a,b) => (owns(b.id) - owns(a.id)) || a.name.localeCompare(b.name),
   region:(a,b) => (!a.region - !b.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
 };
-function sortIds(ids){ const f = SORTS[S.view === 'class' && S.sort === 'class' ? 'grade' : S.sort] || SORTS.grade; return ids.map(i => ITEMS[i]).sort(f).map(i => i.id); }
+function sortIds(ids){ const f = SORTS[(S.view === 'class' || S.view === 'craft') && S.sort === 'class' ? 'grade' : S.sort] || SORTS.grade; return ids.map(i => ITEMS[i]).sort(f).map(i => i.id); }
 
 /* ---------------- rendering ---------------- */
 let ICONMAP = {};
@@ -466,25 +819,220 @@ function iconHtml(it){
   if (u) return `<img class="ico" alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(u)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'?'}))">`;
   return `<div class="ph">${esc((it.type||it.name).slice(0,20))}</div>`;
 }
-function marketable(it){ return !it.untradable && it.cat !== 'm' && !NOMARKET.has(it.id); }
+/* Unusual effects: collected when any item you own carries the effect. Steam names the effect, so each
+   item is matched to the effect of that name for its kind of item, or to the only one there is (the
+   Unusual Cap carries taunt effects). Special effects (Community Sparkle, Map Stamps) count on any item;
+   the rest only on items you can equip, so a case or key that shows an effect doesn't count. */
+const FX_OF_CAT = {t:'taunt', w:'weapon', s:'weapon', d:'weapon', p:'weapon'};
+let fxSrc, fxMap = new Map();
+function fxIndex(){
+  if (fxSrc === S.fx && fxMap.bp === BP) return fxMap;
+  fxSrc = S.fx; fxMap = new Map(); fxMap.bp = BP;
+  for (const k of Object.keys(FX)) if (+k < 0) delete FX[k];
+  const byName = {};
+  for (const e of Object.values(FX)) (byName[e.key] = byName[e.key] || []).push(e);
+  let extra = 0;
+  for (const [name, holders] of Object.entries(S.fx || {})){
+    let cands = byName[name.toLowerCase()];
+    for (const [def, n] of Object.entries(holders || {})){
+      const it = ITEMS[+(ALIAS[def] || def)], eq = EQUIP[def];
+      const kind = it ? (FX_OF_CAT[it.cat] || 'cosmetic') : eq ? eq[1] : null;
+      let e = cands && (cands.find(c => c.kind === kind) || cands.find(c => c.kind === 'special') || (kind ? cands[0] : null));
+      if (!cands && kind){   // an effect newer than this app's list
+        e = FX[-(++extra)] = {id: -extra, name, kind: 'special', cell: -1, key: name.toLowerCase()};
+        cands = byName[e.key] = [e];
+      }
+      if (!e) continue;
+      const nm = it ? it.name : eq ? eq[0] : (bpNames()[def] || 'Item #' + def);
+      const list = fxMap.get(e.id) || []; list.push([nm, n]); fxMap.set(e.id, list);
+    }
+  }
+  for (const l of fxMap.values()) l.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return fxMap;
+}
+function fxHolders(e){ return fxIndex().get(e.id) || []; }
+const fxCount = e => fxHolders(e).reduce((t, x) => t + x[1], 0);
+function fxSlot(e){
+  const n = fxCount(e), sheetRows = 34;
+  const icon = e.cell >= 0
+    ? `<div class="fxi" style="--x:${e.cell % 16};--y:${Math.floor(e.cell / 16)};--r:${sheetRows}"></div>`
+    : `<div class="ph">No preview yet</div>`;
+  return `<div class="slot fxs ${n ? 'own' : 'miss'}" data-fx="${e.id}" tabindex="0">${icon}<div class="nm">${esc(e.name)}</div>
+    ${n ? '<span class="tick" aria-label="Collected">' + gi('check') + '</span>' : ''}${n > 1 ? `<span class="q">×${n}</span>` : ''}</div>`;
+}
+function fxSection(kind, list){
+  const q = $('#q').value.trim().toLowerCase();
+  const got = list.filter(fxCount).length, total = list.length, pct = Math.round(got * 100 / (total || 1));
+  let vis = list.filter(e => (!q || e.key.includes(q)) && (S.show !== 'own' || fxCount(e)) && (S.show !== 'miss' || !fxCount(e)) && (S.show !== 'dupe' || fxCount(e) > 1));
+  if (S.hidedone && got === total) return '';
+  if (!vis.length) return '';
+  vis = vis.slice().sort(S.sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : S.sort === 'copies' ? (a, b) => fxCount(b) - fxCount(a) || a.id - b.id : (a, b) => (S.order === 'asc' ? a.id - b.id : b.id - a.id));
+  const key = 'fx' + kind;
+  return `<section class="sec ${closed[key] ? 'closed' : ''}" data-key="${key}">
+    <div class="sh"><div class="grow"><h2>${esc(FX_KIND[kind])}</h2><div class="sub">${kind === 'special' ? 'Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items' : 'Collected when any item you own has the effect'}</div></div>
+      <div class="track mini ${got === total ? 'full' : ''}"><div class="fill" style="width:${pct}%"></div></div>
+      <span class="cnt ${got === total ? 'full' : ''}">${got}/${total}</span></div>
+    <div class="grid">${vis.map(fxSlot).join('')}</div></section>`;
+}
+/* My Backpack: every item from your last sync, 50 to a page like TF2's backpack.
+   BP = {steamid, at, items: [[assetid, defindex, name, name color, type line, quality, effect, detail lines, flags, icon]]} */
+let BP = null, bpNameMap = null;
+const BP_PER = 50;
+const QRANK = ['Unusual', 'Strange', 'Genuine', 'Vintage', 'Haunted', "Collector's", 'Decorated Weapon', 'Self-Made', 'Community', 'Valve', 'Unique', 'Normal'];
+function bpNames(){
+  if (bpNameMap && bpNameMap.bp === BP) return bpNameMap;
+  bpNameMap = {bp: BP};
+  for (const r of (BP && BP.items) || []) if (!(r[1] in bpNameMap)) bpNameMap[r[1]] = r[2];
+  return bpNameMap;
+}
+const bpColor = c => /^[0-9a-f]{6}$/i.test(c || '') ? '#' + (c.toLowerCase() === '7d6d00' ? 'ffd700' : c) : '';   // Unique's dark yellow reads poorly here
+// grade from Steam's "Elite Grade Hat" line, or the checklist's own
+function bpGrade(r, it){
+  for (const l of r[7] || []){ const m = (typeof l === 'string' ? l : l[0]).match(/^(\w+) Grade /); if (m){ const g = RAR.findIndex(x => x && x.n === m[1]); if (g > 0) return g; } }
+  return it ? it.rar : 0;
+}
+// Strange Unusuals and Strange Genuines count as Strange too
+const bpHasQ = (r, q) => QUAL[q] && (r[5] === QUAL[q].n || (q === 'strange' && /^Strange /.test(r[10] || r[2])));
+let bpCount = null;
+// the same filters as the checklist, applied to what's in your backpack. Items the checklist doesn't
+// track (metal, keys, cases...) only show while no type, class or availability filter is on.
+function bpPass(r){
+  const it = ITEMS[+(ALIAS[r[1]] || r[1])];
+  if (S.quality && !bpHasQ(r, S.quality)) return false;
+  const g = bpGrade(r, it);
+  if (S.grade === 'any' ? !g : (S.grade !== '' && g !== +S.grade)) return false;
+  if (S.show === 'dupe'){
+    if (!bpCount || bpCount.bp !== BP){ bpCount = {bp: BP}; for (const x of BP.items) bpCount[x[1]] = (bpCount[x[1]] || 0) + 1; }
+    if ((bpCount[r[1]] || 0) < 2) return false;
+  }
+  if (!it) return !anyType() && S.cls === '' && S.avail === 'any' && !S.solo && S.hol !== 'only';
+  if (anyType() && !S.types[it.cat]) return false;
+  if (S.solo && it.classes.length !== 1) return false;
+  if ((S.noresk && it.reskin) || (S.nobk && it.botkiller) || (S.nofest && it.newfest)) return false;
+  if ((S.hol === 'hide' && it.holiday) || (S.hol === 'only' && !it.holiday)) return false;
+  if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
+  if (S.avail !== 'any' && availOf(it.id) !== S.avail) return false;
+  return true;
+}
+function bpList(){
+  const q = $('#q').value.trim().toLowerCase();
+  const list = ((BP && BP.items) || []).map((r, i) => ({r, i})).filter(x => (!q || x.r[2].toLowerCase().includes(q) || (x.r[6] || '').toLowerCase().includes(q) || (x.r[4] || '').toLowerCase().includes(q)) && bpPass(x.r));
+  const aid = (a, b) => a.r[0].length - b.r[0].length || (a.r[0] < b.r[0] ? -1 : a.r[0] > b.r[0] ? 1 : 0);
+  const rank = x => { const k = QRANK.indexOf(x.r[5]); return k < 0 ? QRANK.length : k; };
+  const kind = x => (x.r[4] || '').replace(/^Level \d+ /, '');
+  const sorts = {bp: (a, b) => a.i - b.i, new: (a, b) => aid(b, a), old: aid, quality: (a, b) => rank(a) - rank(b) || a.r[2].localeCompare(b.r[2]),
+                 name: (a, b) => a.r[2].localeCompare(b.r[2]), type: (a, b) => kind(a).localeCompare(kind(b)) || a.r[2].localeCompare(b.r[2])};
+  return list.sort(sorts[S.bpSort] || sorts.bp);
+}
+function bpSlot(r, i){
+  bpLookups();
+  const it = ITEMS[+(ALIAS[r[1]] || r[1])], col = bpColor(r[3]), g = bpGrade(r, it);
+  const rc = g ? RCLS[g] : (it && it.warpaint ? 'r-paintkit' : '');
+  // your copy's own listing when Steam says it's marketable; otherwise the item's listings, if the item is sold there at all
+  const market = r[8] & 2 ? `<a href="https://steamcommunity.com/market/listings/440/${encodeURIComponent(r[10] || r[2])}" target="_blank" rel="noopener" title="See it on the Steam Community Market">Market</a>`
+    : it && marketable(it) ? `<a href="https://steamcommunity.com/market/search?appid=440&q=${encodeURIComponent('"' + it.name + '"')}" target="_blank" rel="noopener" title="Search the Steam Community Market">Market</a>`
+    : BPMKT.has(r[1]) ? `<a href="https://steamcommunity.com/market/listings/440/${encodeURIComponent((r[10] || r[2]).replace(/^((Self-Made|Community|Valve|Unique|Normal) )+/, ''))}" target="_blank" rel="noopener" title="See it on the Steam Community Market">Market</a>` : '';
+  return `<div class="slot own bps ${rc}" data-bpi="${i}" tabindex="0">${bpIcon(r, it)}<div class="nm"${col ? ` style="color:${col}"` : ''}>${esc(r[2])}</div>
+    <div class="links"><a href="https://wiki.teamfortress.com/scripts/itemredirect.php?id=${r[1]}&lang=en_US" target="_blank" rel="noopener" title="Open on the TF2 Wiki">Wiki</a>${market}</div></div>`;
+}
+function bpIcon(r, it){
+  if (r[9]) return `<img class="ico" alt="" loading="lazy" referrerpolicy="no-referrer" src="https://community.akamai.steamstatic.com/economy/image/${esc(r[9])}/128fx128f" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'?'}))">`;
+  return it ? iconHtml(it) : `<div class="ph">${esc((r[4] || r[2]).replace(/^Level \d+ /, '').slice(0, 20))}</div>`;
+}
+function backpackView(){
+  if (!BP || !BP.items || !BP.items.length)
+    return `<div class="empty"><h2>Your backpack shows up here</h2><p>${S.lastSync ? 'Sync again to bring in every item in your backpack.' : 'Enter your Steam ID and press Sync.'} Your Steam inventory has to be set to Public.</p></div>`;
+  const list = bpList(), pages = S.bpAll ? 1 : Math.max(1, Math.ceil(list.length / BP_PER));
+  S.bpPage = Math.min(Math.max(1, S.bpPage || 1), pages);
+  const shown = S.bpAll ? list : list.slice((S.bpPage - 1) * BP_PER, S.bpPage * BP_PER);
+  const sid = BP.steamid || S.steamId64 || '', q = $('#q').value.trim();
+  const when = BP.at ? new Date(BP.at * 1000).toLocaleString(undefined, {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'}) : '';
+  const pager = `<div class="pager"><button class="btn ibtn" type="button" data-bpp="-1" aria-label="Previous page"${S.bpPage <= 1 ? ' disabled' : ''}>${gi('arrow', 'left')}</button><span class="pg">Page ${S.bpPage} of ${pages}</span><button class="btn ibtn" type="button" data-bpp="1" aria-label="Next page"${S.bpPage >= pages ? ' disabled' : ''}>${gi('arrow', 'right')}</button></div>`;
+  const opts = [['bp', 'Backpack order'], ['new', 'Newest first'], ['old', 'Oldest first'], ['quality', 'Quality'], ['type', 'Type'], ['name', 'Name']]
+    .map(([v, n]) => `<option value="${v}"${(S.bpSort || 'bp') === v ? ' selected' : ''}>${n}</option>`).join('');
+  const filtered = list.length !== BP.items.length;
+  return `<section class="sec bp" data-key="bp"><div class="sh"><div class="grow"><h2>My Backpack</h2><div class="sub">${filtered ? list.length.toLocaleString() + ' of ' : ''}${BP.items.length.toLocaleString()} items${filtered ? ' match your filters' : ''}${when ? ' · synced ' + esc(when) : ''}</div></div></div>
+    <div class="bpbar"><select id="bpSort" class="in" aria-label="Sort backpack">${opts}</select><label class="chk"><input type="checkbox" id="bpAll"${S.bpAll ? ' checked' : ''}> One continuous page</label>${sid ? `<a class="btn" target="_blank" rel="noopener" href="https://steamcommunity.com/profiles/${esc(sid)}/inventory/#440">Open on Steam</a>` : ''}<span class="grow"></span>${S.bpAll ? '' : pager}</div>
+    <div class="grid">${shown.length ? shown.map(x => bpSlot(x.r, x.i)).join('') : ''}</div>
+    ${pages > 1 ? `<div class="bpbar end">${pager}</div>` : ''}</section>` + (shown.length ? '' : '<div class="empty"><h2>Nothing matches</h2><p>Nothing in your backpack matches your search and filters.</p></div>');
+}
+let CASE_OF = null, BPMKT = null;   // filled on first use, once the item list is in
+function bpLookups(){
+  if (CASE_OF) return;
+  CASE_OF = {}; for (const c of RAW.cases || []) CASE_OF[c.id] = c;
+  BPMKT = new Set(RAW.bp_mkt || []);   // cases, crates and keys: on the Market even when your copy can't go there
+}
+function bpCollection(c, cur, head){
+  const list = c.i.map(i => ITEMS[i]).filter(Boolean).sort((a, b) => (b.rar - a.rar) || a.name.localeCompare(b.name)).slice(0, 24);
+  return `<div class="col"><div class="h">${esc(head || c.n)}</div>${list.map(x => `<div class="${x.id === cur ? 'cur' : ''}" style="color:${x.rar ? RAR[x.rar].c : 'var(--AttribNeutral)'}">${esc(x.name)}</div>`).join('')}</div>`;
+}
+function bpFallback(r, it){
+  bpLookups();
+  const cs = CASE_OF[r[1]];
+  if (cs && COLS[cs.col]) return bpCollection(COLS[cs.col], 0, 'Contents: ' + COLS[cs.col].n);
+  if (!it) return '';
+  const col = it.cols.map(c => COLS[c]).find(c => c && c.k === 'collection');
+  return (it.desc ? `<div class="d">${esc(it.desc)}</div>` : '') + (col ? bpCollection(col, it.id) : '');
+}
+function bpTip(r){
+  const col = bpColor(r[3]);
+  const lines = r[7] || [], old = lines.length && typeof lines[0] === 'string';   // older syncs kept only the attribute lines
+  const body = lines.map(l => { const [t, c] = typeof l === 'string' ? [l, ''] : l;
+    return t ? `<div class="bl"${/^[0-9a-f]{6}$/i.test(c) ? ` style="color:#${c}"` : ''}>${esc(t)}</div>` : '<div class="bl gap"></div>'; }).join('');
+  const it = ITEMS[+(ALIAS[r[1]] || r[1])], full = lines.length && !old && lines.length > 2;
+  return `<div class="t"${col ? ` style="color:${col}"` : ''}>${esc(r[2])}</div><div class="lv">${esc(r[4] || '')}</div>
+    ${old && r[6] ? `<div class="bl" style="color:#FFD700">★ Unusual Effect: ${esc(r[6])}</div>` : ''}<div style="margin-top:8px">${body}</div>${full ? '' : bpFallback(r, it)}
+    ${r[8] & 1 && !lines.some(l => /Not Tradable/.test(typeof l === 'string' ? l : l[0])) ? '<div class="lvl">( Not Tradable )</div>' : ''}`;
+}
+document.addEventListener('click', e => {
+  const pg = e.target.closest('[data-bpp]'); if (!pg) return;
+  S.bpPage = (S.bpPage || 1) + +pg.dataset.bpp; save(); render();
+  const sec = document.querySelector('.sec.bp'); if (sec && sec.getBoundingClientRect().top < 0) sec.scrollIntoView({block: 'start'});
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'bpSort'){ S.bpSort = e.target.value; S.bpPage = 1; save(); render(); }
+  if (e.target.id === 'bpAll'){ S.bpAll = e.target.checked; S.bpPage = 1; save(); render(); }
+});
+function marketable(it){ return !it.untradable && it.cat !== 'm' && it.cat !== 'x' && (it.cat !== 's' || !!S.quality) && !NOMARKET.has(it.id); }
+const gi = (n, cls) => `<span class="gi${cls ? ' ' + cls : ''}" style="--g:url(ui/gi_${n}.webp)"></span>`;
 const RCLS = [null,'r-common','r-uncommon','r-rare','r-mythical','r-legendary','r-ancient','r-legendary','r-mythical'];
+// the Steam icon of the achievement that unlocks an item (sheet ui/achievements.webp, 16 across)
+function achIcon(r){
+  const c = r ? ACHICON[r[0] + ':' + r[4]] : undefined;
+  return c === undefined ? '' : `<span class="achb" style="--x:${c % 16};--y:${Math.floor(c / 16)};--r:${ACHROWS}" role="img" aria-label="${esc(r[1])}"></span>`;
+}
+function nameStyle(id){
+  if (S.quality) return '';
+  const cq = qOf(id);
+  if (cq) return ` style="color:${QUAL[cq].c}" title="Code copies came in ${QUAL[cq].n} quality"`;
+  return ONLY[id] ? ` style="color:${QUAL[ONLY[id]].c}" title="Only exists in ${QUAL[ONLY[id]].n} quality"` : '';
+}
 function slot(id){
   const it = ITEMS[id], o = owns(id), w = S.wishlist.includes(id), un = isUnob(id);
   const rc = it.rar ? RCLS[it.rar] : (it.warpaint ? 'r-paintkit' : '');
-  return `<div class="slot ${o?'own':'miss'} ${rc}" data-id="${id}" tabindex="0">
-    ${iconHtml(it)}<div class="nm"${!S.quality && ONLY[id] ? ` style="color:${QUAL[ONLY[id]].c}" title="Only exists in ${QUAL[ONLY[id]].n} quality"` : ''}>${esc(it.name)}</div>
-    ${o?'<span class="tick" aria-label="Owned">✔</span>':''}${o>1?`<span class="q">×${o}</span>`:''}
-    ${un?'<span class="unob">UNOBTAINABLE</span>':''}
-    ${w||it.holiday?`<span class="badges">${w?'<span class="wishmark">★</span>':''}${it.holiday?'<span class="pk" title="Halloween / Full Moon restricted"></span>':''}</span>`:''}
-    <div class="links"><a href="https://wiki.teamfortress.com/scripts/itemredirect.php?id=${id}&lang=en_US" target="_blank" rel="noopener" title="Open on the TF2 Wiki">Wiki</a>${marketable(it) ? `<a href="https://steamcommunity.com/market/search?appid=440&q=${encodeURIComponent('"'+(S.quality ? QUAL[S.quality].n+' ' : '')+it.name+'"')}" target="_blank" rel="noopener" title="Search the Steam Community Market">Market</a>` : ''}</div>
+  const ach = ACHINFO[id] && ACHINFO[id][0], ab = ach ? achIcon(ach) : '';
+  return `<div class="slot ${o?'own':'miss'} ${rc}${ach ? ' achv' : ''}" data-id="${id}" tabindex="0">
+    ${iconHtml(it)}<div class="nm"${nameStyle(id)}>${esc(it.name)}</div>
+    ${o?'<span class="tick" aria-label="Owned">'+gi('check')+'</span>':''}${o>1?`<span class="q">×${o}</span>`:''}
+    ${(t => t ? `<span class="${t[1]}">${t[0]}</span>` : '')(AVTAG[availOf(id)])}
+    ${w||it.holiday||it.day||ab?`<span class="badges">${ab}${w?'<img class="wishmark" src="ui/star_on.webp" alt="On wishlist">':''}${it.day?'<span class="clockb" title="Only stays in a backpack for a day">'+gi('clock')+'</span>':''}${it.holiday?'<span class="pk" title="Halloween / Full Moon restricted"></span>':''}</span>`:''}
+    <div class="links"><a href="https://wiki.teamfortress.com/scripts/itemredirect.php?id=${id}&lang=en_US" target="_blank" rel="noopener" title="Open on the TF2 Wiki">Wiki</a>${marketable(it) ? `<a href="https://steamcommunity.com/market/search?appid=440&q=${encodeURIComponent('"'+(qOf(id) ? QUAL[qOf(id)].n+' ' : '')+it.name+'"')}" target="_blank" rel="noopener" title="Search the Steam Community Market">Market</a>` : ''}</div>
     <div class="acts">
-      <button class="act ${w?'on':''}" type="button" data-a="wish" title="${w?'Remove from':'Add to'} wishlist" aria-label="Wishlist">★</button>
-      <button class="act" type="button" data-a="own" title="${o?'Mark as not owned':'Mark as owned (held outside this backpack)'}" aria-label="Toggle owned">${o?'✕':'✔'}</button>
-      <button class="act" type="button" data-a="ret" title="${un?'Mark as obtainable':'Mark as unobtainable'}" aria-label="Toggle unobtainable">⛔</button>
+      <button class="act ${w?'on':''}" type="button" data-a="wish" title="${w?'Remove from':'Add to'} wishlist" aria-label="Wishlist">${gi('star')}</button>
+      <button class="act" type="button" data-a="own" title="${o?'Mark as not owned':'Mark as owned (held outside this backpack)'}" aria-label="Toggle owned">${gi(o?'x':'check')}</button>
+      <button class="act" type="button" data-a="ret" title="${un?'Mark as obtainable':'Mark as unobtainable'}" aria-label="Toggle unobtainable">${gi('lock')}</button>
     </div></div>`;
 }
+// The count reads the way the Show filter does: 89/185 normally, "96 left" when showing Missing
+function countLabel(got, total, ids){
+  const n = v => v.toLocaleString();
+  if (S.show === 'miss') return n(total - got) + ' left of ' + n(total);
+  if (S.show === 'own') return n(got) + ' owned of ' + n(total);
+  if (S.show === 'dupe') return n(ids.filter(id => owns(id) > 1).length) + ' with dupes';
+  return n(got) + '/' + n(total);
+}
 function section(key, num, title, sub, ids, tag, lead){
-  ids = ids.filter(inScope);
+  ids = ids.filter(counted);
   const total = ids.length; if (!total) return '';
   const got = ids.filter(owns).length, pct = Math.round(got*100/total);
   if (S.hidedone && got === total) return '';
@@ -493,15 +1041,25 @@ function section(key, num, title, sub, ids, tag, lead){
     <div class="sh">${lead||''}${num!==null?`<span class="num">${num}</span>`:''}
       <div class="grow"><h2>${esc(title)}</h2><div class="sub">${esc(sub)}</div></div>
       ${tag||''}<div class="track mini ${got===total?'full':''}"><div class="fill" style="width:${pct}%"></div></div>
-      <span class="cnt ${got===total?'full':''}">${got}/${total}</span></div>
+      <span class="cnt ${got===total?'full':''}">${countLabel(got, total, ids)}</span></div>
     <div class="grid">${sortIds(vis).map(slot).join('')}</div></section>`;
 }
-function groupBy(keyFn){ const g = new Map(); for (const id of ALL_IDS){ if (!inScope(id)) continue; const k = keyFn(ITEMS[id]); if (!g.has(k)) g.set(k, []); g.get(k).push(id); } return g; }
+function groupBy(keyFn, only){ const g = new Map(); for (const id of ALL_IDS){ if (!inScope(id) || (only && !only.has(id))) continue; const k = keyFn(ITEMS[id]); if (!g.has(k)) g.set(k, []); g.get(k).push(id); } return g; }
 function render(){
   const desc = S.order === 'desc';
   let html = '';
-  if (S.view === 'class'){
-    const g = groupBy(it => it.ckey);
+  if (S.view === 'achieve'){
+    // by where the achievement is earned: TF2's class milestones, TF2's other achievements, then each other game
+    const groupOf = it => { const r = (ACHINFO[it.id] || [])[0] || [440, '', '', 'e']; return r[3] === 'm' ? 'm' : (r[0] === 440 ? 'e' : String(r[0])); };
+    const g = groupBy(groupOf, ACH);
+    const order = ['m', 'e', ...Object.keys(GAMES).filter(a => a !== '440').sort((a, b) => a - b)];
+    for (const k of [...order, ...[...g.keys()].filter(k => !order.includes(k))]) if (g.has(k)){
+      const title = k === 'm' ? 'Team Fortress 2: class milestones' : k === 'e' ? 'Team Fortress 2' : (GAMES[k] || 'Other games');
+      const sub = k === 'm' ? 'Unlocked by completing a class\'s achievements' : k === 'e' ? 'Event, map and game mode achievements' : 'Unlocked by an achievement in ' + (GAMES[k] || 'another game');
+      html += section('ach' + k, null, title, sub, g.get(k), '');
+    }
+  } else if (S.view === 'class' || S.view === 'craft'){
+    const g = groupBy(it => it.ckey, S.view === 'craft' ? CRAFT : null);
     const names = [...CLASSES, 'Multi-class', 'All-class'];
     const subs = i => i < 9 ? 'Items only the '+CLASSES[i]+' can use' : (i===9 ? 'Shared by two to eight classes' : 'Every class can use these');
     for (let i = 0; i <= 10; i++) if (g.has(i)) html += section('cl'+i, null, names[i], subs(i), g.get(i), '', i < 9 ? `<span class="portrait" style="--c:${i}" aria-hidden="true"></span>` : '');
@@ -521,10 +1079,16 @@ function render(){
       const sub = !cs.length ? 'Operation or contract reward' : (c.k === 'crate' ? 'Crate series ' : (cs.length > 1 ? 'Cases ' : 'Case ')) + nums.join(', ') + (c.k !== 'crate' ? ' · ' + cs.map(x => x.n).filter((v,i,a) => a.indexOf(v) === i).join(', ') : '');
       html += section('col'+c.id, cs.length ? nums[nums.length-1] : null, title, sub, c.i, '');
     }
+  } else if (S.view === 'effects'){
+    fxIndex(); const all = Object.values(FX);
+    if (S.lastSync && !S.fxSynced) html += `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>`;
+    for (const kind of ['cosmetic', 'taunt', 'weapon', 'special']) html += fxSection(kind, all.filter(e => e.kind === kind));
+  } else if (S.view === 'backpack'){
+    html = backpackView();
   } else {
     const ids = S.wishlist.filter(id => ITEMS[id]);
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
-      : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ★ to add it here.</p></div>';
+      : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
   $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>Try turning on more item types, or change the filters.</p></div>';
   if (S.quality){ document.body.dataset.quality = S.quality; document.body.style.setProperty('--qcol', QUAL[S.quality].c); }
@@ -532,33 +1096,118 @@ function render(){
   meter(); syncControls(); watchIcons();
 }
 function meter(){
-  const ids = ALL_IDS.filter(inScope), got = ids.filter(owns).length, pct = ids.length ? got*100/ids.length : 0;
+  let ids, got;
+  if (S.view === 'effects'){ fxIndex(); ids = Object.values(FX); got = ids.filter(fxCount).length; }
+  else { ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(counted); got = ids.filter(owns).length; }
+  const pct = ids.length ? got*100/ids.length : 0;
   $('#pct').textContent = pct.toFixed(pct<10?1:0)+'%';
   $('#pfill').style.width = pct+'%';
-  $('#ptxt').textContent = got.toLocaleString()+' / '+ids.length.toLocaleString();
+  $('#ptxt').textContent = S.view === 'effects' ? got.toLocaleString()+' / '+ids.length.toLocaleString() : countLabel(got, ids.length, ids);
   $('#wcount').textContent = S.wishlist.length ? '('+S.wishlist.length+')' : '';
 }
 function syncControls(){
   document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
-  document.querySelectorAll('[data-show]').forEach(b => b.classList.toggle('on', b.dataset.show === S.show));
+  $('#show').value = S.show;
   document.querySelectorAll('[data-type]').forEach(c => { c.checked = !!S.types[c.dataset.type]; });
   $('#sort').value = S.sort; $('#order').value = S.order;
   document.querySelectorAll('[data-cls]').forEach(b => b.classList.toggle('on', b.dataset.cls === String(S.cls)));
-  document.querySelectorAll('[data-avail]').forEach(b => b.classList.toggle('on', b.dataset.avail === S.avail));
-  $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol;
+  $('#avail').value = S.avail;
+  $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol; $('#pinbar').checked = !S.nofollow;
   for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).checked = !!S[k];
   $('#grade').value = S.grade || '';
   syncMute();
   filterSummary();
   $('#grade').style.color = S.grade && RAR[+S.grade] ? RAR[+S.grade].c : '';
   $('#wopts').hidden = !S.types.w;
-  document.querySelectorAll('.qseg [data-q]').forEach(b => b.classList.toggle('on', b.dataset.q === S.quality));
-  $('#sort option[value="class"]').hidden = S.view === 'class';
-  if (S.view === 'class' && S.sort === 'class') $('#sort').value = 'grade';
+  $('#qual').value = S.quality || '';
+  $('#qual').style.color = S.quality ? QUAL[S.quality].c : '';
+  $('#sort option[value="class"]').hidden = S.view === 'class' || S.view === 'craft';
+  if ((S.view === 'class' || S.view === 'craft') && S.sort === 'class') $('#sort').value = 'grade';
   const qn = S.quality && QPOSS[S.quality] ? QPOSS[S.quality].size : 0;
   $('#qnote').textContent = S.quality ? `Every item that exists in ${QUAL[S.quality].n} quality (${qn.toLocaleString()} known, from the TF2 Wiki). Sync to tick off the ones you have.` : '';
-  $('#orderFld').hidden = S.view === 'class' || S.view === 'wishlist';
+  $('#orderFld').hidden = S.view === 'class' || S.view === 'craft' || S.view === 'achieve' || S.view === 'wishlist' || S.view === 'backpack';
+  fadeFilters();
 }
+
+/* Filters that can't change what this view shows fade out (Grade on Achievement Items, where nothing has a grade), and so do
+   the choices that match nothing here. They still work, so a choice made in another view can be changed back. */
+function fadeFilters(){
+  const v = S.view, fx = v === 'effects', bp = v === 'backpack';
+  let U;
+  if (fx) U = [];
+  else if (bp) U = [...new Set(((BP && BP.items) || []).map(r => +(ALIAS[r[1]] || r[1])))].filter(id => ITEMS[id]);
+  else U = (v === 'craft' ? [...CRAFT] : v === 'achieve' ? [...ACH] : v === 'wishlist' ? S.wishlist : ALL_IDS).filter(id => ITEMS[id]);
+  const T = anyType() ? U.filter(id => S.types[ITEMS[id].cat]) : U;
+  const has = (L, f) => L.some(id => f(ITEMS[id]));
+  const here = fx ? 'unusual effects' : bp ? 'your backpack' : v === 'achieve' ? 'the achievement items' : v === 'craft' ? 'the craft hats'
+    : v === 'wishlist' ? 'your wishlist' : 'the items in these types';
+  const why = `Doesn’t apply to ${here}`;
+  const na = (el, off, t) => { if (!el) return; if (el.dataset.t0 == null) el.dataset.t0 = el.title || ''; el.classList.toggle('fna', !!off); el.title = off ? (t || why) : el.dataset.t0; };
+  const fld = id => $('#' + id).closest('.fld');
+  const opt = (id, val, ok) => { const o = $(`#${id} option[value="${val}"]`); if (o) o.disabled = !ok && $('#' + id).value !== String(val); };
+  // ownership: everything in the backpack is owned
+  opt('show', 'own', !bp); opt('show', 'miss', !bp);
+  // grade
+  const rars = new Set(T.map(id => ITEMS[id].rar || 0)), graded = [...rars].some(r => r > 0);
+  for (let k = 1; k <= 6; k++) opt('grade', k, rars.has(k));
+  opt('grade', 'any', graded); opt('grade', '0', graded && rars.has(0));
+  na(fld('grade'), !graded);
+  // quality: the qualities these items come in (in the backpack, the qualities of your copies)
+  let anyQ = false;
+  for (const q of Object.keys(QUAL)) { if (!$(`#qual option[value="${q}"]`)) continue;
+    const ok = bp ? ((BP && BP.items) || []).some(r => bpHasQ(r, q)) : T.some(id => QPOSS[q] && QPOSS[q].has(id)); opt('qual', q, ok); anyQ = anyQ || ok; }
+  na(fld('qual'), !anyQ);
+  // availability
+  const av = new Set(T.map(availOf));
+  for (const o of $('#avail').options) if (o.value !== 'any') opt('avail', o.value, av.has(o.value));
+  na(fld('avail'), av.size < 2 && S.avail === 'any');
+  na(fld('hol'), !has(T, it => it.holiday));
+  // sort: the backpack has its own; effects sort by name, copies or date only
+  na(fld('sort'), bp, 'My Backpack has its own sort, above the items');
+  for (const k of ['grade', 'class', 'region']) opt('sort', k, !fx);
+  // classes, item types, weapon options
+  na($('#clsbar').closest('.fld'), fx); na($('.tgrid[aria-label="Item types"]'), fx);
+  for (const b of document.querySelectorAll('#clsbar [data-cls]')) { const c = b.dataset.cls; if (c === '') continue; const n = +c;
+    na(b, !fx && !has(T, it => it.ckey === n || (n < 9 && it.mask >> n & 1)), `No ${b.title || b.textContent.trim()} items in ${here}`); }
+  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && !has(U, it => it.cat === i.dataset.type));
+  na($('#noresk').closest('.chk'), !has(T, it => it.reskin)); na($('#nobk').closest('.chk'), !has(T, it => it.botkiller)); na($('#nofest').closest('.chk'), !has(T, it => it.newfest));
+  na($('#solo').closest('.chk'), !has(T, it => it.classes.length !== 1));
+  na($('#hidedone').closest('.chk'), bp);
+}
+
+/* War paints (and weapons that come painted) open the game's war paint window (CTFItemInspectionPanel, wpi.js) on that
+   paint, weapon and wear; the war paints and their patterns are read from your TF2 files. */
+let WPOV = null;
+function closeWarPaint(){ if (!WPOV) return; WPOV.remove(); WPOV = null; removeEventListener('resize', fitWarPaint); }
+function fitWarPaint(){ if (!WPOV) return; const k = Math.min(innerWidth * .96 / 1120, innerHeight * .96 / 910, 1); WPOV.querySelector('.wpframe').style.transform = `scale(${k}) translate(-50%,-50%)`; }
+function openWarPaint(id){
+  const it = ITEMS[id]; if (!it || !window.ZWPI || !window.VG) return false;
+  // a painted weapon the window has no pattern or model for opens in the store preview instead
+  if (it.cat === 'd') { ZWPI.match(it.name).then(m => m.pk && m.wk ? showWarPaint(it) : openPreview(id, {store: 1})).catch(() => openPreview(id, {store: 1})); return true; }
+  showWarPaint(it); return true;
+}
+function showWarPaint(it){
+  closeWarPaint(); if (window.ItemPreview && ItemPreview.close) ItemPreview.close();
+  if (!window.ZSND) window.ZSND = n => sfx(n);
+  WPOV = document.createElement('div'); WPOV.className = 'wpov';
+  WPOV.innerHTML = '<div class="wpbg"></div><div class="wpframe" role="dialog" aria-modal="true" aria-label="' + esc(it.name) + '"><div class="wpstage"><div class="wphost"></div></div><div class="wpnote"></div><button type="button" class="wpback">&lt;&lt; Back</button></div>';
+  document.body.appendChild(WPOV); fitWarPaint(); addEventListener('resize', fitWarPaint);
+  const shut = () => { sfx('buttonclick'); closeWarPaint(); };
+  WPOV.querySelector('.wpback').addEventListener('click', shut); WPOV.querySelector('.wpbg').addEventListener('click', shut);
+  const note = WPOV.querySelector('.wpnote'), ov = WPOV;
+  ZWPI.open(WPOV.querySelector('.wphost'), {name: it.name}).then(() => {
+    if (WPOV === ov && !ZWPI.found) note.textContent = 'The window doesn’t have the ' + it.name.replace(/ War Paint$/, '') + ' pattern yet. Pick a war paint from the list.';
+  }).catch(e => {
+    if (WPOV !== ov) return;
+    // the war paints, their operations and every pattern come out of your TF2 files
+    if (e && (e.message === 'nolink' || e.message === 'nofile')) {
+      note.innerHTML = (e.message === 'nolink' ? 'Link your TF2 folder to see war paints: they’re read from your game files.' : 'Your TF2 files have no war paint data (scripts/protodefs/proto_defs.vpd).') +
+        (window.TF2Files && TF2Files.link ? ' <button type="button" class="wplink">Link TF2 folder</button>' : '');
+      const b = note.querySelector('.wplink'); if (b) b.addEventListener('click', () => { sfx('buttonclick'); Promise.resolve(TF2Files.link()).then(ok => { if (ok && WPOV === ov) showWarPaint(it); }).catch(() => {}); });
+    } else { console.warn('[war paint]', e); note.textContent = 'The war paint window couldn’t load.'; }
+  });
+}
+addEventListener('keydown', e => { if (e.key === 'Escape' && WPOV && !WPOV.querySelector('.vgcmenu')) { e.stopPropagation(); closeWarPaint(); } }, true);
 
 /* ---------------- interaction ---------------- */
 document.addEventListener('click', e => {
@@ -575,7 +1224,7 @@ document.addEventListener('click', e => {
     const wasFull = secKey && !!document.querySelector(`.sec[data-key="${CSS.escape(secKey)}"] .cnt.full`);
     if (a === 'wish'){ const add = !S.wishlist.includes(id); S.wishlist = add ? [...S.wishlist, id] : S.wishlist.filter(x => x!==id); sfx(add ? 'item_store_add_to_cart' : 'buttonclickrelease', add ? .5 : 1); }
     if (a === 'own'){
-      const had = owns(id), k = mk(id), got = synced(id, S.quality);
+      const had = owns(id), k = mk(id), got = synced(id, qOf(id));
       S.manualOwned = S.manualOwned.filter(x => x!==k); S.manualMissing = S.manualMissing.filter(x => x!==k);
       if (had && got) S.manualMissing.push(k);
       else if (!had && !got) S.manualOwned.push(k);
@@ -589,17 +1238,36 @@ document.addEventListener('click', e => {
   const head = t.closest('.sh');
   if (head){ const s = head.parentElement; closed[s.dataset.key] = !s.classList.contains('closed'); s.classList.toggle('closed'); }
 });
+$('#show').addEventListener('change', () => { S.show = $('#show').value; save(); render(); });
+$('#avail').addEventListener('change', () => { S.avail = $('#avail').value; save(); render(); });
+$('#qual').addEventListener('change', () => { S.quality = $('#qual').value; save(); render(); });
 document.querySelectorAll('[data-type]').forEach(c => c.addEventListener('change', () => { S.types = {...S.types, [c.dataset.type]: c.checked}; save(); render(); }));
 $('#sort').addEventListener('change', () => { S.sort = $('#sort').value; save(); render(); });
 $('#order').addEventListener('change', () => { S.order = $('#order').value; save(); render(); });
 
 $('#hidedone').addEventListener('change', () => { S.hidedone = $('#hidedone').checked; save(); render(); });
+$('#pinbar').addEventListener('change', () => { S.nofollow = !$('#pinbar').checked; save(); if (S.nofollow) document.querySelector('.top').classList.remove('follow', 'away'); $('#jump').hidden = !S.nofollow || scrollY < 100; });
+document.addEventListener('click', e => {
+  const j = e.target.closest('[data-jump]'); if (!j) return;
+  scrollTo({top: j.dataset.jump === 'top' ? 0 : document.documentElement.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+});
 $('#hol').addEventListener('change', () => { S.hol = $('#hol').value; save(); render(); });
 $('#grade').addEventListener('change', () => { S.grade = $('#grade').value; save(); render(); });
 for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).checked; save(); render(); });
-let qTimer; $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(render, 150); });
+let qTimer; $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.bpPage = 1; render(); }, 150); });
 
+// which achievement unlocks an achievement item, and in which game
+function achHtml(id){
+  const rows = ACHINFO[id]; if (!rows || !rows.length) return '';
+  const crafted = rows.every(r => r[3] === 'c');
+  const game = a => a && a !== 440 ? ` <span class="gm">(${esc(GAMES[a] || 'another game')})</span>` : '';
+  const head = crafted ? 'Crafted from the items these achievements give' : rows.length > 1 ? 'Unlocked by any of these achievements' : 'Unlocked by the achievement';
+  const alt = (ACHALT[id] || []).map(v => ITEMS[v] && ITEMS[v].name).filter(Boolean);
+  return `<div class="ach"><div class="h">${head}</div>` + rows.map(r => `<div class="row">${achIcon(r)}<div><b>${esc(r[1])}</b>${game(r[0])}${r[2] ? `<div class="d">${esc(r[2])}</div>` : ''}</div></div>`).join('') +
+    (alt.length ? `<div class="d">In earlier years it gave the ${esc(alt.join(', the ').replace(/, the ([^,]*)$/, ' or the $1'))}. In this tab, any of them counts.</div>` : '') + '</div>';
+}
 function ownedQualities(id){
+  if (ITEMS[id].cat === 'x') return '';
   const have = BUY_QUAL.filter(q => synced(id, q) || S.manualOwned.includes(q+':'+id));
   const can = BUY_QUAL.filter(q => QPOSS[q] && QPOSS[q].has(id) && !have.includes(q));
   if (!have.length && !can.length) return '';
@@ -611,7 +1279,7 @@ function activeFilters(){
   if (S.quality) f.push(QUAL[S.quality].n + ' quality');
   if (S.cls !== '') f.push(+S.cls < 9 ? CLASSES[+S.cls] : (+S.cls === 9 ? 'Multi-class' : 'All-class'));
   if (S.show === 'own') f.push('Owned'); if (S.show === 'miss') f.push('Missing'); if (S.show === 'dupe') f.push('Duplicates');
-  if (S.avail === 'ob') f.push('Obtainable'); if (S.avail === 'unob') f.push('Unobtainable');
+  if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable'}[S.avail]);
   if (S.grade) f.push(S.grade === 'any' ? 'Any grade' : (+S.grade ? RAR[+S.grade].n : 'No grade'));
   if (S.hol === 'hide') f.push('No Halloween items'); if (S.hol === 'only') f.push('Halloween only');
   if (S.solo) f.push('No multi-class');
@@ -624,9 +1292,9 @@ function filterSummary(){
   $('#filters').hidden = !open;
   $('#filtBtn').setAttribute('aria-expanded', String(open));
   $('#fcount').textContent = f.length ? String(f.length) : '';
-  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',m:'Medals',p:'War paints',d:'Decorated'})[k]);
+  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]);
   $('#fsum').hidden = open;
-  $('#fsum').innerHTML = `<span>Collecting</span><span class="ft">${esc(types.join(', ') || 'nothing')}</span>` +
+  $('#fsum').innerHTML = `<span>Collecting</span><span class="ft">${esc(types.join(', ') || 'everything')}</span>` +
     f.map(x => `<span class="ft">${esc(x)}</span>`).join('') +
     `<button class="lk" type="button" data-fopen>Change</button>` + (f.length ? `<button class="lk" type="button" data-freset>Reset</button>` : '');
 }
@@ -638,10 +1306,14 @@ document.addEventListener('click', e => {
   if (e.target.closest('#filtBtn, [data-fopen]')){ S.fopen = !S.fopen; save(); filterSummary(); }
   else if (e.target.closest('#resetBtn, [data-freset]')) resetFilters();
 });
+const SIDE = matchMedia('(min-width:1100px)');
 { let ticking = false, lastY = scrollY;
   const bar = () => document.querySelector('.top');
   function update(){
     const top = bar(), y = scrollY, dy = y - lastY, h = top.offsetHeight;
+    if (SIDE.matches){ top.classList.remove('follow', 'away'); $('#jump').hidden = y < 400; lastY = y; return; }   // controls in the right-hand column
+    $('#jump').hidden = !S.nofollow || y < h;   // with the bar locked at the top, these jump to either end
+    if (S.nofollow){ top.classList.remove('follow', 'away'); lastY = y; return; }   // the bar just scrolls with the page
     const first = document.querySelector('#main .slot') || document.querySelector('#main .sec, #main .empty');
     const past = y > h && (!first || first.getBoundingClientRect().bottom + (top.classList.contains('follow') ? 0 : h) < h + 1);
     const busy = top.contains(document.activeElement) && document.activeElement.matches('input,select');
@@ -684,7 +1356,7 @@ function sfx(name, vol = 1){
     if (!buf || c.state !== 'running') return;
     try {
       const src = c.createBufferSource(), g = c.createGain();
-      src.buffer = buf; g.gain.value = Math.min(1, SFX_VOL * vol);
+      src.buffer = buf; g.gain.value = Math.min(1, SFX_VOL * vol) * volume();
       src.connect(g); g.connect(c.destination); src.start();
     } catch {}
   };
@@ -700,10 +1372,22 @@ function itemSound(id, pickup){
   const pair = (RAW.sounds || [])[ITEMS[id].snd];
   sfx(pair ? pair[pickup ? 0 : 1] : (pickup ? 'item_default_pickup' : 'item_default_drop'));
 }
-function syncMute(){ const b = $('#muteBtn'); b.firstElementChild.style.setProperty('--g', `url(ui/${S.mute ? 'glyph_muted' : 'glyph_commentary'}.webp)`); b.title = S.mute ? 'Sound off' : 'Sound on'; b.setAttribute('aria-pressed', String(!!S.mute)); }
+function volume(){ const v = +S.vol; return S.mute ? 0 : (isFinite(v) ? Math.max(0, Math.min(100, v)) : 100) / 100; }
+window.ZVOL = volume;   // the store window's voice lines and taunt music follow it too
+function syncMute(){ $('#sndOn').checked = !S.mute; $('#sndVol').value = isFinite(+S.vol) ? +S.vol : 100; $('#sndVolV').textContent = $('#sndVol').value + '%'; $('#sndVol').disabled = !!S.mute; }
+$('#sndOn').addEventListener('change', () => { S.mute = !$('#sndOn').checked; save(); syncMute(); if (!S.mute) sfx('buttonclick'); });
+$('#sndVol').addEventListener('input', () => { S.vol = +$('#sndVol').value; $('#sndVolV').textContent = S.vol + '%'; save(); });
+$('#sndVol').addEventListener('change', () => sfx('buttonclick'));
+// the settings dialog
+function openSettings(){ $('#settings').hidden = false; sfx('panel_open'); $('#settings [data-setclose]').focus(); }
+function closeSettings(){ if ($('#settings').hidden) return; $('#settings').hidden = true; sfx('panel_close'); }
+document.addEventListener('click', e => {
+  if (e.target.closest('#setBtn')) { openSettings(); return; }
+  if (e.target.closest('[data-setclose]') || e.target.id === 'settings') closeSettings();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
 document.addEventListener('click', e => {
   const t = e.target;
-  if (t.closest('#muteBtn')){ S.mute = !S.mute; save(); syncMute(); sfx('buttonclick'); return; }
   if (t.closest('.act, .links a')) return;   // these play their own sounds
   if (t.closest('#filtBtn, [data-fopen]')){ sfx(S.fopen ? 'panel_close' : 'panel_open'); return; }
   const head = t.closest('.sh'); if (head){ sfx(head.parentElement.classList.contains('closed') ? 'slide_down' : 'slide_up', .8); return; }
@@ -717,29 +1401,48 @@ document.addEventListener('mouseover', e => {
   sfx(el.classList.contains('slot') ? 'item_info_mouseover' : 'buttonrollover', el.classList.contains('slot') ? .6 : .7);
 });
 const tip = $('#tip');
+function placeTip(e){
+  tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX+16, y = e.clientY+16;
+  if (x+w > innerWidth-8) x = e.clientX-w-16;
+  if (y+h > innerHeight-8) y = e.clientY-h-16;
+  tip.style.left = Math.max(8,x)+'px'; tip.style.top = Math.max(8,y)+'px';
+}
 document.addEventListener('mousemove', e => {
   const s = e.target.closest('.slot');
   if (!s || e.target.closest('.acts, .links')) { tip.hidden = true; return; }
+  if (s.dataset.bpi !== undefined){ tip.innerHTML = bpTip(BP.items[+s.dataset.bpi]); placeTip(e); return; }
+  if (s.dataset.fx){
+    const fe = FX[+s.dataset.fx], held = fxHolders(fe);
+    tip.innerHTML = `<div class="t" style="color:#8650AC">${esc(fe.name)}</div>
+      <div class="lv">${esc(FX_KIND[fe.kind].replace('effects', 'unusual effect'))}${fe.id > 0 ? ' · #' + fe.id : ''}</div>
+      ${held.length ? `<div class="lvl">Your items with this effect:</div>${held.slice(0, 14).map(([n, c]) => `<div class="d">${esc(n)}${c > 1 ? ' ×' + c : ''}</div>`).join('')}${held.length > 14 ? `<div class="lvl">and ${held.length - 14} more</div>` : ''}` : ''}
+      <div class="s" style="color:${held.length ? 'var(--CreditsGreen)' : 'var(--AttribNegative)'}">${held.length ? 'COLLECTED' : 'NOT COLLECTED'}</div>`;
+    placeTip(e); return;
+  }
   const id = +s.dataset.id, it = ITEMS[id], r = it.rar ? RAR[it.rar] : null, o = owns(id);
   const who = it.classes.length === 9 ? 'All classes' : it.classes.join(', ');
-  const why = isUnob(id) ? (S.override[String(id)] !== undefined ? 'You marked this unobtainable' : (it.cat==='m' ? 'Event or tournament medal, can\'t be traded' : 'Can\'t be traded and is no longer given out')) : (it.untradable ? 'Not tradable, but still earnable' : '');
+  const av = availOf(id), why = whyOf(id);
   const now = new Date(), halloween = (now.getMonth() === 9) || (now.getMonth() === 10 && now.getDate() <= 7);
   let colHtml = '';
-  const col = it.cols.map(c => COLS[c]).find(c => c && c.k === 'collection') || it.cols.map(c => COLS[c])[0];
+  const col = it.cols.map(c => COLS[c]).find(c => c && c.k === 'collection');   // a crate series isn't a collection
   if (col){
     const list = col.i.map(i => ITEMS[i]).filter(Boolean).sort((a,b) => (b.rar - a.rar) || a.name.localeCompare(b.name)).slice(0, 24);
     colHtml = `<div class="col"><div class="h">${esc(col.n)}</div>${list.map(x => `<div class="${x.id===id?'cur':''}" style="color:${x.rar?RAR[x.rar].c:'var(--AttribNeutral)'}">${esc(x.name)}</div>`).join('')}</div>`;
   }
-  const tq = S.quality || ONLY[id] || '';
+  const tq = qOf(id) || ONLY[id] || '';
   tip.innerHTML = `<div class="t" style="${tq ? 'color:'+QUAL[tq].c : (it.warpaint?'color:#FAFAFA':'')}">${tq ? esc(QUAL[tq].n)+' ' : ''}${esc(it.name)}</div>
     <div class="lv" style="${r?'color:'+r.c:''}">${r?esc(r.n)+' Grade ':''}${esc(it.type||CATNAME[it.cat])}</div>
     ${it.desc ? `<div class="d">${esc(it.desc)}</div>` : ''}
     ${it.holiday ? `<div class="${halloween?'lvl':'neg'}">Holiday Restriction: Halloween / Full Moon</div>` : ''}
     ${it.untradable ? '<div class="lvl">( Not Tradable )</div>' : ''}
     ${colHtml}
+    ${achHtml(id)}
     ${it.region ? `<div class="lvl">Equip region: ${esc(it.region)}</div>` : ''}
     <div class="lvl">${esc(who)}${who?' · ':''}Released ${esc(it.date.length>4 ? new Date(it.date+'T00:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short'}) : it.date)}</div>
-    ${why ? `<div class="${isUnob(id)?'neg':'lvl'}">${esc(why)}</div>` : ''}
+    ${CODEQ[id] && av !== 'code' && !(RAW.code_unreleased || {})[id] ? `<div class="lvl" style="color:#E4AE39">${esc((QUAL[CODEQ[id]] ? QUAL[CODEQ[id]].n : 'Unique') + ' copies came from promo codes' + ((RAW.code_from || {})[id] ? ' (' + RAW.code_from[id] + ')' : ''))}</div>` : ''}
+    ${why ? `<div class="${av==='unob'?'neg':'lvl'}" style="${av==='code'?'color:#E4AE39':av==='rare'?'color:#FFD700':''}">${esc(why)}</div>` : ''}
     ${ownedQualities(id)}
     <div class="s" style="color:${o?'var(--CreditsGreen)':'var(--AttribNegative)'}">${o?'IN YOUR BACKPACK'+(o>1?' ×'+o:''):'NOT OWNED'}</div>`;
   tip.hidden = false;
@@ -756,12 +1459,13 @@ const TF_LOGO = 'data:image/webp;base64,UklGRuAKAABXRUJQVlA4TNQKAAAvf8AfEMenuG0b
 function syncBusy(on, label, quiet){
   const b = $('#syncBtn');
   if (!on && !quiet && b.classList.contains('busy')) sfx('trade_failure', .6);
-  if (on && !b.classList.contains('busy')) sfx('mm_queue', .6);   // the casual matchmaking "searching" sound b.disabled = on; b.classList.remove('done'); b.classList.toggle('busy', on);
+  if (on && !b.classList.contains('busy')) sfx('mm_queue', .6);   // the casual matchmaking "searching" sound
+  b.disabled = on; b.classList.remove('done'); b.classList.toggle('busy', on);
   b.innerHTML = on ? `<img class="spin" src="${TF_LOGO}" alt="">${label || 'Syncing'}` : 'Sync';
 }
 function syncDone(){
   sfx('item_acquired', .7);
-  const b = $('#syncBtn'); b.disabled = false; b.classList.remove('busy'); b.classList.add('done'); b.innerHTML = '\u2714 Synced';
+  const b = $('#syncBtn'); b.disabled = false; b.classList.remove('busy'); b.classList.add('done'); b.innerHTML = gi('check') + ' Synced';
   clearTimeout(syncDone.t); syncDone.t = setTimeout(() => { b.classList.remove('done'); b.innerHTML = 'Sync'; }, 5000);
 }
 
@@ -781,10 +1485,11 @@ async function doSync(){
     const j = await r.json();
     stop.done = true;
     if (!r.ok){ status('<span class="err">'+esc(j.error || 'Sync failed.')+'</span>'); return; }
-    S.owned = j.owned; S.qowned = j.quality || {}; S.steamId = raw; S.lastSync = new Date().toLocaleString(); save();
+    S.owned = j.owned; S.qowned = j.quality || {}; S.fx = j.effects || {}; S.fxSynced = true; S.steamId = raw; S.steamId64 = j.steamid || ''; S.lastSync = new Date().toLocaleString(); save();
+    if (j.backpack) BP = j.backpack;
     await loadIconMap();
     const tracked = Object.keys(j.owned).filter(id => ITEMS[id] || ALIAS[id]).length;
-    status(`<span class="good">✔ Finished syncing ${j.total.toLocaleString()} backpack items. ${tracked.toLocaleString()} different collectibles ticked off.</span>`);
+    status(`<span class="good">${gi('check')} Finished syncing ${j.total.toLocaleString()} backpack items. ${tracked.toLocaleString()} different collectibles ticked off.</span>`);
     ok = true; syncDone();
     render();
   } catch (e) {
@@ -899,7 +1604,13 @@ async function iconURL(path){
   const key = RAW.sig + '|' + path;
   let blob = iconDB ? await idbGet(key) : null;
   if (!blob){
-    const c = canvasOf(await loadTex(path, 128));
+    const [base, ...layers] = path.split('|');
+    const c = canvasOf(await loadTex(base, 128));
+    for (const l of layers){   // CEconItemView's inventory overlays: the overlay texture modulated by the paint colour
+      const at = l.lastIndexOf('@'), rgb = +l.slice(at + 1);
+      const o = canvasOf(tinted(await loadTex(l.slice(0, at), 128), [rgb >> 16 & 255, rgb >> 8 & 255, rgb & 255]));
+      c.getContext('2d').drawImage(o, 0, 0, c.width, c.height);
+    }
     blob = await new Promise(res => c.toBlob(res, 'image/png'));
     if (iconDB && blob) idbPut(key, blob);
   }
@@ -918,21 +1629,92 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver(entries =
 }, {rootMargin: '600px 0px'}) : null;
 function watchIcons(){ if (io) document.querySelectorAll('img.ico[data-img]').forEach(i => io.observe(i)); }
 
+// What a tooltip says about where an item stands (also shown in the store preview)
+function whyOf(id){
+  const it = ITEMS[id], av = availOf(id), mine = S.override[String(id)] !== undefined;
+  const cq = CODEQ[id] ? (QUAL[CODEQ[id]] ? QUAL[CODEQ[id]].n : 'Unique') + ' copies' : 'it', from = (RAW.code_from || {})[id], un = (RAW.code_unreleased || {})[id], note = (RAW.unob_notes || {})[id];
+  return av === 'unused' ? 'Unreleased: ' + (un ? cq + ' were never given out, as ' + un : 'in the game files, but never given out')
+    : av === 'unob' ? (mine ? 'You marked this unobtainable' : note ? 'Unobtainable: ' + note.replace(/^[^(]*\((.*)\)$/, '$1') : (it.cat==='m' ? 'Event or tournament medal, can\'t be traded' : 'Can\'t be traded and is no longer given out'))
+    : av === 'code' ? 'Code item: ' + cq + ' came from redeeming promo codes' + (from ? ' that came with ' + from : '') + ', and unused codes may still exist'
+    : av === 'expired' ? 'Expired: deleted itself from every backpack' + (typeof it.expired === 'string' ? ' on ' + new Date(it.expired + 'T00:00:00').toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}) : '')
+    : av === 'rare' ? '1 of 1: only a single copy exists' + (it.day ? '. It only stays in a backpack for a day, then disappears' : '')
+    : av === 'limited' ? 'Limited: ' + ((RAW.force_limited || {})[id] || 'tradable, but it came from a promotion that has ended, so no new copies are made')
+    : (it.untradable ? 'Not tradable, but still earnable' : '');
+}
+/* Clicking an item opens the Mann Co. Store's preview window (preview.js): its icon and details, and on a class portrait
+   the item on that merc in 3D (store3d.js), read from your own TF2 files once they're linked in Settings */
+// the item's collection for the store window's description (a Mann Co. crate series isn't a collection), and the cases that drop it
+function previewCollection(it){
+  const col = it.cols.map(c => COLS[c]).find(c => c && c.k === 'collection');
+  if (!col) return null;
+  const list = col.i.map(i => ITEMS[i]).filter(Boolean).sort((a, b) => (b.rar - a.rar) || a.name.localeCompare(b.name)).slice(0, 24);
+  return {name: col.n, cases: [...new Set((CASE_BY_COL[col.id] || []).map(c => c.n).filter(Boolean))],
+    items: list.map(x => [x.name, x.rar ? RAR[x.rar].c : '', x.id === it.id])};
+}
+/* Unusual Effects tab: an effect opens the store window on an item that can carry it, with the effect already picked:
+   cosmetic effects on the Unusual Cap, taunt effects on the Schadenfreude, weapon effects on the stock Rocket Launcher */
+const FX_ON = {cosmetic: 1173, taunt: 463, weapon: 18};
+function fxPreview(id){
+  const e = FX[id], it = e && ITEMS[FX_ON[e.kind]];
+  if (it) openPreview(it.id, {fx: id});
+}
+// every unusual effect by the kind of item it goes on, for the store window's Unusual dropdown (newest last, as the game lists them)
+let FXK = null;
+function fxByKind(){
+  if (FXK) return FXK; FXK = {cosmetic: [], taunt: [], weapon: []};
+  for (const e of Object.values(FX)) if (e.id > 0 && FXK[e.kind]) FXK[e.kind].push([e.id, e.name]);
+  for (const k in FXK) FXK[k].sort((a, b) => a[0] - b[0]);
+  return FXK;
+}
+function openPreview(id, opt){
+  const it = ITEMS[id]; if (!it || !window.ItemPreview) return;
+  if ((it.cat === 'p' || it.cat === 'd') && !(opt && opt.store) && openWarPaint(id)) return;   // war paints: the game's war paint window
+  const o = owns(id), tq = qOf(id) || ONLY[id] || '', r = it.rar ? RAR[it.rar] : null, av = availOf(id), why = whyOf(id);
+  const linked = !!(window.ZLIVE && ZLIVE.ready);
+  const attrs = [];
+  if (it.desc) attrs.push([it.desc, '']);
+  if (why) attrs.push([why, av === 'unob' ? '#C8503C' : av === 'code' ? '#E4AE39' : av === 'rare' ? '#FFD700' : '']);
+  if (it.date) attrs.push(['Released ' + (it.date.length > 4 ? new Date(it.date + 'T00:00:00').toLocaleDateString(undefined, {year:'numeric', month:'short'}) : it.date), '#766B5E']);
+  tip.hidden = true; sfx('panel_open');
+  ItemPreview.open({id, name: (tq ? QUAL[tq].n + ' ' : '') + it.name, nm: linked ? '#' + id : it.name, esc, sfx,
+    iconHtml: iconHtml(it), icons: () => watchIcons(), img: it.img || '', fx: opt && opt.fx != null ? opt.fx : null,
+    color: tq ? QUAL[tq].c : (it.warpaint ? '#FAFAFA' : (r ? r.c : '')),
+    kind: it.cat === 's' ? (it.action ? 'a' : 'w') : it.cat, stock: it.cat === 's' && !it.action, effects: fxByKind(), classes: it.classes.map(c => c.toLowerCase()), col: previewCollection(it),
+    level: (r ? r.n + ' Grade ' : '') + (it.type || CATNAME[it.cat]), holiday: it.holiday,
+    status: it.cat === 's' && !qOf(id) && !synced(id, '') && !S.manualOwned.includes(mk(id)) && !S.manualMissing.includes(mk(id)) ? ['Always in your loadout', '#5E9631']
+      : o ? ['In your backpack' + (o > 1 ? ' \u00d7' + o : ''), '#5E9631'] : ['Not owned', '#C8503C'], attrs,
+    tradable: it.cat === 'm' ? false : it.cat === 's' ? !!qOf(id) : !it.untradable,   // the stock copy can't be traded; a Strange or Unusual one can
+    wiki: 'https://wiki.teamfortress.com/scripts/itemredirect.php?id=' + id + '&lang=en_US',
+    market: marketable(it) ? 'https://steamcommunity.com/market/search?appid=440&q=' + encodeURIComponent('"' + (qOf(id) ? QUAL[qOf(id)].n + ' ' : '') + it.name + '"') : null,
+    wish: {on: () => S.wishlist.includes(id), toggle: () => { const add = !S.wishlist.includes(id); S.wishlist = add ? [...S.wishlist, id] : S.wishlist.filter(x => x !== id); sfx(add ? 'item_store_add_to_cart' : 'buttonclickrelease', add ? .5 : 1); save(); render(); }},
+    close: () => sfx('panel_close')});
+}
+document.addEventListener('click', e => {
+  const s = e.target.closest('.slot'); if (!s || e.target.closest('.acts, .links, a, button')) return;
+  if (s.dataset.id){ openPreview(+s.dataset.id); return; }
+  if (s.dataset.fx){ fxPreview(+s.dataset.fx); return; }
+  if (s.dataset.bpi !== undefined && BP){ const r = BP.items[+s.dataset.bpi]; const id = r && +(ALIAS[r[1]] || r[1]); if (ITEMS[id]) openPreview(id); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.matches || !e.target.matches('.slot')) return;
+  const s = e.target; if (s.dataset.id) openPreview(+s.dataset.id);
+});
+
 /* ---------------- boot ---------------- */
+async function loadBackpack(){ try { const j = await (await fetch('/api/backpack')).json(); if (j && Array.isArray(j.items)) BP = j; } catch {} }
 async function loadExtra(){ try { initExtra(await (await fetch('/api/extra')).json()); } catch {} }
 async function loadIconMap(){ try { ICONMAP = await (await fetch('/api/icons')).json(); } catch {} }
+/* Settings > Sync with your game: link the app to the TF2 install, so the item list and icons come from
+   the game itself and items can be previewed in 3D from the game's own models */
 function settingsPanel(current, source){
-  const box = document.createElement('div');
-  box.className = 'panel gut'; box.id = 'settings'; box.style.cssText = 'max-width:680px;margin:14px auto';
-  box.innerHTML = `<div><b>Item data</b></div>
-    <p class="sub" style="margin:0">Right now the item list comes from ${source === 'local' ? 'your TF2 install at <b>'+esc(current)+'</b>' : 'the online copy of TF2\u2019s item files (updated within hours of every TF2 patch)'}.
-    If TF2 is installed, you can point the app at it: the list is then exact to your game version, and icons are read from your own game files.</p>
-    <div class="row"><input id="tfpath" class="in grow" placeholder="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2" value="${esc(current||'')}">
-      <button class="btn big" id="tfgo" type="button">Use this folder</button>
-      ${source === 'local' ? '<button class="btn" id="tfonline" type="button">Use online data</button>' : ''}
-      <button class="btn" id="tfclose" type="button">Close</button></div>
+  const linked = source === 'local', box = $('#gameSet');
+  box.innerHTML = `<h3>Sync with your game</h3>
+    <p>${linked ? 'Linked to your TF2 install at <span class="path">' + esc(current) + '</span>. The item list and icons come from your game files, and when you click an item, the Mann Co. Store preview shows it on the merc in 3D, read straight from your game.'
+      : 'Right now the item list comes from the online copy of TF2\u2019s item files. Point the app at your TF2 install and it reads the item list and icons straight from your game, and the Mann Co. Store preview (click any item) shows items on the merc in 3D.'}</p>
+    <div class="row"><input id="tfpath" class="in grow" placeholder="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2" value="${esc(current||'')}" aria-label="TF2 folder">
+      <button class="btn big" id="tfgo" type="button">${linked ? 'Use this folder' : 'Link my game'}</button>
+      ${linked ? '<button class="btn" id="tfonline" type="button">Unlink</button>' : ''}</div>
     <p class="sub" id="tfmsg" style="margin:0;color:var(--AttribNegative)"></p>`;
-  $('#main').prepend(box);
   const apply = async path => {
     const r = await fetch('/api/tfdir', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path})});
     const j = await r.json(); if (!r.ok){ $('#tfmsg').textContent = j.error; return; }
@@ -940,12 +1722,11 @@ function settingsPanel(current, source){
   };
   $('#tfgo').onclick = () => apply($('#tfpath').value);
   if ($('#tfonline')) $('#tfonline').onclick = () => apply('');
-  $('#tfclose').onclick = () => box.remove();
 }
 (async function boot(){
   let st;
   try { st = await (await fetch('/api/status')).json(); } catch { status('<span class="err">The checklist app isn\'t running.</span>'); return; }
-  $('#setBtn').onclick = () => { if (!$('#settings')) settingsPanel(st.tf_dir, st.source); };
+  settingsPanel(st.tf_dir, st.source);
   try { const saved = await (await fetch('/api/state')).json(); S = migrate({...S, ...saved, types: {...S.types, ...(saved.types||{})}}); } catch {}
   $('#sid').value = S.steamId || '';
   $('#main').innerHTML = '<div class="empty"><h2>Loading the item list</h2><p id="buildmsg">This takes a few seconds the first time, and again after TF2 updates.</p></div>';
@@ -954,9 +1735,14 @@ function settingsPanel(current, source){
   const [r] = await Promise.all([fetch('/api/catalog'), openIconDB().then(d => iconDB = d)]);
   const cat = await r.json();
   stop.done = true;
-  if (!r.ok){ $('#main').innerHTML = `<div class="empty"><h2>Couldn't load the item list</h2><p>${esc(cat.error||'')}</p></div>`; settingsPanel(st.tf_dir, st.source); return; }
+  if (!r.ok){ $('#main').innerHTML = `<div class="empty"><h2>Couldn't load the item list</h2><p>${esc(cat.error||'')}</p></div>`; openSettings(); return; }
   initCatalog(cat);
-  await Promise.all([loadIconMap(), loadExtra()]);
+  if (st.source === 'local'){
+    // linked to the install: the store preview's reader opens the same game files through the app (boot runs after load, usually)
+    const go = () => { if (window.TF2Files) TF2Files.connectApp(st.tf_dir).catch(e => console.warn('[preview]', e)); };
+    if (document.readyState === 'complete') go(); else addEventListener('load', go);
+  }
+  await Promise.all([loadIconMap(), loadExtra(), loadBackpack()]);
   $('#clsbar').innerHTML = '<button class="btn" type="button" data-cls="">All</button>' +
     CLASSES.map((c,i) => `<button class="btn" type="button" data-cls="${i}" title="${c}" aria-label="${c}"><span class="emb" style="--c:${i}"></span></button>`).join('') +
     '<button class="btn" type="button" data-cls="9">Multi</button><button class="btn" type="button" data-cls="10">All-class</button>';

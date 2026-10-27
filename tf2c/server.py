@@ -4,6 +4,7 @@ to read the public backpack of the ID you type in."""
 import json
 import mimetypes
 import os
+import re
 import sys
 import threading
 import time
@@ -29,6 +30,28 @@ else:
     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     HOME = ROOT
 WEB = os.path.join(ROOT, "web")
+_PACK = None
+
+
+def model_file(rel):
+    """One file out of web/models/pack_N.bin, by its path ("models/scout.glb.wasm"), or None."""
+    global _PACK
+    if _PACK is None:
+        try:
+            with open(os.path.join(WEB, "models", "pack.json")) as f:
+                _PACK = json.load(f)
+        except (OSError, ValueError):
+            _PACK = {}
+    e = _PACK.get(rel)
+    if not e:
+        return None
+    part, off, size = e
+    try:
+        with open(os.path.join(WEB, "models", "pack_%d.bin" % int(part)), "rb") as f:
+            f.seek(off)
+            return f.read(size)
+    except OSError:
+        return None
 DATA = os.path.join(ROOT, "data")
 USER = os.environ.get("TF2C_USER_DIR") or os.path.join(HOME, "userdata")   # your settings + cache, git-ignored
 CACHE = os.path.join(USER, "cache")
@@ -198,6 +221,43 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_vpk(self, name):
+        """One of the game's VPK archives, whole or a byte range of it: the store preview reads models,
+        materials and the item schema straight out of the archives, a slice at a time (web/game.js)."""
+        if not APP.tf_dir or not re.fullmatch(r"(tf2|hl2)_[a-z_]+_(dir|\d{3})\.vpk", name):
+            return self.send(404, {"error": "not found"})
+        # hl2_*.vpk: the Half-Life 2 content TF2 mounts from Team Fortress 2/hl2 (glow and smoke materials of unusual effects)
+        fp = os.path.join(APP.tf_dir, name) if name.startswith("tf2_") else os.path.join(os.path.dirname(os.path.normpath(APP.tf_dir)), "hl2", name)
+        if not os.path.isfile(fp):
+            return self.send(404, {"error": "missing"})
+        size = os.path.getsize(fp)
+        m = re.fullmatch(r"bytes=(\d+)-(\d*)", (self.headers.get("Range") or "").strip())
+        start, end = (int(m.group(1)), min(size - 1, int(m.group(2)) if m.group(2) else size - 1)) if m else (0, size - 1)
+        if m and start >= size:
+            self.send_response(416)
+            self.send_header("Content-Range", "bytes */%d" % size)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        n = max(0, end - start + 1)
+        self.send_response(206 if m else 200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Accept-Ranges", "bytes")
+        if m:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+        self.send_header("Content-Length", str(n))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        with open(fp, "rb") as f:
+            f.seek(start)
+            left = n
+            while left > 0:
+                chunk = f.read(min(left, 1 << 20))
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                left -= len(chunk)
+
     def body(self):
         n = int(self.headers.get("Content-Length") or 0)
         try:
@@ -225,23 +285,42 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, APP.get_icons())
             if path == "/api/state":
                 return self.send(200, jload(APP.state_path(), {}))
+            if path == "/api/backpack":
+                return self.send(200, jload(os.path.join(USER, "backpack.json"), {}))
+            if path.startswith("/vpk/"):
+                return self.send_vpk(urllib.parse.unquote(path[len("/vpk/"):]))
             if path.startswith("/game/"):
                 # raw game files (textures, fonts) straight from the local install
                 rel = path[len("/game/"):]
-                if not rel.startswith(("materials/", "resource/")) or not rel.endswith((".vtf", ".ttf")):
+                # textures and fonts for the icons, plus the item schema, English strings and choreo scenes the store
+                # preview reads (web/game.js; its models and materials come out of the VPKs through /vpk/)
+                if not (rel.startswith(("materials/", "resource/")) and rel.endswith((".vtf", ".ttf", ".vmt"))) \
+                        and rel not in ("scripts/items/items_game.txt", "resource/tf_english.txt", "scenes/scenes.image",
+                                "scripts/protodefs/proto_defs.vpd", "resource/tf_proto_obj_defs_english.txt"):
                     return self.send(403, {"error": "not allowed"})
                 files = APP.game_files()
                 data = files.read(rel) if files else None
                 if data is None:
                     return self.send(404, {"error": "missing"})
-                ctype = "font/ttf" if rel.endswith(".ttf") else "application/octet-stream"
+                ctype = "font/ttf" if rel.endswith(".ttf") else ("text/plain; charset=latin-1" if rel.endswith(".vmt") else "application/octet-stream")
+                if rel.endswith(".txt"):
+                    ctype = "application/octet-stream"   # kept byte for byte (tf_english.txt is UTF-16)
                 return self.send(200, data, ctype, cache=True)
-            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/")):
+            if path.startswith("/models/"):
+                # the store preview's class models, skins, face data and stock weapons, packed into web/models/pack_N.bin
+                # (tools/pack_models.py) so they fit GitHub's upload limits
+                data = model_file(urllib.parse.unquote(path.lstrip("/")))
+                if data is None:
+                    return self.send(404, {"error": "not found"})
+                ctype = "application/wasm" if path.endswith(".wasm") else (mimetypes.guess_type(path)[0] or "application/octet-stream")
+                return self.send(200, data, ctype, cache=True)
+            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/", "/vendor/", "/ctk/")) or path in ("/preview.js", "/store3d.js", "/game.js", "/pfx.js", "/vgui.js", "/wpi.js"):
                 rel = path[len("/static/"):] if path.startswith("/static/") else path.lstrip("/")
                 fp = os.path.normpath(os.path.join(WEB, rel))
                 if fp.startswith(WEB) and os.path.isfile(fp):
                     with open(fp, "rb") as f:
-                        return self.send(200, f.read(), mimetypes.guess_type(fp)[0] or "application/octet-stream", cache=True)
+                        ctype = "text/javascript; charset=utf-8" if fp.endswith(".js") else ("application/wasm" if fp.endswith(".wasm") else mimetypes.guess_type(fp)[0] or "application/octet-stream")
+                        return self.send(200, f.read(), ctype, cache=True)
             return self.send(404, {"error": "not found"})
         except Exception as e:
             traceback.print_exc()
@@ -265,10 +344,12 @@ class Handler(BaseHTTPRequestHandler):
                 names = None
                 if APP.catalog:
                     names = {it[1].lower(): it[0] for it in APP.catalog["items"]}
-                owned, total, icons, quals = steam.fetch_backpack(sid, progress=APP.progress, names=names)
+                owned, total, icons, quals, fx, items = steam.fetch_backpack(sid, progress=APP.progress, names=names)
                 APP.progress("")
                 APP.remember_icons(icons)
-                return self.send(200, {"steamid": sid, "owned": owned, "total": total, "quality": quals})
+                backpack = {"steamid": sid, "at": time.time(), "items": items}
+                jsave(os.path.join(USER, "backpack.json"), backpack)
+                return self.send(200, {"steamid": sid, "owned": owned, "total": total, "quality": quals, "effects": fx, "backpack": backpack})
             return self.send(404, {"error": "not found"})
         except (ValueError, steam.SteamError) as e:
             return self.send(400, {"error": str(e)})
@@ -295,7 +376,7 @@ def main(argv=None):
         print("Couldn't open a local port between 8440 and 8469.")
         return 1
     url = "http://127.0.0.1:%d/" % port
-    print("TF2 Catalog %s" % __version__)
+    print("The Mann-ual %s" % __version__)
     print("Item data: %s" % (APP.tf_dir or "online (TF2 install not found, that's fine)"))
     print("Open %s  (Ctrl+C to quit)" % url)
     threading.Thread(target=APP.warm_up, daemon=True).start()

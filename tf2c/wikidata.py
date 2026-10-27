@@ -173,4 +173,23 @@ def apply(catalog, data):
     for k in medals:
         only.setdefault(k, "genuine")
     qual["genuine"] = sorted(set(qual.get("genuine", [])) | set(medals))
-    return {"q": qual, "nomarket": nomarket, "only": only}
+    # How you can still get an item, from the wiki's availability tags:
+    #   limited: tradable, but every source was a promotion that has ended (no new copies are made)
+    #   code:    untradable and only ever given through promo codes; unused codes may still redeem
+    limited, code = set(), set()
+    for k, r in flags.items():
+        tags = [t for t in (r.get("a") or "").split("|") if t]
+        if not tags or not all(t.startswith("promotional") for t in tags):
+            continue
+        if r.get("t"):
+            limited.add(k)
+        elif any("codes" in t for t in tags):
+            code.add(k)
+    for k in catalog.get("not_single", []):   # curated: these also exist as Unique
+        only.pop(k, None)
+    limited -= set(catalog.get("not_limited", []))
+    limited |= {int(k) for k in catalog.get("force_limited", {})}
+    # "Craft hats": cosmetics you can get by crafting (the wiki's "craft" availability)
+    cosmetic = {it[0] for it in catalog["items"] if it[3] == "c"}
+    craft = sorted(k for k, r in flags.items() if k in cosmetic and "craft" in (r.get("a") or "").split("|"))
+    return {"q": qual, "nomarket": nomarket, "only": only, "limited": sorted(limited), "code": sorted(code), "craft": craft}
