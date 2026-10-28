@@ -593,7 +593,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
       <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
     <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
-      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
+      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, turn into baby bottles there, or get assists in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
@@ -615,7 +615,6 @@ button.vg:focus-visible{outline:none}
         <label class="chk" title="Items for the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal..."><input type="checkbox" data-type="a"> Action items</label>
         <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
         <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools"><input type="checkbox" data-type="l"> Tools</label>
-        <label class="chk" title="Items that deleted themselves from every backpack on a set date"><input type="checkbox" data-type="x"> Expired items</label>
         <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
       </div>
       <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
@@ -698,7 +697,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 /* ---------------- state ---------------- */
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], override:{}, lastSync:'',
-         view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false,x:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
+         view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
          quality:'', qowned:{}, fx:{}, grade:'', region:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
@@ -728,7 +727,7 @@ function migrate(x){
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
-  if (x.avail === 'expired'){ x.avail = 'any'; x.types = {...(x.types || {}), x: true}; }   // expired items have their own type box
+  if (x.types) delete x.types.x;   // expired items moved from the item types to Availability
   if (!['all','hide','only'].includes(x.pyro)) x.pyro = 'all';
   if (x.types && x.types.p !== undefined && x.types.d === undefined) x.types = {...x.types, d: x.types.p};
   delete x.nowp; delete x.hideunob; delete x.pending; return x;
@@ -768,9 +767,14 @@ function owns(id){
 }
 /* availability: ob (new copies still come out), limited (tradable, none new), rare (1 of 1: a single copy),
    code (untradable, promo codes only), unob (gone). Your own lock mark overrides it. */
+// your own mark wins over Obtainable / Limited, but a code, expired, 1 of 1 or unreleased item keeps its kind when marked unobtainable
 function availOf(id){
-  const o = S.override[String(id)], it = ITEMS[id];
-  if (o !== undefined) return o ? 'unob' : 'ob';
+  const o = S.override[String(id)], b = availBase(id);
+  if (o === undefined) return b;
+  return !o ? 'ob' : (b === 'ob' || b === 'limited' || b === 'unob') ? 'unob' : b;
+}
+function availBase(id){
+  const it = ITEMS[id];
   if ((RAW.unused || {})[id]) return 'unused';   // in the game files, never given out
   if (it.expired) return 'expired';
   if (it.rare) return 'rare';
@@ -786,7 +790,7 @@ function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? 
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
 // with Pyroland on Only these, its three groups list every type
-const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat] : it.cat !== 'm';
+const typeOk = it => S.pyro === 'only' || it.cat === 'x' ? true : anyType() ? !!S.types[it.cat] : it.cat !== 'm';   // expired items: Availability picks them
 function inScope(id, anyT){
   const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
   if (S.solo && it.classes.length !== 1) return false;

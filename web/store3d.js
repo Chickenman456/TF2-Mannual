@@ -854,6 +854,8 @@ function attrClass(r,c){for(const b of ['attributes','static_attrs']){const B=r[
 function skinOverride(n){const e=entry(n);return !!(e&&attrClass(e.r,'player_skin_override'))}
 // worn weapon-slot items (Razorback, Gunboats, Booties, shields...): drawn on the body, never in the hand
 function wornWep(n,cl){if(!ST.ready)return false;const e=entry(n);return !!(e&&e.k=='wep'&&((/^tf_wearable/.test(String(e.r.item_class||'').toLowerCase())&&(!cl||mdlFor(e,cl)))||passiveXW(e,cl)))}
+// the Spy's watches (tf_weapon_invis) only ship a viewmodel (v_watch_spy: the watch on a gloved arm) and don't show on the merc: no model view
+const isWatch=e=>String(e.r.item_class||'').toLowerCase()=='tf_weapon_invis';
 // a weapon-slot item with no model of its own that is only ever seen as its extra_wearable (the B.A.S.E. Jumper's pack): worn on the back, the merc holds another weapon
 function passiveXW(e,cl){return !!(e&&e.k=='wep'&&!e.r.model_player&&!e.r.model_player_per_class&&!e.r.model_world&&xwOf(e)&&(!cl||usedBy(e.r,clsKey(cl)))&&!armOnly(e,cl))}
 const xwOf=e=>{const x=e&&e.r.extra_wearable;return x&&typeof x=='string'&&x.trim()&&has(x.replace(/\\/g,'/'))?x.replace(/\\/g,'/'):null};
@@ -1135,7 +1137,7 @@ function bg(n,cl,si){const e=entry(n);if(!e)return[];const v=e.r.visuals||{};con
   else pbNames(c).then(()=>{const M3=(window.Z3D&&Z3D.M)||{};const C=Object.keys(M3).find(x=>clsKey(x)===c);if(C&&M3[C]){M3[C].csig=null;if(window.ZREDRESS)ZREDRESS(C)}}).catch(()=>{})}
  return[...out]}
 function hasItem(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||(e.k!='cos'&&e.k!='action'&&!(e.k=='medal'&&hasModel(e.r))))return false;if(!cl)return true;return !!mdlFor(e,cl)}
-function hasWep(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||e.k!='wep')return false;return !cl||!!mdlFor(e,cl)||!!armOnly(e,cl)||passiveXW(e,cl)}
+function hasWep(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||e.k!='wep')return false;if(isWatch(e))return false;return !cl||!!mdlFor(e,cl)||!!armOnly(e,cl)||passiveXW(e,cl)}
 function wepSlot(n,cl){const e=entry(n);if(!e)return null;const u=usedBy(e.r,clsKey(cl));return u&&u!=='1'?String(u).toLowerCase():String(e.r.item_slot||'').toLowerCase()}
 function animSlot(n,cl){const e=entry(n);if(!e)return null;let a=e.r.anim_slot;if(a&&typeof a=='object')a=a[clsKey(cl)];return a?String(a).toUpperCase():null}
 function flexPack(key){return ST.flex[key]||null}
