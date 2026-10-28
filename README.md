@@ -1,4 +1,4 @@
-<img width="1318" height="338" alt="tf2 mann-ual logo" src="https://github.com/user-attachments/assets/4a5843fc-888f-4d89-8ae3-c6452b3d36fa" />
+<img width="1318" height="338" alt="mannuallogogit" src="https://github.com/user-attachments/assets/c7c20c57-e20c-4d59-b17d-0cdf4e2bbe2f" />
 
 
 A Team Fortress 2 item checklist and collection tracker for traders, collectors, and archivists.
