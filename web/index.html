@@ -593,7 +593,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
       <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
     <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
-      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
+      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, turn into baby bottles there, or get assists in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
@@ -728,6 +728,7 @@ function migrate(x){
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
+  if (x.avail === 'expired'){ x.avail = 'any'; x.types = {...(x.types || {}), x: true}; }   // expired items have their own type box
   if (!['all','hide','only'].includes(x.pyro)) x.pyro = 'all';
   if (x.types && x.types.p !== undefined && x.types.d === undefined) x.types = {...x.types, d: x.types.p};
   delete x.nowp; delete x.hideunob; delete x.pending; return x;
