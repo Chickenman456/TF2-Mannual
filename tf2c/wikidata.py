@@ -169,6 +169,12 @@ def apply(catalog, data):
             only[k] = q
             if q in qual and k not in qual[q]:
                 qual[q].append(k)
+    for k, qs in (catalog.get("not_quality") or {}).items():   # curated: a wiki name clash put it in a quality it never came in
+        for q in qs:
+            if q in qual:
+                qual[q] = [i for i in qual[q] if i != int(k)]
+            if only.get(int(k)) == q:
+                del only[int(k)]
     medals = [it[0] for it in catalog["items"] if len(it) > 7 and it[7] & 256]
     for k in medals:
         only.setdefault(k, "genuine")

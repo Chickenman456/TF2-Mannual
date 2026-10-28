@@ -238,6 +238,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     one_day = notes("one_day")
     include = notes("include")
     not_single = notes("not_single_quality")
+    not_quality = notes("not_quality")   # curated: qualities the wiki wrongly lists an item in
     code_items = notes("code_items")
     code_from = notes("code_from")
     code_unreleased = notes("code_unreleased")
@@ -743,6 +744,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])],
             "notes": {str(k): v for k, v in one_day.items() if k in keep},
             "not_single": sorted(k for k in not_single if k in keep),
+            "not_quality": {str(k): v for k, v in not_quality.items() if k in keep},
             "code_items": {str(k): v for k, v in code_items.items() if k in keep},
             "code_from": {str(k): v for k, v in code_from.items() if k in keep},
             "code_unreleased": {str(k): v for k, v in code_unreleased.items() if k in keep},

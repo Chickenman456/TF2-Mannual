@@ -6,7 +6,8 @@
     "5616": "Voodoo-Cursed Soul (Armory) placeholder",
     "1057-1065": "MvM GateBot lights, worn only by robots",
     "30143-30161": "MvM robot armor and helmets, worn only by robots",
-    "1191-1194": "Unreleased Yeti Park hats (Jungle Inferno)"
+    "1191-1194": "Unreleased Yeti Park hats (Jungle Inferno)",
+    "1132": "TF_WEAPON_SPELLBOOK: the base copy of the Spellbook Magazine (1070), listed twice otherwise"
   },
   "still_earnable": {
     "116": "Ghastly Gibus, passed on by domination",
@@ -255,5 +256,12 @@
     "1192": "never given out",
     "1193": "never given out",
     "1194": "never given out"
+  },
+  "not_quality": {
+    "_note": "Qualities the wiki's quality tables list an item in, but that it never came in (a name clash on the wiki).",
+    "5839": [
+      "haunted",
+      "strange"
+    ]
   }
 }
