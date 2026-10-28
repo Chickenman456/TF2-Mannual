@@ -22,6 +22,7 @@ Enter a SteamID64, custom URL, or profile link to see which cosmetics, taunts, w
 - **TF2 interface.** Uses game fonts, icons, backpack borders, rarity colors, and interface sounds.
 - **Item links.** Open the TF2 Wiki and Steam Community Market pages for supported items.
 - **Customizable settings.** Adjust interface sounds, volume, scrolling behavior, and synchronization with your local TF2 installation.
+- **Update check.** The app looks for a newer release on GitHub each time it starts and marks the Settings button when one is out. Settings > Updates shows your version and links to the download.
 
 Items can be marked as unobtainable, limited, one-of-a-kind, unreleased, or code-exclusive. These classifications are curated and may not always be accurate.
 

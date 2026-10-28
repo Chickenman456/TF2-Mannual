@@ -127,6 +127,9 @@ label.chk input{accent-color:var(--TFOrange)}
 @media (max-width:700px){.search{width:100%;order:3}}
 .gi{display:inline-block;width:20px;height:20px;vertical-align:middle;background:currentColor;-webkit-mask:var(--g) center/contain no-repeat;mask:var(--g) center/contain no-repeat}
 .ibtn{display:inline-grid;place-items:center;padding-inline:10px}
+#setBtn{position:relative}
+#setBtn.upd::after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#CF6A32;box-shadow:0 0 0 2px #2B2725}
+#updMsg a{color:#E4AE39}
 .wopts{display:contents}
 .chipgrp{display:inline-flex;gap:2px}
 .chipgrp .chip:first-child{border-radius:4px 0 0 4px}
@@ -633,6 +636,7 @@ button.vg:focus-visible{outline:none}
     <section class="mrow"><h3>Top bar</h3><label class="chk"><input type="checkbox" id="pinbar"> Bring the top bar back when scrolling up</label>
       <p>On wide screens the controls stay in the column on the right, so this only changes smaller windows.</p></section>
     <section class="mrow" id="gameSet"></section>
+    <section class="mrow" id="updSet"><h3>Updates</h3><p id="updMsg">Version <span id="appVer">…</span></p><button class="btn" type="button" id="updBtn">Check for updates</button></section>
   </div>
 </div>
 <div class="tip" id="tip" hidden></div>
@@ -1208,6 +1212,38 @@ function showWarPaint(it){
   });
 }
 addEventListener('keydown', e => { if (e.key === 'Escape' && WPOV && !WPOV.querySelector('.vgcmenu')) { e.stopPropagation(); closeWarPaint(); } }, true);
+
+
+/* ---------------- updates: the newest release on GitHub against this app's version ----------------
+   Checked by hand in Settings, and by itself when the app starts; a newer release puts a dot on the
+   Settings button and a download link in Settings. Nothing is sent but the request for the release. */
+const REPO = 'Chickenman456/TF2-Mannual';
+let APPVER = null;
+const verNum = v => String(v || '').replace(/^[^\d]*/, '').split(/[.\-+]/).slice(0, 3).map(n => parseInt(n, 10) || 0);
+const newer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+async function checkUpdate(byHand){
+  const msg = $('#updMsg'), btn = $('#updBtn');
+  if (!APPVER) { try { APPVER = (await (await fetch('/api/status')).json()).version; } catch {} }
+  $('#appVer').textContent = APPVER || 'unknown';
+  if (byHand) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  let rel = null, err = '';
+  try {
+    const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {headers: {Accept: 'application/vnd.github+json'}});
+    if (r.ok) rel = await r.json(); else err = r.status === 404 ? 'none' : 'GitHub said ' + r.status;
+  } catch (e) { err = 'GitHub couldn\u2019t be reached'; }
+  if (byHand) { btn.disabled = false; btn.textContent = 'Check for updates'; }
+  const cur = 'Version ' + esc(APPVER || 'unknown');
+  if (rel && APPVER && newer(rel.tag_name, APPVER)) {
+    msg.innerHTML = cur + '. <b>' + esc(rel.name || rel.tag_name) + ' is out.</b> <a href="' + esc(rel.html_url) + '" target="_blank" rel="noopener">Download it from GitHub</a>';
+    $('#setBtn').classList.add('upd'); $('#setBtn').title = 'Settings (an update is available)';
+    return true;
+  }
+  $('#setBtn').classList.remove('upd'); $('#setBtn').title = 'Settings';
+  if (byHand || rel || err === 'none') msg.innerHTML = cur + (rel ? '. You have the latest version.' : err === 'none' ? '. No releases on GitHub yet.' : '. ' + esc(err) + ', try again later.');
+  return false;
+}
+$('#updBtn').addEventListener('click', () => { sfx('buttonclick'); checkUpdate(true); });
+setTimeout(() => checkUpdate(false), 3000);   // once each time the app starts
 
 /* ---------------- interaction ---------------- */
 document.addEventListener('click', e => {
