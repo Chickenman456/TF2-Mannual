@@ -781,8 +781,10 @@ function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? 
 
 /* ---------------- filtering & sorting ---------------- */
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
+// community medals only show when their box is ticked (with nothing ticked, every other type shows)
+const typeOk = it => anyType() ? !!S.types[it.cat] : it.cat !== 'm';
 function inScope(id){
-  const it = ITEMS[id]; if (!it || (anyType() && !S.types[it.cat])) return false;
+  const it = ITEMS[id]; if (!it || !typeOk(it)) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if (it.cat === 'm' && S.quality === 'genuine' && S.avail === 'unob') return false;
   if (S.region && !it.region.split(', ').includes(S.region)) return false;
@@ -929,7 +931,7 @@ function bpPass(r){
     if ((bpCount[r[1]] || 0) < 2) return false;
   }
   if (!it) return !anyType() && S.cls === '' && S.avail === 'any' && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
-  if (anyType() && !S.types[it.cat]) return false;
+  if (!typeOk(it)) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if ((S.noresk && it.reskin) || (S.nobk && it.botkiller) || (S.nofest && it.newfest)) return false;
   if ((S.region && !it.region.split(', ').includes(S.region)) || (S.wslot && !it.wslot.split('|').includes(S.wslot))) return false;
@@ -1164,7 +1166,7 @@ function fadeFilters(){
   if (fx) U = [];
   else if (bp) U = [...new Set(((BP && BP.items) || []).map(r => +(ALIAS[r[1]] || r[1])))].filter(id => ITEMS[id]);
   else U = (v === 'craft' ? [...CRAFT] : v === 'achieve' ? [...ACH] : v === 'wishlist' ? S.wishlist : ALL_IDS).filter(id => ITEMS[id]);
-  const T = anyType() ? U.filter(id => S.types[ITEMS[id].cat]) : U;
+  const T = U.filter(id => typeOk(ITEMS[id]));
   const has = (L, f) => L.some(id => f(ITEMS[id]));
   const here = fx ? 'unusual effects' : bp ? 'your backpack' : v === 'achieve' ? 'the achievement items' : v === 'craft' ? 'the craft hats'
     : v === 'wishlist' ? 'your wishlist' : 'the items in these types';

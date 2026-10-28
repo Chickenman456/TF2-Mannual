@@ -162,6 +162,13 @@
     if (WORN.has(o.kind)) return !!A.c(ST.nm, cn);
     return false;
   }
+  // back to idle if the merc is mid-taunt, its voices and music cut
+  function stopTaunt(cn) {
+    const m = cn && window.Z3D && Z3D.M[cn];
+    if (!m || !m.st0) return;
+    if (/^(taunt|live:)/.test(m._lwant || '')) m._lwant = null;   // a taunt still loading from the install doesn't start later
+    if (/^(taunt|live:)/.test(m.cn || '')) { if (window.ZFACE) ZFACE.killAll(); m.play(m.st0.idle); }
+  }
   async function dress() {
     const mp = ST.el.querySelector('.spv-model'), cn = CNAME[ST.cls];
     window.ZPREV = prevState();
@@ -171,6 +178,7 @@
     let f = FS ? FS.f : mp.querySelector('#zfig');
     if (f && f.getAttribute('aria-label') !== cn) { f.remove(); f = null; }
     const fresh = !f;
+    if (fresh) stopTaunt(cn);   // a taunt left running on this merc (closed or switched away mid-taunt) doesn't carry over
     if (!f) { f = document.createElement('div'); f.id = 'zfig'; f.className = 'zspfig'; f.setAttribute('aria-label', cn); mp.insertBefore(f, note); }
     if (!window.Store3D) return;
     const tok = ST.tok = (ST.tok || 0) + 1; ST.tauntSeen = false;
@@ -245,7 +253,7 @@
   function undress() {
     const ic = ST && ST.el.querySelector('.spv-icon'); if (ic) ic.remove();
     if (window.ZPFX) ZPFX.stop(); fxTok++;
-    const f = ST && ST.el.querySelector('#zfig'); if (f) f.remove();
+    const f = ST && ST.el.querySelector('#zfig'); if (f) { stopTaunt(f.getAttribute('aria-label')); f.remove(); }
     window.ZPREV = null;
   }
 
