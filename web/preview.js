@@ -37,6 +37,10 @@
   }
 
   // ---- markup (positions in res units, relative to the 480x300 DialogFrame at c-240, c-150) ----
+  // taunts: play / pause and replay, under the merc on either side of the dropdowns
+  const TICON = {play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>',
+    replay: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2a5.8 5.8 0 1 1-5.6 7.3l1.9-.5A3.8 3.8 0 1 0 8 4.2c-1 0-2 .4-2.7 1.1L7 7H2V2l1.9 1.9A5.8 5.8 0 0 1 8 2.2z" fill="currentColor"/></svg>'};
   const box = (x, y, w, h) => `left:calc(var(--u)*${x});top:calc(var(--u)*${y});width:calc(var(--u)*${w});height:calc(var(--u)*${h})`;
   function markup(o) {
     const E = o.esc;
@@ -57,6 +61,8 @@
       <button type="button" class="spv-glyph pl" data-spv="full" style="${box(209, 27, 11, 11)};--g:url(${IMG}store_fullscreen.webp)" aria-label="Full screen" title="Full screen"></button>
       <button type="button" class="spv-rot pl" data-rot="-1" style="${box(16, 100, 20, 20)}" aria-label="Turn left">&lt;</button>
       <button type="button" class="spv-rot pl" data-rot="1" style="${box(205, 100, 20, 20)}" aria-label="Turn right">&gt;</button>
+      <button type="button" class="spv-tb pl" data-spv="tplay" style="${box(16, 187, 13, 13)}" hidden aria-label="Pause the taunt" title="Pause">${TICON.pause}</button>
+      <button type="button" class="spv-tb pl" data-spv="treplay" style="${box(211, 187, 13, 13)}" hidden aria-label="Replay the taunt" title="Replay">${TICON.replay}</button>
       <div class="spv-icons"></div>
       <button type="button" class="spv-arrow" data-spv="left" style="${box(30, 208, 15, 15)}" aria-label="Previous classes">&lt;</button>
       <button type="button" class="spv-arrow" data-spv="right" style="${box(195, 208, 15, 15)}" aria-label="More classes">&gt;</button>
@@ -167,7 +173,7 @@
     const fresh = !f;
     if (!f) { f = document.createElement('div'); f.id = 'zfig'; f.className = 'zspfig'; f.setAttribute('aria-label', cn); mp.insertBefore(f, note); }
     if (!window.Store3D) return;
-    const tok = ST.tok = (ST.tok || 0) + 1;
+    const tok = ST.tok = (ST.tok || 0) + 1; ST.tauntSeen = false;
     if (fresh) { try { await Store3D.show(f); } catch (e) { return; } }
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     Store3D.redress(cn);
@@ -357,6 +363,7 @@
     ov.innerHTML = `<div class="ui"><button type="button" class="rot rl" data-rot="-1" aria-label="Turn left">&lt;</button><button type="button" class="rot rr" data-rot="1" aria-label="Turn right">&gt;</button>
       <button type="button" class="ib cx" data-spv="fsexit" aria-label="Exit full screen"><img src="${IMG}exit_fullscreen.webp" alt=""></button>
       <button type="button" class="spv-glyph op" data-spv="options" style="--g:url(${IMG}glyph_options.webp)" aria-label="Paint and style" title="Paint and style"></button>
+      <button type="button" class="spv-tb fsp" data-spv="tplay" hidden aria-label="Pause the taunt" title="Pause">${TICON.pause}</button><button type="button" class="spv-tb fsr" data-spv="treplay" hidden aria-label="Replay the taunt" title="Replay">${TICON.replay}</button>
       <button type="button" class="tm" data-spt="RED" style="top:67px"><img src="${IMG}store_redteam.webp" alt="RED"></button><button type="button" class="tm" data-spt="BLU" style="top:156px"><img src="${IMG}store_blueteam.webp" alt="BLU"></button></div>`;
     document.body.appendChild(ov); ov.appendChild(f);
     const old = ST.el.querySelector('.spv-menu'); if (old) old.remove();
@@ -420,6 +427,8 @@
     if (k === 'left') { ST.iconPos = Math.max(0, ST.iconPos - 1); icons(); }
     else if (k === 'right') { ST.iconPos++; icons(); }
     else if (k === 'zoom') { if (window.Store3D) Store3D.zoom(); }
+    else if (k === 'tplay' || k === 'treplay') { const tc = window.Store3D && Store3D.taunt, c = CNAME[ST.cls]; if (tc) { const st = tc.state(c);
+      if (k === 'treplay' || st === 'done' || st === 'none') tc.replay(c, window.Z3D && Z3D.clipFor(ST.o.name)); else tc.pause(c, st === 'playing'); } }
     else if (k === 'item') { if (ST.state !== 'item') setState('item'); }
     else if (k === 'options') optionsMenu();
     else if (k === 'full') fullscreen();
@@ -456,6 +465,19 @@
     raf = requestAnimationFrame(tick);
     const dt = last ? Math.min(.1, (t - last) / 1000) : 0; last = t;
     if (ST.rot && ST.cls && window.Store3D) Store3D.turn(CNAME[ST.cls], ST.rot * 3.6 * dt);
+    tauntButtons();
+  }
+  // taunt controls: shown while a taunt is on the merc; the first button pauses it, resumes it, or plays it again once it has ended
+  function tauntButtons() {
+    const tc = window.Store3D && Store3D.taunt, on = tc && ST.state === 'player' && ST.o.kind === 't' && ST.cls;
+    let st = on ? tc.state(CNAME[ST.cls]) : 'none';
+    // once the taunt has ended the merc goes back to his idle: the buttons stay, to play it again
+    if (on && st !== 'none') ST.tauntSeen = true; else if (on && ST.tauntSeen) st = 'done';
+    const show = st !== 'none';
+    document.querySelectorAll('[data-spv=tplay], [data-spv=treplay]').forEach(b => { if (b.hidden === show) b.hidden = !show; });
+    if (!show) return;
+    const want = st === 'playing' ? 'pause' : 'play';
+    document.querySelectorAll('[data-spv=tplay]').forEach(b => { if (b.dataset.ic !== want) { b.dataset.ic = want; b.innerHTML = TICON[want]; b.title = want === 'pause' ? 'Pause' : st === 'done' ? 'Play again' : 'Play'; b.setAttribute('aria-label', b.title + ' the taunt'); } });
   }
 
   /* open({id, name, nm, color, kind, classes:['scout',...], level, holiday, status:[text,color], attrs:[[text,color]],

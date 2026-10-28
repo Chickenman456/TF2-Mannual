@@ -18,7 +18,7 @@ Enter a SteamID64, custom URL, or profile link to see which cosmetics, taunts, w
 - **Unusual effects.** Track cosmetic, taunt, and weapon effects, including special effects such as Community Sparkle and Map Stamps.
 - **Stock weapons.** Track each class's default weapons and their collectible quality variants.
 - **War paint preview.** Inspect war paints on 3D weapons, change wear and pattern seed, and browse available paints and weapons.
-- **Mann Co. Store preview.** View items on 3D class models, with animations, team colors, paint, Halloween spells, styles, and unusual effects.
+- **Mann Co. Store preview.** View items on 3D class models, with animations, team colors, paint, Halloween spells, styles, and unusual effects. Taunts play their own animation, voice lines, sound effects and music from your TF2 files, with play / pause and replay buttons under the merc.
 - **TF2 interface.** Uses game fonts, icons, backpack borders, rarity colors, and interface sounds.
 - **Item links.** Open the TF2 Wiki and Steam Community Market pages for supported items.
 - **Customizable settings.** Adjust interface sounds, volume, scrolling behavior, and synchronization with your local TF2 installation.

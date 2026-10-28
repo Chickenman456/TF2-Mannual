@@ -465,7 +465,7 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .spv-fs .ui>*{transition:opacity 2s}
 .spv-fs .ui button{pointer-events:auto}
 /* the turn, exit and team buttons fade when the mouse rests; the options, Style and Unusual controls stay */
-.spv-fs.idle .ui>:not(.spv-styles):not(.op):not(.spv-menu){opacity:0}
+.spv-fs.idle .ui>:not(.spv-styles):not(.op):not(.spv-menu):not(.spv-tb){opacity:0}
 .spv-fs .ui .spv-styles{display:flex;position:absolute;left:50%;transform:translateX(-50%);width:calc(var(--u)*170);height:calc(var(--u)*15);pointer-events:auto}
 .spv-fs .ui .spv-menu{position:absolute;pointer-events:auto}
 .spv-fs .spv-menu button{position:static;z-index:auto}
@@ -473,6 +473,12 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .spv-fs .spv-glyph.op{right:98px;top:69px;width:28px;height:28px;background:#766B5E;opacity:.78}
 .spv-fs .spv-glyph.op:hover{background:#F6F7D5;opacity:1}
 .spv-fs .op[hidden]{display:none}
+.spv-tb{position:absolute;z-index:6;border:0;padding:0;margin:0;background:none;color:#766B5E;cursor:pointer;display:flex}
+.spv-tb svg{width:100%;height:100%;display:block}
+.spv-tb:hover,.spv-tb:focus-visible{color:#F6F7D5;outline:none}
+.spv-tb[hidden]{display:none!important}
+.spv-fs .spv-tb.fsp{left:calc(50% - 272px);bottom:44px;width:30px;height:30px}
+.spv-fs .spv-tb.fsr{left:calc(50% + 242px);bottom:44px;width:30px;height:30px}
 .spv-fs button{position:absolute;background:none;border:0;padding:0;cursor:pointer;z-index:2}
 .spv-fs .rot{top:calc(50% - 22px);width:45px;height:45px;font:40px "TF2 Build",sans-serif;color:#766B5E;touch-action:none}
 .spv-fs .rot:hover{color:#807568}

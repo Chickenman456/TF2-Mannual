@@ -228,7 +228,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
    const play=(n,once)=>{const a=A[n];const mm0=M[c];if(mm0)mm0._lwant=n;
      if(!a&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready){const bs=new Set();o.traverse(x=>{if(x.isBone)bs.add(x.name)});
       ZLIVE.taunt(n.slice(5),c,bs).then(async r=>{if(!r){if(window.toast)toast('Couldn\u2019t load that taunt from your install');return}A[n]=mx.clipAction(r.clip);if(M[c])M[c]._ltp=M[c]._ltp||{},M[c]._ltp[n]=r.prop;if(window.ZFACE)await ZFACE.addLive(c,n,r.sc,r.urls);if(M[c]&&M[c]._lwant===n)play(n,once)}).catch(e=>console.warn('[ZLIVE] taunt',e));return true}
-     if(!a)return false;a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=!!once;if(cur&&cur!==a)a.crossFadeFrom(cur,.25,false);a.play();cur=a;if(M[c])M[c].cn=n;const tn=/^(taunt|live:)/.test(n);if(M[c]&&tn&&window.ZFACE)ZFACE.start(c,M[c],n,a);
+     if(!a)return false;a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=!!once;if(cur&&cur!==a)a.crossFadeFrom(cur,.25,false);a.paused=false;a.play();cur=a;if(M[c]){M[c].cn=n;M[c].act=a}const tn=/^(taunt|live:)/.test(n);if(M[c]&&tn&&window.ZFACE)ZFACE.start(c,M[c],n,a);
      {const mm=M[c];const fs=tn&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.tauntSlot?ZLIVE.tauntSlot(n.slice(5)):null;
       if(mm&&fs){let W={};try{const S=LOX.ls(c);W=S.P[S.pre].w||{}}catch(e){}if(!mm._tslot0&&mm._wbase)mm._tslot0={slot:mm._wbase.slot,name:W[mm._wbase.slot]||null};mm._tforce=1;
        if(!mm._wbase||mm._wbase.slot!==fs)setWeapon(c,fs,W[fs]||null)}
@@ -449,7 +449,11 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  window.ZREDRESS=c=>{const m=M[c];if(!m)return;m.csig=null;m.wteam=null;m.skin&&m.skin();weaponTeam(c);setCosmetics(c);if(window.ZPREV&&ZPREV.cls==c)setWeapon(c,ZPREV.wslot||firstSlot(c),ZPREV.wname)};
  window.Z3D={M,load,clipFor,setWeapon:(...a)=>setWeapon(...a),get V(){return V}};
  // catalog hooks: mount the merc in an element, re-dress it, zoom and turn it (the store preview's controls)
- window.Store3D={show:f=>show(f),init:()=>init(),get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+ // the store preview's taunt controls: replay from the start (with its sounds), pause / resume, and whether it is still going
+const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
+ pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
+ state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
+window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -568,7 +572,7 @@ async function start(c,m,clip,action){killAll();const tok=TOK;const k=c=='Demoma
  if(sc.mu){const a=audio(sc.mu.k);a.volume=Math.min(1,sc.mu.v*.42)*zv();a.loop=true;a.play().catch(()=>{});Sx.music=a}
  R.scene=Sx;LIVE.add(R);R.live=true}
 function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.M[x]===m);if(c){ZFACE.preload(c);const k=c=='Demoman'?'demo':c.toLowerCase();if(k!='pyro')pack(k).then(h=>{if(h&&!m.face)m.face=rig(m,h);else if(!h)m._nof=1})}}const R=m.face||m._face;if(!R)return;const S=R.scene;
- if(S){const a=S.action;if(m.cn!==S.clip)stopScene(R,false);else if(!a.isRunning())stopScene(R,true)}
+ if(S){const a=S.action;if(m.cn!==S.clip)stopScene(R,false);else if(!a.isRunning()&&!a.paused)stopScene(R,true)}
  const sc=R.scene;let st=0;if(sc){st=sc.off+sc.action.time*sc.scale;
   sc.sc.ev.forEach((e,i)=>{if(e.t!='speak'||sc.started.has(i)||st<e.s)return;sc.started.add(i);if(st>e.e)return;const w=e.w[(Math.random()*e.w.length)|0];const a=audio(w.k);a.volume=Math.min(1,(e.v||1)*.75)*zv();
    // Voices From Below (halloween_voice_modulation, C_TFPlayer::ClientAdjustVOPitch): pitch *= 0.8 - Source pitch is playback rate,
@@ -596,7 +600,9 @@ async function attach(c,m,key,meshes){if(/^live:/.test(key)){const ih=window.ZLI
  const [b,h]=await Promise.all([buf(k),pack(k)]);if(!b||!meshes.every(x=>x.parent))return;const ih=parsePack(b,e[0]);const R=rig(m,ih,meshes);if(!R.prims.length)return;
  const map=new Int16Array(ih.nc).fill(-1);if(h)ih.ctl.forEach((cc,i)=>{const j=h.cname[cc[0].toLowerCase()];if(j!=null)map[i]=j});
  if(!m.face&&h)m.face=rig(m,h);m.faceItems=(m.faceItems||[]).filter(x=>x.meshes.every(y=>y.parent));m.faceItems.push({R,map,meshes});if(m.face)m.face.live=true}
-window.ZFACE={addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false)},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
+// pausing a taunt holds its voices and music where they are
+function pauseScene(m,p){const R=m&&(m.face||m._face);const S=R&&R.scene;if(!S)return;const A=[...S.voices.map(x=>x.a),S.music].filter(Boolean);A.forEach(a=>{try{if(p)a.pause();else if(!a.ended)a.play().catch(()=>{})}catch(e){}})}
+window.ZFACE={pause:pauseScene,addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false)},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
 })();
 
 // ============ jiggle bones ============
@@ -1161,14 +1167,16 @@ function lzma(src,o0,props,outSize){let d=props[0];const lc=d%9;d=(d/9)|0;const 
 let SCN=null;
 async function sceneImage(){if(SCN)return SCN;return SCN=(async()=>{const b=await read('scenes/scenes.image');if(!b)return null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
  const ns=dv.getInt32(8,true),nstr=dv.getInt32(12,true),eo=dv.getInt32(16,true);const str=[];for(let i=0;i<nstr;i++)str.push(cstr(b,dv.getInt32(20+i*4,true)));
- const E=new Map();for(let i=0;i<ns;i++){const o=eo+i*20;E.set(dv.getUint32(o,true),[dv.getInt32(o+4,true),dv.getInt32(o+8,true)])}return{b,str,E}})()}
+ // SceneImageEntry_t: crcFilename, nDataOffset, nDataLength, nSceneSummaryOffset (16 bytes in the version 2 image TF2 ships)
+ const ver=dv.getInt32(4,true),es=ver>=3?20:16;const E=new Map();for(let i=0;i<ns;i++){const o=eo+i*es;E.set(dv.getUint32(o,true),[dv.getInt32(o+4,true),dv.getInt32(o+8,true)])}return{b,str,E}})()}
 const ETYPE=['unspecified','section','expression','lookat','moveto','speak','gesture','sequence','face','firetrigger','flexanimation','subscene','loop','interrupt','stoppoint','permitresponses','generic','camera','script'];
 function bvcd(u8,str){const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);let o=0;const c=()=>u8[o++],h=()=>{const v=dv.getInt16(o,true);o+=2;return v},H=()=>{const v=dv.getUint16(o,true);o+=2;return v},f=()=>{const v=dv.getFloat32(o,true);o+=4;return v},i32=()=>{const v=dv.getInt32(o,true);o+=4;return v};
  const sym=()=>{const k=h();return k>=0&&k<str.length?str[k]:null};const curve=()=>{const n=c();const r=[];for(let k=0;k<n;k++)r.push([f(),c()/255]);return r};
  const ev=()=>{const e={type:ETYPE[c()],name:sym(),s:f(),e:f(),p1:sym(),p2:sym(),p3:sym()};e.ramp=curve();e.flags=c();f();
   for(let k=c();k>0;k--){sym();c()}for(let k=c();k>0;k--){sym();c()}for(let t=0;t<2;t++)for(let k=c();k>0;k--){sym();H()}
   if(e.type=='gesture')f();if(c()){sym();sym()}
-  const nt=c();const tr=[];for(let k=0;k<nt;k++){const t={n:sym(),fl:c(),min:f(),max:f()};t.s0=[];for(let q=H();q>0;q--)t.s0.push([f(),c()/255]);t.s1=[];if(t.fl&2)for(let q=H();q>0;q--)t.s1.push([f(),c()/255]);tr.push(t)}if(tr.length)e.tr=tr;
+  const nt=c();const tr=[];for(let k=0;k<nt;k++){const t={n:sym(),fl:c(),min:f(),max:f()};// flex samples: time, value (byte), curve type (ushort)
+  t.s0=[];for(let q=H();q>0;q--){t.s0.push([f(),c()/255]);o+=2}t.s1=[];if(t.fl&2)for(let q=H();q>0;q--){t.s1.push([f(),c()/255]);o+=2}tr.push(t)}if(tr.length)e.tr=tr;
   if(e.type=='loop')c();if(e.type=='speak'){c();sym();c()}return e};
  if(u8[0]!==98||u8[1]!==118)throw new Error('not bvcd');o=4;c();i32();const evs=[];for(let k=c();k>0;k--)evs.push(ev());
  for(let a=c();a>0;a--){sym();for(let ch=c();ch>0;ch--){sym();for(let k=c();k>0;k--)evs.push(ev());c()}c()}return evs}
@@ -1191,38 +1199,55 @@ async function animMdls(c){const short=SHORT[c];const list=['models/workshop/pla
  const main=await mdlBuf('models/player/'+short+'.mdl');if(main){const dv=new DataView(main.buffer,main.byteOffset,main.byteLength);const n=dv.getInt32(336,true),ix=dv.getInt32(340,true);
   for(let k=0;k<n;k++){const o=ix+k*8;list.push(cstr(main,o+dv.getInt32(o+4,true)))}list.push('models/player/'+short+'.mdl')}
  return [...new Set(list.map(x=>x.replace(/\\/g,'/').toLowerCase()))]}
-function findSeq(b,name){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const ns=dv.getInt32(188,true),si=dv.getInt32(192,true);name=name.toLowerCase();
- for(let i=0;i<ns;i++){const o=si+i*212;if(cstr(b,o+dv.getInt32(o+4,true)).toLowerCase()===name){
+function seqAnim(b,o){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
   // blended sequences (aim matrices) hold groupsize[0] x groupsize[1] animations: take the one at pose parameter 0, the neutral pose
   const g0=Math.max(1,dv.getInt32(o+68,true)),g1=Math.max(1,dv.getInt32(o+72,true));const cell=(g,k)=>{if(g<2)return 0;const a=dv.getFloat32(o+84+k*4,true),e=dv.getFloat32(o+92+k*4,true);const t=e!==a?(0-a)/(e-a):.5;return Math.max(0,Math.min(g-1,Math.round(t*(g-1))))};
-  const j=cell(g0,0)+cell(g1,1)*g0;return dv.getInt16(o+dv.getInt32(o+60,true)+j*2,true)}}return -1}
+  const j=cell(g0,0)+cell(g1,1)*g0;return dv.getInt16(o+dv.getInt32(o+60,true)+j*2,true)}
+function findSeqO(b,name){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const ns=dv.getInt32(188,true),si=dv.getInt32(192,true);name=name.toLowerCase();
+ for(let i=0;i<ns;i++){const o=si+i*212;if(cstr(b,o+dv.getInt32(o+4,true)).toLowerCase()===name)return o}return -1}
+function findSeq(b,name){const o=findSeqO(b,name);return o<0?-1:seqAnim(b,o)}
+// a sequence whose own animation is an empty placeholder plays its motion through its autolayers (mstudioseqdesc_t numautolayers 148,
+// autolayerindex 152 -> mstudioautolayer_t {short iSequence, short iPose, int flags, float start, peak, tail, end}): their animations
+function layerAnims(b,name){const o=findSeqO(b,name);if(o<0)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true),si=dv.getInt32(192,true),ns=dv.getInt32(188,true),out=[];
+ for(let k=0;k<n&&k<16;k++){const q=dv.getInt16(o+li+k*24,true);if(q>=0&&q<ns)out.push(seqAnim(b,si+q*212))}return out}
+// the sequence's animation events (mstudioseqdesc_t numevents/eventindex -> mstudioevent_t: cycle, event, type, options[64], szeventindex)
+function seqEvents(b,name){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const ns=dv.getInt32(188,true),si=dv.getInt32(192,true);name=name.toLowerCase();
+ for(let i=0;i<ns;i++){const o=si+i*212;if(cstr(b,o+dv.getInt32(o+4,true)).toLowerCase()!==name)continue;const n=dv.getInt32(o+24,true),ei=dv.getInt32(o+28,true),out=[];
+  for(let k=0;k<n;k++){const e=o+ei+k*80;out.push({cycle:dv.getFloat32(e,true),ev:dv.getInt32(e+4,true),type:dv.getInt32(e+8,true),opt:cstr(b,e+12),name:cstr(b,e+dv.getInt32(e+76,true))})}return out}return[]}
+// sound events: SCRIPT_EVENT_SOUND (1004), SCRIPT_EVENT_SOUND_VOICE (1008), CL_EVENT_SOUND (5004), or the new-style AE_CL_PLAYSOUND / AE_SV_PLAYSOUND
+const sndEvent=x=>x.opt&&([1004,1008,5004].includes(x.ev)||/^AE_(CL|SV)_PLAYSOUND$/i.test(x.name));
 function aq(x,y,z){const sr=Math.sin(x*.5),cr=Math.cos(x*.5),sp=Math.sin(y*.5),cp=Math.cos(y*.5),sy=Math.sin(z*.5),cy=Math.cos(z*.5);const a=sr*cp,b=cr*sp,cc=cr*cp,d=sr*sp;return[a*cy-b*sy,b*cy+a*sy,cc*sy-d*cy,cc*cy+d*sy]}
-function decodeAnim(b,ai){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true),F=o=>dv.getFloat32(o,true);
+// ani: the model's .ani file, when its animations sit in external anim blocks (most newer taunts): studiohdr szanimblocknameindex (348),
+// animblockindex (356) -> mstudioanimblock_t {datastart, dataend}; the animation is at datastart + animindex in that file
+function decodeAnim(b,ai,ani){const aniDV=ani?new DataView(ani.buffer,ani.byteOffset,ani.byteLength):null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true),F=o=>dv.getFloat32(o,true);
  const nb=I(156),bi=I(160);const bones=[];for(let i=0;i<nb;i++){const o=bi+i*216;bones.push({name:cstr(b,o+I(o)),parent:I(o+4),pos:[F(o+32),F(o+36),F(o+40)],q:[F(o+44),F(o+48),F(o+52),F(o+56)],rot:[F(o+60),F(o+64),F(o+68)],ps:[F(o+72),F(o+76),F(o+80)],rs:[F(o+84),F(o+88),F(o+92)]})}
  const ao=I(184)+ai*100;const fps=F(ao+8)||30,flags=I(ao+12),nf=I(ao+16),ablk=I(ao+52),aidx=I(ao+56),seci=I(ao+80),secf=I(ao+84);const delta=!!(flags&4);
  const f16=h=>{const s=h>>15,e=(h>>10)&31,m=h&1023;const v=e===0?m*Math.pow(2,-24):(1+m/1024)*Math.pow(2,e-15);return s?-v:v};
- const val=(p,k)=>{for(;;){const valid=b[p],total=b[p+1];if(total>k)break;k-=total;p+=(valid+1)*2;if(b[p+1]===0)return 0}const valid=b[p];return dv.getInt16(p+(valid>k?k+1:valid)*2,true)};
+ const val=(bb,dd,p,k)=>{for(;;){const valid=bb[p],total=bb[p+1];if(total>k)break;k-=total;p+=(valid+1)*2;if(bb[p+1]===0)return 0}const valid=bb[p];return dd.getInt16(p+(valid>k?k+1:valid)*2,true)};
  const frame=f=>{let blk,idx,fr=f;if(secf){let sec;if(nf>secf&&f===nf-1){fr=0;sec=Math.floor(nf/secf)+1}else{sec=Math.floor(f/secf);fr=f-sec*secf}blk=I(ao+seci+sec*8);idx=I(ao+seci+sec*8+4)}else{blk=ablk;idx=aidx}
-  if(blk!==0)return null;const P=new Array(nb),Q=new Array(nb);let p=ao+idx;
-  for(;;){const bone=b[p],fl=b[p+1],nx=dv.getInt16(p+2,true);if(bone===255)break;const B=bones[bone];let q=p+4;
-   if(fl&2){const x=dv.getUint16(q,true),y=dv.getUint16(q+2,true),zw=dv.getUint16(q+4,true);const X=(x-32768)/32768,Y=(y-32768)/32768,Z=((zw&0x7fff)-16384)/16384;const W=Math.sqrt(Math.max(0,1-X*X-Y*Y-Z*Z));Q[bone]=[X,Y,Z,zw>>15?-W:W];q+=6}
-   else if(fl&0x20){const lo=dv.getUint32(q,true),hi=dv.getUint32(q+4,true);const x=lo&0x1fffff,y=((lo>>>21)|((hi&0x3ff)<<11))&0x1fffff,z=(hi>>>10)&0x1fffff,wn=hi>>>31;
+  let bb=b,dd=dv,p=ao+idx;if(blk!==0){if(!ani)return null;bb=ani;dd=aniDV;p=I(I(356)+blk*8)+idx;if(p<0||p>=ani.length)return null}const P=new Array(nb),Q=new Array(nb);
+  for(;;){const bone=bb[p],fl=bb[p+1],nx=dd.getInt16(p+2,true);if(bone===255)break;const B=bones[bone];let q=p+4;
+   if(fl&2){const x=dd.getUint16(q,true),y=dd.getUint16(q+2,true),zw=dd.getUint16(q+4,true);const X=(x-32768)/32768,Y=(y-32768)/32768,Z=((zw&0x7fff)-16384)/16384;const W=Math.sqrt(Math.max(0,1-X*X-Y*Y-Z*Z));Q[bone]=[X,Y,Z,zw>>15?-W:W];q+=6}
+   else if(fl&0x20){const lo=dd.getUint32(q,true),hi=dd.getUint32(q+4,true);const x=lo&0x1fffff,y=((lo>>>21)|((hi&0x3ff)<<11))&0x1fffff,z=(hi>>>10)&0x1fffff,wn=hi>>>31;
     const X=(x-1048576)/1048576.5,Y=(y-1048576)/1048576.5,Z=(z-1048576)/1048576.5;const W=Math.sqrt(Math.max(0,1-X*X-Y*Y-Z*Z));Q[bone]=[X,Y,Z,wn?-W:W];q+=8}
-   else if(fl&8){const e=[0,0,0];for(let j=0;j<3;j++){const off=dv.getInt16(q+j*2,true);e[j]=(off?val(q+off,fr)*B.rs[j]:0)+(delta?0:B.rot[j])}Q[bone]=aq(...e);q+=6}
-   if(fl&1){P[bone]=[f16(dv.getUint16(q,true)),f16(dv.getUint16(q+2,true)),f16(dv.getUint16(q+4,true))];q+=6}
-   else if(fl&4){const v=[0,0,0];for(let j=0;j<3;j++){const off=dv.getInt16(q+j*2,true);v[j]=(off?val(q+off,fr)*B.ps[j]:0)+(delta?0:B.pos[j])}P[bone]=v}
+   else if(fl&8){const e=[0,0,0];for(let j=0;j<3;j++){const off=dd.getInt16(q+j*2,true);e[j]=(off?val(bb,dd,q+off,fr)*B.rs[j]:0)+(delta?0:B.rot[j])}Q[bone]=aq(...e);q+=6}
+   if(fl&1){P[bone]=[f16(dd.getUint16(q,true)),f16(dd.getUint16(q+2,true)),f16(dd.getUint16(q+4,true))];q+=6}
+   else if(fl&4){const v=[0,0,0];for(let j=0;j<3;j++){const off=dd.getInt16(q+j*2,true);v[j]=(off?val(bb,dd,q+off,fr)*B.ps[j]:0)+(delta?0:B.pos[j])}P[bone]=v}
    if(nx===0)break;p+=nx}
   for(let i=0;i<nb;i++){if(!P[i])P[i]=delta?[0,0,0]:bones[i].pos;if(!Q[i])Q[i]=delta?[0,0,0,1]:bones[i].q}return{P,Q}};
  return{bones,fps,nf,flags,frame}}
+async function aniOf(b){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);if(dv.getInt32(352,true)<=0)return null;const nm=cstr(b,dv.getInt32(348,true));if(!nm)return null;try{return await mdlBuf(nm.replace(/\\/g,'/'))}catch(e){return null}}
 async function seqClip(c,names,clipName,boneSet){for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;
-  for(const n of names){const ai=findSeq(b,n);if(ai<0)continue;const A=decodeAnim(b,ai);if(A.flags&0x24)continue;// a delta / all-zeros placeholder: the motion lives in the layer
+  for(const n of names){const ai=findSeq(b,n);if(ai<0)continue;const ani=await aniOf(b);let A=decodeAnim(b,ai,ani);
+   // a delta / all-zeros placeholder: the motion lives in its layer (an autolayer, or a "layer_" sequence tried next)
+   if(A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)continue;A=L}
    const F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}if(!F.length)continue;
    const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
    const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];const q=new THREE.Quaternion(),v=new THREE.Vector3();
    A.bones.forEach((B,bi)=>{if(boneSet&&!boneSet.has(B.name))return;const QV=new Float32Array(F.length*4),PV=new Float32Array(F.length*3);let prev=null;
     F.forEach((fr,i)=>{q.set(...fr.Q[bi]);v.set(...fr.P[bi]);if(B.parent<0){q.premultiply(C);v.applyQuaternion(C)}if(prev&&prev.dot(q)<0){q.x=-q.x;q.y=-q.y;q.z=-q.z;q.w=-q.w}prev=(prev||new THREE.Quaternion()).copy(q);QV.set([q.x,q.y,q.z,q.w],i*4);PV.set([v.x,v.y,v.z],i*3)});
     tracks.push(new THREE.QuaternionKeyframeTrack(B.name+'.quaternion',times,QV),new THREE.VectorKeyframeTrack(B.name+'.position',times,PV))});
-   return{clip:new THREE.AnimationClip(clipName,(F.length-1)/A.fps,tracks),seq:n}}}
+   return{clip:new THREE.AnimationClip(clipName,(F.length-1)/A.fps,tracks),seq:n,events:seqEvents(b,n)}}}
  return null}
 const TAUNT={};
 async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if(TAUNT[key])return TAUNT[key];return TAUNT[key]=(async()=>{const e=entry(n);if(!e||e.k!='taunt')return null;
@@ -1232,12 +1257,26 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if
  const cand=[...(sname?['layer_'+sname,sname]:[]),'layer_'+base+'_'+SHORT[c],base+'_'+SHORT[c],'layer_'+base,base];
  const A=await seqClip(c,[...new Set(cand)],clipName,boneSet);if(!A)return null;
  const dur=A.clip.duration;const ev=[{t:'seq',s:seqEv?seqEv.s:0,e:seqEv&&seqEv.e>0?seqEv.e:dur,n:clipName}];const urls={};
- for(const x of (evs||[])){if(x.type=='speak'&&x.p1){const W=await waves(x.p1);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,ph:[],em:[]})}}
+ for(const x of (evs||[])){if(x.type=='speak'&&x.p1){const W=/\.(wav|mp3)$/i.test(x.p1)?[x.p1]:await waves(x.p1);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,ph:[],em:[]})}}
    if(w.length)ev.push({t:'speak',s:x.s,e:x.e>x.s?x.e:x.s+8,v:1,w})}
   else if(x.type=='expression'&&x.p2)ev.push({t:'expr',s:x.s,e:x.e,file:String(x.p1||'').replace(/\\/g,'/').split('/').pop(),name:x.p2,ramp:x.ramp});
   else if(x.type=='flexanimation'&&x.tr)ev.push({t:'flex',s:x.s,e:x.e,ramp:x.ramp,tr:x.tr.map(t=>({n:t.n,c:!!(t.fl&2),min:t.min,max:t.max,s0:t.s0,s1:t.s1}))})}
+ // the sounds the taunt's animation fires itself (most taunts' music and effects), at their point in the sequence
+ const soundOf=async name=>{const W=/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,ph:[],em:[]})}}return w};
+ const s0=seqEv?seqEv.s:0,sd=seqEv&&seqEv.e>seqEv.s?seqEv.e-seqEv.s:dur;
+// the scene's own sequence carries the events even when its motion came from a layer sequence
+ let SE=A.events||[];if(sname&&A.seq&&A.seq.toLowerCase()!==sname.toLowerCase()){for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const E=seqEvents(b,sname);if(E.length){SE=E.concat(SE);break}}}
+ for(const x of SE.filter(sndEvent)){const w=await soundOf(x.opt);if(w.length){const s=s0+Math.max(0,Math.min(1,x.cycle))*sd;ev.push({t:'speak',s,e:s+8,v:1,w})}}
+ // items_game: "taunt success sound" (once, after "taunt success sound offset") and "taunt success sound loop" (music while it runs)
+ const ta=k=>{for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const v=B[n];const cls=String(v&&typeof v=='object'?v.attribute_class||'':'').toLowerCase();if(n.toLowerCase()==k||cls==k.replace(/ /g,'_'))return v&&typeof v=='object'?v.value:v}}return null};
+ let mu=null;{const one=ta('taunt success sound'),loop=ta('taunt success sound loop'),off=+ta('taunt success sound offset')||0;
+  if(one){const w=await soundOf(String(one));if(w.length)ev.push({t:'speak',s:off,e:off+8,v:1,w})}
+  if(loop){const w=await soundOf(String(loop));if(w.length)mu={k:w[0].k,v:1}}}
+ // taunt attacks whose sound the game code plays itself (CTFPlayer::DoTauntAttack)
+ {const TA={TAUNTATK_ALLCLASS_GUITAR_RIFF:'Taunt.GuitarRiff',TAUNTATK_MEDIC_HEROIC_TAUNT:'Taunt.MedicHeroic'};const an=String(ta('taunt attack name')||'').toUpperCase();
+  if(TA[an]){const w=await soundOf(TA[an]);const at=+ta('taunt attack time')||0;if(w.length)ev.push({t:'speak',s:at,e:at+8,v:1,w})}}
  const prop=e.r.taunt.custom_taunt_prop_per_class;const pp=prop&&(prop[c]||(c=='demoman'&&prop.demo));
- return{clip:A.clip,sc:{ev},urls,prop:pp&&has(pp)?pp:null}})()}
+ return{clip:A.clip,sc:mu?{ev,mu}:{ev},urls,prop:pp&&has(pp)?pp:null}})()}
 const SEQ={};
 async function seq(cl,name,boneSet){const c=clsKey(cl);const k=c+'|'+name.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet).then(r=>r&&r.clip)}
 async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0)}
@@ -1260,7 +1299,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
