@@ -193,7 +193,12 @@
     "288": "a Halloween noise maker. No new copies are made",
     "362": "a charity noise maker. No new copies are made",
     "364": "a charity noise maker. No new copies are made",
-    "493": "the Summer Camp Sale noise maker. No new copies are made"
+    "493": "the Summer Camp Sale noise maker. No new copies are made",
+    "470": "no new copies are made",
+    "260": "no new copies are made",
+    "169": "no new copies are made",
+    "161": "its code came with Sam & Max: The Devil's Playhouse from the Telltale Games store. No new copies are made",
+    "162": "its code came with Sam & Max: The Devil's Playhouse from the Telltale Games store. No new copies are made"
   },
   "achievement_items": {
     "_note": "Extra achievement items the game's achievement_rewards list misses. Normally empty: data/achievements.json and items_game.txt cover them."

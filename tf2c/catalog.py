@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 28
+CATALOG_VERSION = 30
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -186,6 +186,25 @@ def overlays(R, keep):
         if layers:
             out[str(k)] = layers
     return out
+
+
+def pyroland(r):
+    """Items made for Pyroland: "vision opt in flags" / vision_filter_flags with TF_VISION_FILTER_PYRO (1) - the Pyrovision
+    Goggles let you see it, the Balloonicorn, Bongos and Orchestrina only show in it - or a model_vision_filtered model
+    shown there instead (the Rainblower, the Lollichop, the baby-bottle cosmetics)."""
+    def num(v):
+        try:
+            return int(float(str(v.get("value") if isinstance(v, dict) else v).strip()))
+        except (TypeError, ValueError):
+            return 0
+    if num(r.get("vision_filter_flags", 0)) & 1 or str(r.get("model_vision_filtered") or "").strip():
+        return True
+    for b in ("attributes", "static_attrs"):
+        for n, v in (r.get(b) or {}).items():
+            cls = str(v.get("attribute_class", "") if isinstance(v, dict) else "").lower()
+            if (n.lower() == "vision opt in flags" or cls == "vision_opt_in_flags") and num(v) & 1:
+                return True
+    return False
 
 
 def build(sources, data_dir, firstseen=None, progress=lambda m: None):
@@ -614,6 +633,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             flags |= 8192  # expired: deleted itself on a fixed date
         if r.get("item_slot") == "action":
             flags |= 16384  # goes in the action slot
+        if pyroland(r):
+            flags |= 512   # a Pyroland item (the backpack's viewmode_pyrovision badge)
         if cat[k] == "m" and k not in not_genuine:
             flags |= 256   # medals are handed out in Genuine quality
         if cat[k] == "w" and not warp:
@@ -631,8 +652,16 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         pair = tuple(os.path.splitext(os.path.basename((r.get(f) or "").replace("\\", "/")))[0].lower()
                      for f in ("mouse_pressed_sound", "drop_sound"))
         si = sounds.setdefault(pair, len(sounds)) if pair[0] else -1
+        # the weapon's loadout slot(s): item_slot, or per class where used_by_classes names a slot (the Shotgun: primary for
+        # the Engineer, secondary for the others)
+        wsl = ""
+        if cat[k] in ("w", "s"):
+            ss = {str(v).lower() for v in (r.get("used_by_classes") or {}).values() if str(v).lower() in WEAPON_SLOTS}
+            if r.get("item_slot") in WEAPON_SLOTS and not ss:
+                ss.add(r.get("item_slot"))
+            wsl = "|".join(sorted(ss))
         items.append([k, nm, t, cat[k], mask, rarity.get(k, 0), ii, flags, dates[k],
-                      desc(k) if cat[k] != "m" else "", region, si])
+                      desc(k) if cat[k] != "m" else "", region, si, wsl])
 
     # The same item listed twice under two defindexes (e.g. the two Pyrovision
     # Goggles): show it once, and count either copy as owning it.

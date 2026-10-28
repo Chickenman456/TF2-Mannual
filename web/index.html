@@ -116,6 +116,7 @@ label.chk input{accent-color:var(--TFOrange)}
 .fld .qseg .btn{flex:0 0 auto}
 .fcol.stack .frow{grid-template-columns:1fr}
 .fld>.lbl .pk{width:14px;height:14px;background-size:contain}
+.fld>.lbl .pyv{display:inline-block;width:16px;height:16px;margin:-3px 3px -3px 0;vertical-align:middle;background:url(/ui/viewmode_pyrovision.webp) center/contain no-repeat}
 .checks{gap:6px}
 .checks .wopts{display:flex;flex-direction:column;gap:6px}
 .checks .wopts[hidden]{display:none}
@@ -590,9 +591,12 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
       <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
     <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
-      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited (tradable, no new copies)</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
+      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
+    <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, or only show (or change) in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
+    <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
+    <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
     <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
       <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option></select></div>
     <div class="fld" id="orderFld"><label class="lbl" for="order">Sections</label><select id="order" class="in"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
@@ -659,18 +663,21 @@ const CLASSES = ['Scout','Soldier','Pyro','Demoman','Heavy','Engineer','Medic','
 const CATNAME = {c:'Cosmetic', t:'Taunt', w:'Weapon', s:'Stock weapon', a:'Action item', m:'Medal', p:'War paint', d:'Decorated weapon', l:'Tool', x:'Expired item', o:'Other item'};
 const ITEMS = {}, COLS = {}, CASE_BY_COL = {}, NAMES = {};
 let ALL_IDS = [];
+// the Equip region filter's choices: every region an item uses
+function regionOptions(){ const R = new Set(); for (const id in ITEMS) ITEMS[id].region && ITEMS[id].region.split(', ').forEach(r => R.add(r));
+  $('#region').innerHTML = '<option value="">Any region</option>' + [...R].sort().map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join(''); }
 const ALIAS = {}, VARIANTS = {};
 const FX = {}, FX_KIND = {cosmetic:'Cosmetic effects', taunt:'Taunt effects', weapon:'Weapon effects', special:'Special effects'};
 let EQUIP = {}, GAMES = {}, ACHINFO = {}, ACHALT = {}, ACHICON = {}, ACHROWS = 1;  // promo copies stored under a second defindex
 function initCatalog(raw){
 RAW = raw;
-for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd] of RAW.items){
+for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd,wslot] of RAW.items){
   if (flags&1) cat = flags&128 ? 'p' : 'd';  // war paints, and weapons that come painted, get their own sections
   const classes = CLASSES.filter((_,i)=>mask>>i&1);
   // paint cans, team paints and spells: the game draws the icon, then its overlay in the item's tint ("base|overlay@rgb|...")
   const ovl = (RAW.overlay || {})[id], im = RAW.imgs[img] || '';
-  ITEMS[id] = {id, name, type, cat, mask, classes, rar, desc, region: region || '', snd: snd == null ? -1 : snd, img: im && ovl ? [im, ...ovl.map(([p, c]) => p + '@' + c)].join('|') : im,
-    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), rare: !!(flags&2048), day: !!(flags&4096), action: !!(flags&16384), expired: !!(flags&8192) && ((RAW.expired || {})[id] || true), note: (RAW.notes || {})[id] || '', date, year: +date.slice(0,4),
+  ITEMS[id] = {id, name, type, cat, mask, classes, rar, desc, region: region || '', wslot: wslot || '', snd: snd == null ? -1 : snd, img: im && ovl ? [im, ...ovl.map(([p, c]) => p + '@' + c)].join('|') : im,
+    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), pyro: !!(flags&512), reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), rare: !!(flags&2048), day: !!(flags&4096), action: !!(flags&16384), expired: !!(flags&8192) && ((RAW.expired || {})[id] || true), note: (RAW.notes || {})[id] || '', date, year: +date.slice(0,4),
     ckey: classes.length===1 ? CLASSES.indexOf(classes[0]) : (classes.length===9 ? 10 : 9), cols: [], cases: []};
   NAMES[name.toLowerCase()] = id;
 }
@@ -679,7 +686,7 @@ for (const c of RAW.cols){
   COLS[c.id] = c;
   for (const i of c.i){ const it = ITEMS[i]; if (!it) continue; it.cols.push(c.id); for (const cs of (CASE_BY_COL[c.id]||[])) it.cases.push(cs); }
 }
-ALL_IDS = Object.keys(ITEMS).map(Number);
+ALL_IDS = Object.keys(ITEMS).map(Number); regionOptions();
 for (const [id, name, kind, cell] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase()};
 EQUIP = RAW.equip || {}; GAMES = RAW.games || {}; ACHINFO = RAW.achievement || {}; ACHALT = RAW.ach_alt || {};
 (RAW.ach_icons || []).forEach((k, i) => { ACHICON[k] = i; }); ACHROWS = Math.max(1, Math.ceil((RAW.ach_icons || []).length / 16));
@@ -689,8 +696,8 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 /* ---------------- state ---------------- */
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], override:{}, lastSync:'',
-         view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false,x:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
+         view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false,x:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
@@ -719,6 +726,7 @@ function migrate(x){
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
+  if (!['all','hide','only'].includes(x.pyro)) x.pyro = 'all';
   if (x.types && x.types.p !== undefined && x.types.d === undefined) x.types = {...x.types, d: x.types.p};
   delete x.nowp; delete x.hideunob; delete x.pending; return x;
 }
@@ -736,7 +744,8 @@ function save(){
 /* ---------------- ownership & obtainability ---------------- */
 // manual ticks are per quality: 123 for the normal checklist, "vintage:123" for Vintage
 // Under the Code filter each item counts in the quality its codes gave out: a Genuine Balloonicorn, not a Unique one
-const qOf = id => S.quality || (S.avail === 'code' && QUAL[CODEQ[id]] ? CODEQ[id] : '');
+// under Promo code, or Unreleased for a code that never went out (the Genuine Ye Olde Baker Boy and Vintage Tyrolean), the item shows in its code's quality
+const qOf = id => S.quality || ((S.avail === 'code' || (S.avail === 'unused' && (RAW.code_unreleased || {})[id])) && QUAL[CODEQ[id]] ? CODEQ[id] : '');
 const mk = id => { const q = qOf(id); return q ? q + ':' + id : id; };
 function synced(id, q){
   const src = q ? (S.qowned[q] || {}) : S.owned;
@@ -775,6 +784,9 @@ const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked 
 function inScope(id){
   const it = ITEMS[id]; if (!it || (anyType() && !S.types[it.cat])) return false;
   if (S.solo && it.classes.length !== 1) return false;
+  if (it.cat === 'm' && S.quality === 'genuine' && S.avail === 'unob') return false;
+  if (S.region && !it.region.split(', ').includes(S.region)) return false;
+  if (S.wslot && !it.wslot.split('|').includes(S.wslot)) return false;   // Genuine + Unobtainable: not the community medals
   if (S.grade === 'any' ? !it.rar : (S.grade !== '' && it.rar !== +S.grade)) return false;
   if (S.noresk && it.reskin) return false;
   if (S.nobk && it.botkiller) return false;
@@ -782,6 +794,7 @@ function inScope(id){
   if (S.quality && !(QPOSS[S.quality] && QPOSS[S.quality].has(id)) && !synced(id, S.quality) && !S.manualOwned.includes(mk(id))) return false;
   if (S.hol === 'hide' && it.holiday) return false;
   if (S.hol === 'only' && !it.holiday) return false;
+  if ((S.pyro === 'hide' && it.pyro) || (S.pyro === 'only' && !it.pyro)) return false;
   if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
   return true;
 }
@@ -915,11 +928,13 @@ function bpPass(r){
     if (!bpCount || bpCount.bp !== BP){ bpCount = {bp: BP}; for (const x of BP.items) bpCount[x[1]] = (bpCount[x[1]] || 0) + 1; }
     if ((bpCount[r[1]] || 0) < 2) return false;
   }
-  if (!it) return !anyType() && S.cls === '' && S.avail === 'any' && !S.solo && S.hol !== 'only';
+  if (!it) return !anyType() && S.cls === '' && S.avail === 'any' && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
   if (anyType() && !S.types[it.cat]) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if ((S.noresk && it.reskin) || (S.nobk && it.botkiller) || (S.nofest && it.newfest)) return false;
+  if ((S.region && !it.region.split(', ').includes(S.region)) || (S.wslot && !it.wslot.split('|').includes(S.wslot))) return false;
   if ((S.hol === 'hide' && it.holiday) || (S.hol === 'only' && !it.holiday)) return false;
+  if ((S.pyro === 'hide' && it.pyro) || (S.pyro === 'only' && !it.pyro)) return false;
   if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
   if (S.avail !== 'any' && availOf(it.id) !== S.avail) return false;
   return true;
@@ -1122,9 +1137,11 @@ function syncControls(){
   $('#sort').value = S.sort; $('#order').value = S.order;
   document.querySelectorAll('[data-cls]').forEach(b => b.classList.toggle('on', b.dataset.cls === String(S.cls)));
   $('#avail').value = S.avail;
-  $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol; $('#pinbar').checked = !S.nofollow;
+  $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol; $('#pyro').value = S.pyro; $('#pinbar').checked = !S.nofollow;
   for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).checked = !!S[k];
   $('#grade').value = S.grade || '';
+  if (S.region && ![...$('#region').options].some(o => o.value === S.region)) S.region = '';
+  $('#region').value = S.region || ''; $('#wslot').value = S.wslot || '';
   syncMute();
   filterSummary();
   $('#grade').style.color = S.grade && RAR[+S.grade] ? RAR[+S.grade].c : '';
@@ -1172,6 +1189,14 @@ function fadeFilters(){
   for (const o of $('#avail').options) if (o.value !== 'any') opt('avail', o.value, av.has(o.value));
   na(fld('avail'), av.size < 2 && S.avail === 'any');
   na(fld('hol'), !has(T, it => it.holiday));
+  na(fld('pyro'), !has(T, it => it.pyro));
+  // equip region and weapon slot: the regions / slots these items have
+  const regs = new Set(); T.forEach(id => ITEMS[id].region && ITEMS[id].region.split(', ').forEach(r => regs.add(r)));
+  for (const o of $('#region').options) if (o.value) opt('region', o.value, regs.has(o.value));
+  na(fld('region'), !regs.size);
+  const sl = new Set(); T.forEach(id => ITEMS[id].wslot && ITEMS[id].wslot.split('|').forEach(x => sl.add(x)));
+  for (const o of $('#wslot').options) if (o.value) opt('wslot', o.value, sl.has(o.value));
+  na(fld('wslot'), !sl.size);
   // sort: the backpack has its own; effects sort by name, copies or date only
   na(fld('sort'), bp, 'My Backpack has its own sort, above the items');
   for (const k of ['grade', 'class', 'region']) opt('sort', k, !fx);
@@ -1294,7 +1319,9 @@ document.addEventListener('click', e => {
   scrollTo({top: j.dataset.jump === 'top' ? 0 : document.documentElement.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 });
 $('#hol').addEventListener('change', () => { S.hol = $('#hol').value; save(); render(); });
+$('#pyro').addEventListener('change', () => { S.pyro = $('#pyro').value; save(); render(); });
 $('#grade').addEventListener('change', () => { S.grade = $('#grade').value; save(); render(); });
+for (const k of ['region','wslot']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).value; save(); render(); });
 for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).checked; save(); render(); });
 let qTimer; $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.bpPage = 1; render(); }, 150); });
 
@@ -1321,9 +1348,11 @@ function activeFilters(){
   if (S.quality) f.push(QUAL[S.quality].n + ' quality');
   if (S.cls !== '') f.push(+S.cls < 9 ? CLASSES[+S.cls] : (+S.cls === 9 ? 'Multi-class' : 'All-class'));
   if (S.show === 'own') f.push('Owned'); if (S.show === 'miss') f.push('Missing'); if (S.show === 'dupe') f.push('Duplicates');
-  if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable'}[S.avail]);
+  if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable', unused:'Unreleased'}[S.avail]);
   if (S.grade) f.push(S.grade === 'any' ? 'Any grade' : (+S.grade ? RAR[+S.grade].n : 'No grade'));
+  if (S.region) f.push(S.region); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
   if (S.hol === 'hide') f.push('No Halloween items'); if (S.hol === 'only') f.push('Halloween only');
+  if (S.pyro === 'hide') f.push('No Pyroland items'); if (S.pyro === 'only') f.push('Pyroland only');
   if (S.solo) f.push('No multi-class');
   if (S.types.w && S.noresk) f.push('No reskins'); if (S.types.w && S.nobk) f.push('No Botkillers'); if (S.types.w && S.nofest) f.push('No Festives');
   if (S.hidedone) f.push('Hiding completed');
@@ -1341,7 +1370,7 @@ function filterSummary(){
     `<button class="lk" type="button" data-fopen>Change</button>` + (f.length ? `<button class="lk" type="button" data-freset>Reset</button>` : '');
 }
 function resetFilters(){
-  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', hol:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
+  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', region:'', wslot:'', hol:'all', pyro:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
   save(); render();
 }
 document.addEventListener('click', e => {

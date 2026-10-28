@@ -331,6 +331,9 @@
       H().appendChild(bar);
     }
     if (!S.some(s => s.i === ST.style)) ST.style = S[0].i;
+    // the game's own word for what the choice is: Pyroland (model_vision_filtered) or Killstreak (the Grandmaster's levels)
+    const lab = (live() && ZLIVE.styleLabel && ZLIVE.styleLabel(ST.nm)) || 'Style';
+    bar.querySelector('span').textContent = lab; bar.querySelector('select').setAttribute('aria-label', lab);
     const sel = bar.querySelector('select');
     sel.innerHTML = S.map(s => `<option value="${s.i}"${ST.style === s.i ? ' selected' : ''}>${ST.o.esc(s.name)}</option>`).join('');
     placeBars();
@@ -503,11 +506,13 @@
   }
   function close() {
     if (!ST) return;
+    if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
     exitFS(); undress();
     const s = ST; ST = null;
     removeEventListener('keydown', onKey, true); removeEventListener('resize', layout);
     s.el.remove();
     if (s.o.close) s.o.close();
   }
+  window.ZSTYLETABS = () => { if (ST) { const was = ST.style; styleTabs(); if (ST.style !== was && ST.state === 'player') dress(); } };
   window.ItemPreview = {open, close, isOpen: () => !!ST};
 })();

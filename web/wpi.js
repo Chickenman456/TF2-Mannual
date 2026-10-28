@@ -277,6 +277,8 @@ async function open(host,pre){VG=window.VG;await Promise.all([VG.ready(),load()]
  ROOT=VG.build({n:'charinfo',p:{xpos:'0',ypos:'0',wide:'f0',tall:'f0'},c:[]});ROOT.o.y=178;ROOT.o.h=1030-178;ROOT.o.w=1920;ROOT.o.x=0;
  const ip=build();ip.o.x=0;ip.o.y=0;ip.o.w=1920;ip.o.h=1030-178;ROOT.kids.push(ip);ip.parent=ROOT;ROOT.el.appendChild(ip.el);ROOT.onCommand=null;HOST.appendChild(ROOT.el);
  const realRoot=ip;ROOT._ip=ip;
+ // The Mann-ual: no card behind the weapon (the panel's BGImage), just the weapon over the window
+ {const bg=ip.find('BGImage');if(bg&&bg.el){bg.el.style.setProperty('display','none','important');bg.el.style.setProperty('visibility','hidden','important')}}
  const mp=ip.find('ModelInspectionPanel');if(VIEW){mp.el.appendChild(VIEW.r.domElement);if(VIEW.dead)VIEW.loop()}else VIEW=await mkView(mp.el);
  // UI fade: past ~0.75 zoom the page's panels (title, card, team buttons, paintkit controls) fade out, gone by ~0.45 (and stop taking clicks)
  VIEW.host=mp.el;mp.el.style.overflow='visible';const ui=ip.kids.filter(k=>k!==mp&&k.el);
