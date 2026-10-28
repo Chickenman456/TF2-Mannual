@@ -839,7 +839,10 @@ function lvlNames(e){const id=e.id;if(id in ST.lvl)return ST.lvl[id];ST.lvl[id]=
 const styleLabel=n=>{const e=entry(n);if(levelable(e))return 'Killstreak';if(e&&pvModel(e))return 'Pyroland';return 'Style'};
 function styles(n){const e=entry(n);if(levelable(e)){const L=lvlNames(e);return L&&L.length>1?L:[]}const S=e&&e.r.visuals&&e.r.visuals.styles;
  let L=S?Object.keys(S).filter(k=>/^\d+$/.test(k)&&String(S[k].selectable)!=='0').sort((a,b)=>a-b).map(k=>({i:+k,name:locs(S[k].name)||('Style '+(+k+1))})):[];
- if(e&&pvModel(e)){if(L.length<2)L=[{i:0,name:'Normal'}];L.push({i:PYROLAND,name:'Pyroland'})}return L.length>1?L:[]}
+ if(e&&pvModel(e)){if(L.length<2)L=[{i:0,name:'Normal'}];L.push({i:PYROLAND,name:pyroOnly(e)?'Outside Pyrovision':'Pyroland'})}return L.length>1?L:[]}
+// a Pyroland item (the Rainblower, the Lollichop: vision opt in flags / vision_filter_flags with TF_VISION_FILTER_PYRO) is itself the
+// Pyroland look; its model_vision_filtered is what players outside Pyrovision see (the plain Flame Thrower, the Fire Axe)
+const pyroOnly=e=>{const n=v=>+(v&&typeof v=='object'?v.value:v)||0;if(n(e.r.vision_filter_flags)&1)return true;for(const b of ['attributes','static_attrs']){const B=e.r[b];if(!B||typeof B!='object')continue;for(const k in B){const v=B[k];const c=String(v&&typeof v=='object'?v.attribute_class||'':'').toLowerCase();if((k.toLowerCase()=='vision opt in flags'||c=='vision_opt_in_flags')&&n(v)&1)return true}}return false};
 const pvModel=e=>{const v=e.r.model_vision_filtered;return v&&typeof v=='string'&&v.trim()?v.replace(/\\/g,'/'):null};
 function paintable(n){const e=entry(n);const v=e&&e.r.capabilities&&e.r.capabilities.paintable;return v!=null&&String(v).trim()!=='0'}
 function regions(n){const e=entry(n);return e?regsOf(e.r):[]}
