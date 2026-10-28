@@ -283,7 +283,7 @@ async function open(host,pre){VG=window.VG;await Promise.all([VG.ready(),load()]
  if(!host.isConnected)return;host.innerHTML='<div class="vgroot vgwp" id="wproot"></div>';HOST=host.querySelector('#wproot');
  if(!ST){const ks=Object.keys(D.W);ST={wk:ks[Math.random()*ks.length|0],pk:null,wear:1,team:'RED',seed:'0'}}
  ROOT=VG.build({n:'charinfo',p:{xpos:'0',ypos:'0',wide:'f0',tall:'f0'},c:[]});ROOT.o.y=178;ROOT.o.h=1030-178;ROOT.o.w=1920;ROOT.o.x=0;
- const ip=build();ip.o.x=0;ip.o.y=0;ip.o.w=1920;ip.o.h=1030-178;ROOT.kids.push(ip);ip.parent=ROOT;ROOT.el.appendChild(ip.el);ROOT.onCommand=null;HOST.appendChild(ROOT.el);
+ const ip=build();ip.root.btnDef=1;/* plain vgui Buttons get the scheme's Button colours (TanDark, TFOrange armed): the Randomize seed button */ip.o.x=0;ip.o.y=0;ip.o.w=1920;ip.o.h=1030-178;ROOT.kids.push(ip);ip.parent=ROOT;ROOT.el.appendChild(ip.el);ROOT.onCommand=null;HOST.appendChild(ROOT.el);
  const realRoot=ip;ROOT._ip=ip;
  // The Mann-ual: no card behind the weapon (the panel's BGImage), just the weapon over the window
  {const bg=ip.find('BGImage');if(bg&&bg.el){bg.el.style.setProperty('display','none','important');bg.el.style.setProperty('visibility','hidden','important')}}

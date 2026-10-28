@@ -597,6 +597,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, turn into baby bottles there, or get assists in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
+    <div class="fld"><label class="lbl" for="itype">Item type</label><select id="itype" class="in"><option value="">Any type</option></select></div>
     <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
     <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
     <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
@@ -698,7 +699,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], override:{}, lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', region:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
@@ -767,12 +768,12 @@ function owns(id){
 }
 /* availability: ob (new copies still come out), limited (tradable, none new), rare (1 of 1: a single copy),
    code (untradable, promo codes only), unob (gone). Your own lock mark overrides it. */
-// your own mark moves an item between Obtainable, Limited and Unobtainable; a promo code, expired, 1 of 1 or unreleased
-// item keeps its kind whatever it's marked
+// your own mark can only call an Obtainable or Limited item unobtainable; promo code, unobtainable, expired, 1 of 1 and
+// unreleased items stay what they are (and have no mark button)
+const markable = id => { const b = availBase(id); return b === 'ob' || b === 'limited'; };
 function availOf(id){
   const o = S.override[String(id)], b = availBase(id);
-  if (o === undefined || !(b === 'ob' || b === 'limited' || b === 'unob')) return b;
-  return o ? 'unob' : 'ob';
+  return o && (b === 'ob' || b === 'limited') ? 'unob' : b;
 }
 function availBase(id){
   const it = ITEMS[id];
@@ -785,7 +786,7 @@ function availBase(id){
   return LIMITED.has(id) ? 'limited' : 'ob';
 }
 const AVTAG = {unob:['UNOBTAINABLE','unob'], code:['CODE','unob code'], expired:['EXPIRED','unob exp'], limited:['LIMITED','unob lim'], unused:['UNRELEASED','unob unu'], rare:['1 OF 1','unob rare']};
-function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? ITEMS[id].unob : o; }
+function isUnob(id){ const o = S.override[String(id)]; return markable(id) ? (o === undefined ? ITEMS[id].unob : o) : ITEMS[id].unob; }
 
 /* ---------------- filtering & sorting ---------------- */
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
@@ -798,6 +799,7 @@ function inScope(id, anyT){
   if (S.solo && it.classes.length !== 1) return false;
   if (it.cat === 'm' && S.quality === 'genuine' && S.avail === 'unob') return false;
   if (S.region && !it.region.split(', ').includes(S.region)) return false;
+  if (S.itype && it.type !== S.itype) return false;
   if (S.wslot && !it.wslot.split('|').includes(S.wslot)) return false;   // Genuine + Unobtainable: not the community medals
   if (S.grade === 'any' ? !it.rar : (S.grade !== '' && it.rar !== +S.grade)) return false;
   if (S.noresk && it.reskin) return false;
@@ -944,7 +946,7 @@ function bpPass(r){
   if (!typeOk(it)) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if ((S.noresk && it.reskin) || (S.nobk && it.botkiller) || (S.nofest && it.newfest)) return false;
-  if ((S.region && !it.region.split(', ').includes(S.region)) || (S.wslot && !it.wslot.split('|').includes(S.wslot))) return false;
+  if ((S.region && !it.region.split(', ').includes(S.region)) || (S.wslot && !it.wslot.split('|').includes(S.wslot)) || (S.itype && it.type !== S.itype)) return false;
   if ((S.hol === 'hide' && it.holiday) || (S.hol === 'only' && !it.holiday)) return false;
   if ((S.pyro === 'hide' && it.pyro) || (S.pyro === 'only' && !it.pyro)) return false;
   if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
@@ -1057,7 +1059,7 @@ function slot(id){
     <div class="acts">
       <button class="act ${w?'on':''}" type="button" data-a="wish" title="${w?'Remove from':'Add to'} wishlist" aria-label="Wishlist">${gi('star')}</button>
       <button class="act" type="button" data-a="own" title="${o?'Mark as not owned':'Mark as owned (held outside this backpack)'}" aria-label="Toggle owned">${gi(o?'x':'check')}</button>
-      <button class="act" type="button" data-a="ret" title="${un?'Mark as obtainable':'Mark as unobtainable'}" aria-label="Toggle unobtainable">${gi('lock')}</button>
+      ${markable(id) ? `<button class="act" type="button" data-a="ret" title="${un?'Mark as obtainable':'Mark as unobtainable'}" aria-label="Toggle unobtainable">${gi('lock')}</button>` : ''}
     </div></div>`;
 }
 // The count reads the way the Show filter does: 89/185 normally, "96 left" when showing Missing
@@ -1157,6 +1159,10 @@ function syncControls(){
   $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol; $('#pyro').value = S.pyro; $('#pinbar').checked = !S.nofollow;
   for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).checked = !!S[k];
   $('#grade').value = S.grade || '';
+  // the Item type filter's choices: the game's type name for every item (Hat, Rocket Launcher, Special Taunt...)
+  if ($('#itype').options.length < 2){ const T = new Set(Object.values(ITEMS).map(i => i.type).filter(Boolean)); $('#itype').innerHTML = '<option value="">Any type</option>' + [...T].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join(''); }
+  if (S.itype && ![...$('#itype').options].some(o => o.value === S.itype)) S.itype = '';
+  $('#itype').value = S.itype || '';
   if (S.region && ![...$('#region').options].some(o => o.value === S.region)) S.region = '';
   $('#region').value = S.region || ''; $('#wslot').value = S.wslot || '';
   syncMute();
@@ -1213,6 +1219,9 @@ function fadeFilters(){
   const regs = new Set(); T.forEach(id => ITEMS[id].region && ITEMS[id].region.split(', ').forEach(r => regs.add(r)));
   for (const o of $('#region').options) if (o.value) opt('region', o.value, regs.has(o.value));
   na(fld('region'), !regs.size);
+  const tys = new Set(T.map(id => ITEMS[id].type).filter(Boolean));
+  for (const o of $('#itype').options) if (o.value) opt('itype', o.value, tys.has(o.value));
+  na(fld('itype'), tys.size < 2 && !S.itype);
   const sl = new Set(); T.forEach(id => ITEMS[id].wslot && ITEMS[id].wslot.split('|').forEach(x => sl.add(x)));
   for (const o of $('#wslot').options) if (o.value) opt('wslot', o.value, sl.has(o.value));
   na(fld('wslot'), !sl.size);
@@ -1317,7 +1326,7 @@ document.addEventListener('click', e => {
       else if (!had && !got) S.manualOwned.push(k);
       itemSound(id, !had);
     }
-    if (a === 'ret'){ const v = !isUnob(id); if (v === ITEMS[id].unob) delete S.override[String(id)]; else S.override[String(id)] = v; sfx('trade_changed'); }
+    if (a === 'ret' && markable(id)){ const v = !isUnob(id); if (v === ITEMS[id].unob) delete S.override[String(id)]; else S.override[String(id)] = v; sfx('trade_changed'); }
     save(); render();
     if (a === 'own' && secKey && !wasFull && document.querySelector(`.sec[data-key="${CSS.escape(secKey)}"] .cnt.full`)) setTimeout(() => sfx('scored'), 250);
     return;
@@ -1341,7 +1350,7 @@ document.addEventListener('click', e => {
 $('#hol').addEventListener('change', () => { S.hol = $('#hol').value; save(); render(); });
 $('#pyro').addEventListener('change', () => { S.pyro = $('#pyro').value; save(); render(); });
 $('#grade').addEventListener('change', () => { S.grade = $('#grade').value; save(); render(); });
-for (const k of ['region','wslot']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).value; save(); render(); });
+for (const k of ['region','itype','wslot']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).value; save(); render(); });
 for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).checked; save(); render(); });
 let qTimer; $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.bpPage = 1; render(); }, 150); });
 
@@ -1370,7 +1379,7 @@ function activeFilters(){
   if (S.show === 'own') f.push('Owned'); if (S.show === 'miss') f.push('Missing'); if (S.show === 'dupe') f.push('Duplicates');
   if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable', unused:'Unreleased'}[S.avail]);
   if (S.grade) f.push(S.grade === 'any' ? 'Any grade' : (+S.grade ? RAR[+S.grade].n : 'No grade'));
-  if (S.region) f.push(S.region); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
+  if (S.itype) f.push(S.itype); if (S.region) f.push(S.region); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
   if (S.hol === 'hide') f.push('No Halloween items'); if (S.hol === 'only') f.push('Halloween only');
   if (S.pyro === 'hide') f.push('No Pyroland items'); if (S.pyro === 'only') f.push('Pyroland only');
   if (S.solo) f.push('No multi-class');
@@ -1390,7 +1399,7 @@ function filterSummary(){
     `<button class="lk" type="button" data-fopen>Change</button>` + (f.length ? `<button class="lk" type="button" data-freset>Reset</button>` : '');
 }
 function resetFilters(){
-  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', region:'', wslot:'', hol:'all', pyro:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
+  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', region:'', itype:'', wslot:'', hol:'all', pyro:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
   save(); render();
 }
 document.addEventListener('click', e => {
@@ -1722,7 +1731,7 @@ function watchIcons(){ if (io) document.querySelectorAll('img.ico[data-img]').fo
 
 // What a tooltip says about where an item stands (also shown in the store preview)
 function whyOf(id){
-  const it = ITEMS[id], av = availOf(id), mine = S.override[String(id)] !== undefined;
+  const it = ITEMS[id], av = availOf(id), mine = markable(id) && S.override[String(id)] !== undefined;
   const cq = CODEQ[id] ? (QUAL[CODEQ[id]] ? QUAL[CODEQ[id]].n : 'Unique') + ' copies' : 'it', from = (RAW.code_from || {})[id], un = (RAW.code_unreleased || {})[id], note = (RAW.unob_notes || {})[id];
   return av === 'unused' ? 'Unreleased: ' + (un ? cq + ' were never given out, as ' + un : 'in the game files, but never given out')
     : av === 'unob' ? (mine ? 'You marked this unobtainable' : note ? 'Unobtainable: ' + note.replace(/^[^(]*\((.*)\)$/, '$1') : (it.cat==='m' ? 'Event or tournament medal, can\'t be traded' : 'Can\'t be traded and is no longer given out'))
