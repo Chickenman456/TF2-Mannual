@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 31
+CATALOG_VERSION = 32
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -621,8 +621,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
                 (unt and (tname(k) == "Community Medal" or dates[k] < year_ago)))))
         warp = any(t.startswith("paintkit") and t != "paintkit_base" for t in prefab_str(k).split())
         t = tname(k) or ("War Paint" if warp else "")
-        if t.startswith(("#", "TF_")):
-            t = "Cosmetic"
+        if t.startswith(("#", "TF_")):   # a type name the language file doesn't have (#TF_SpellTool: the 2013 spells, transmogrifiers)
+            t = "Tool" if str(r.get("item_class") or "").lower() == "tool" else "Cosmetic"
         t = t.replace("\\n", " ").strip()
         nm = display_name(k)
         if cat[k] == "l" and nm == "Kit" and t:

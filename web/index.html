@@ -614,7 +614,7 @@ button.vg:focus-visible{outline:none}
         <label class="chk" title="Weapons that come with a war paint already applied"><input type="checkbox" data-type="d"> Decorated weapons</label>
         <label class="chk" title="Items for the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal..."><input type="checkbox" data-type="a"> Action items</label>
         <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
-        <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools"><input type="checkbox" data-type="l"> Tools</label>
+        <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools, and the expired ones (the 2013 spells, transmogrifiers, Cursed Objects)"><input type="checkbox" data-type="l"> Tools</label>
         <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
       </div>
       <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
@@ -767,11 +767,12 @@ function owns(id){
 }
 /* availability: ob (new copies still come out), limited (tradable, none new), rare (1 of 1: a single copy),
    code (untradable, promo codes only), unob (gone). Your own lock mark overrides it. */
-// your own mark wins over Obtainable / Limited, but a code, expired, 1 of 1 or unreleased item keeps its kind when marked unobtainable
+// your own mark moves an item between Obtainable, Limited and Unobtainable; a promo code, expired, 1 of 1 or unreleased
+// item keeps its kind whatever it's marked
 function availOf(id){
   const o = S.override[String(id)], b = availBase(id);
-  if (o === undefined) return b;
-  return !o ? 'ob' : (b === 'ob' || b === 'limited' || b === 'unob') ? 'unob' : b;
+  if (o === undefined || !(b === 'ob' || b === 'limited' || b === 'unob')) return b;
+  return o ? 'unob' : 'ob';
 }
 function availBase(id){
   const it = ITEMS[id];
@@ -790,7 +791,8 @@ function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? 
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
 // with Pyroland on Only these, its three groups list every type
-const typeOk = it => S.pyro === 'only' || it.cat === 'x' ? true : anyType() ? !!S.types[it.cat] : it.cat !== 'm';   // expired items: Availability picks them
+// expired items (the 2013 spells, transmogrifiers, Cursed Objects) sort with the tools
+const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat === 'x' ? 'l' : it.cat] : it.cat !== 'm';
 function inScope(id, anyT){
   const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
   if (S.solo && it.classes.length !== 1) return false;
@@ -1221,7 +1223,7 @@ function fadeFilters(){
   na($('#clsbar').closest('.fld'), fx); na($('.tgrid[aria-label="Item types"]'), fx);
   for (const b of document.querySelectorAll('#clsbar [data-cls]')) { const c = b.dataset.cls; if (c === '') continue; const n = +c;
     na(b, !fx && !has(T, it => it.ckey === n || (n < 9 && it.mask >> n & 1)), `No ${b.title || b.textContent.trim()} items in ${here}`); }
-  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => it.cat === i.dataset.type)),
+  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => (it.cat === 'x' ? 'l' : it.cat) === i.dataset.type)),
     S.pyro === 'only' ? 'Pyroland: Only these lists every type' : `No ${i.closest('.chk').textContent.trim()} match the other filters`);
   na($('#noresk').closest('.chk'), !has(T, it => it.reskin)); na($('#nobk').closest('.chk'), !has(T, it => it.botkiller)); na($('#nofest').closest('.chk'), !has(T, it => it.newfest));
   na($('#solo').closest('.chk'), !has(T, it => it.classes.length !== 1));

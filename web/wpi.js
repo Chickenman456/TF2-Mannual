@@ -48,8 +48,16 @@ function buildPD(buf,locBytes){const b=buf instanceof Uint8Array?buf:new Uint8Ar
  for(const m of B[7]||[]){const F=pbf(m),h=phead(pone(F,1));O[h.id]={v:h.vars,n:pget(F,2).map(pnode)}}
  for(const m of B[8]||[]){const F=pbf(m),h=phead(pone(F,1));I[h.id]={idx:pone(F,2),v:h.vars,d:pget(F,4).map(x=>{const X=pbf(x),ot=pone(X,1);return[ot?pone(pbf(ot),1):null,pvars(pget(X,2))]})}}
  for(const m of B[9]||[]){const F=pbf(m),h=phead(pone(F,1));if(h.pre)continue;const n=LOC[pstr(pone(F,2))];if(!n)continue;const it={};
-  for(const [f,,v] of F){const k=f>=6?PKW[f-6]:null;if(!k||!W16[k]||it[k])continue;const X=pbf(v),dt=pone(X,5);it[k]=[pone(pbf(pone(X,1)),1),dt?pvars(pget(pbf(dt),4)):[]]}
-  if(!Object.keys(it).length)continue;const op=pone(F,3);P[h.id]={n,v:h.vars,op:op?pone(pbf(op),1):null,it,team:pone(F,4,0)}}
+  const old=[];for(const [f,,v] of F){if(f===5){old.push(v);continue}const k=f>=6?PKW[f-6]:null;if(!k||!W16[k]||it[k])continue;const X=pbf(v),dt=pone(X,5);it[k]=[pone(pbf(pone(X,1)),1),dt?pvars(pget(pbf(dt),4)):[]]}
+  // the collection paintkits (Gun Mettle and later: Night Owl, Blue Mew...) list their weapons in "item" (field 5), each by its
+  // paintkit item definition, whose item_definition_index names the weapon; resolved after all of them are read (below)
+  if(!Object.keys(it).length&&!old.length)continue;const op=pone(F,3);P[h.id]={n,v:h.vars,op:op?pone(pbf(op),1):null,it,team:pone(F,4,0),old}}
+ // their paintkit item definition is the decorated weapon itself (item_definition_index 15000 = the Night Owl Sniper Rifle):
+ // the weapon is the one whose model it uses (c_sniperrifle)
+ {const byIdx={},byMdl={};for(const k in P)for(const wk in P[k].it){const t=I[P[k].it[wk][0]];if(t&&t.idx!=null)byIdx[t.idx]=wk}for(const wk in W16)byMdl[W16[wk]]=wk;
+  const wkOf=idx=>{if(byIdx[idx])return byIdx[idx];const Z=window.ZLIVE,e=Z&&Z.entry&&Z.entry('#'+idx);const mp=e&&e.r&&(e.r.model_player||e.r.model_world);const b=mp?String(mp).replace(/\\/g,'/').split('/').pop().replace(/\.mdl$/i,'').toLowerCase():null;return b&&byMdl[b]||null};
+  for(const k in P){const pk=P[k];for(const v of pk.old){const X=pbf(v),tid=pone(pbf(pone(X,1)),1),dt=pone(X,5),t=I[tid];const wk=t&&wkOf(t.idx);if(wk&&!pk.it[wk])pk.it[wk]=[tid,dt?pvars(pget(pbf(dt),4)):[]]}
+   delete pk.old;if(!Object.keys(pk.it).length)delete P[k]}}
  return{P,I,O,W:W16,T:{}}}
 window.ZWPD={build:buildPD};
 let LOADP=null;
