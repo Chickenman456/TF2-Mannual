@@ -697,7 +697,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 
 /* ---------------- state ---------------- */
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
-let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], override:{}, lastSync:'',
+let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
          quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
@@ -731,7 +731,7 @@ function migrate(x){
   if (x.types) delete x.types.x;   // expired items moved from the item types to Availability
   if (!['all','hide','only'].includes(x.pyro)) x.pyro = 'all';
   if (x.types && x.types.p !== undefined && x.types.d === undefined) x.types = {...x.types, d: x.types.p};
-  delete x.nowp; delete x.hideunob; delete x.pending; return x;
+  delete x.nowp; delete x.hideunob; delete x.pending; delete x.override; return x;   // the old obtainable / unobtainable marks are gone
 }
 function status(html){ $('#status').innerHTML = html; }
 
@@ -767,15 +767,8 @@ function owns(id){
   return n || (S.manualOwned.includes(k) || (ITEMS[id].cat === 's' && !qOf(id)) ? 1 : 0);
 }
 /* availability: ob (new copies still come out), limited (tradable, none new), rare (1 of 1: a single copy),
-   code (untradable, promo codes only), unob (gone). Your own lock mark overrides it. */
-// your own mark can only call an Obtainable or Limited item unobtainable; promo code, unobtainable, expired, 1 of 1 and
-// unreleased items stay what they are (and have no mark button)
-const markable = id => { const b = availBase(id); return b === 'ob' || b === 'limited'; };
+   code (untradable, promo codes only), unob (gone), expired, unused (never given out). */
 function availOf(id){
-  const o = S.override[String(id)], b = availBase(id);
-  return o && (b === 'ob' || b === 'limited') ? 'unob' : b;
-}
-function availBase(id){
   const it = ITEMS[id];
   if ((RAW.unused || {})[id]) return 'unused';   // in the game files, never given out
   if (it.expired) return 'expired';
@@ -786,7 +779,6 @@ function availBase(id){
   return LIMITED.has(id) ? 'limited' : 'ob';
 }
 const AVTAG = {unob:['UNOBTAINABLE','unob'], code:['CODE','unob code'], expired:['EXPIRED','unob exp'], limited:['LIMITED','unob lim'], unused:['UNRELEASED','unob unu'], rare:['1 OF 1','unob rare']};
-function isUnob(id){ const o = S.override[String(id)]; return markable(id) ? (o === undefined ? ITEMS[id].unob : o) : ITEMS[id].unob; }
 
 /* ---------------- filtering & sorting ---------------- */
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
@@ -1047,7 +1039,7 @@ function nameStyle(id){
   return ONLY[id] ? ` style="color:${QUAL[ONLY[id]].c}" title="Only exists in ${QUAL[ONLY[id]].n} quality"` : '';
 }
 function slot(id){
-  const it = ITEMS[id], o = owns(id), w = S.wishlist.includes(id), un = isUnob(id);
+  const it = ITEMS[id], o = owns(id), w = S.wishlist.includes(id);
   const rc = it.rar ? RCLS[it.rar] : (it.warpaint ? 'r-paintkit' : '');
   const ach = ACHINFO[id] && ACHINFO[id][0], ab = ach ? achIcon(ach) : '';
   return `<div class="slot ${o?'own':'miss'} ${rc}${ach ? ' achv' : ''}" data-id="${id}" tabindex="0">
@@ -1059,7 +1051,6 @@ function slot(id){
     <div class="acts">
       <button class="act ${w?'on':''}" type="button" data-a="wish" title="${w?'Remove from':'Add to'} wishlist" aria-label="Wishlist">${gi('star')}</button>
       <button class="act" type="button" data-a="own" title="${o?'Mark as not owned':'Mark as owned (held outside this backpack)'}" aria-label="Toggle owned">${gi(o?'x':'check')}</button>
-      ${markable(id) ? `<button class="act" type="button" data-a="ret" title="${un?'Mark as obtainable':'Mark as unobtainable'}" aria-label="Toggle unobtainable">${gi('lock')}</button>` : ''}
     </div></div>`;
 }
 // The count reads the way the Show filter does: 89/185 normally, "96 left" when showing Missing
@@ -1326,7 +1317,6 @@ document.addEventListener('click', e => {
       else if (!had && !got) S.manualOwned.push(k);
       itemSound(id, !had);
     }
-    if (a === 'ret' && markable(id)){ const v = !isUnob(id); if (v === ITEMS[id].unob) delete S.override[String(id)]; else S.override[String(id)] = v; sfx('trade_changed'); }
     save(); render();
     if (a === 'own' && secKey && !wasFull && document.querySelector(`.sec[data-key="${CSS.escape(secKey)}"] .cnt.full`)) setTimeout(() => sfx('scored'), 250);
     return;
@@ -1731,10 +1721,10 @@ function watchIcons(){ if (io) document.querySelectorAll('img.ico[data-img]').fo
 
 // What a tooltip says about where an item stands (also shown in the store preview)
 function whyOf(id){
-  const it = ITEMS[id], av = availOf(id), mine = markable(id) && S.override[String(id)] !== undefined;
+  const it = ITEMS[id], av = availOf(id);
   const cq = CODEQ[id] ? (QUAL[CODEQ[id]] ? QUAL[CODEQ[id]].n : 'Unique') + ' copies' : 'it', from = (RAW.code_from || {})[id], un = (RAW.code_unreleased || {})[id], note = (RAW.unob_notes || {})[id];
   return av === 'unused' ? 'Unreleased: ' + (un ? cq + ' were never given out, as ' + un : 'in the game files, but never given out')
-    : av === 'unob' ? (mine ? 'You marked this unobtainable' : note ? 'Unobtainable: ' + note.replace(/^[^(]*\((.*)\)$/, '$1') : (it.cat==='m' ? 'Event or tournament medal, can\'t be traded' : 'Can\'t be traded and is no longer given out'))
+    : av === 'unob' ? (note ? 'Unobtainable: ' + note.replace(/^[^(]*\((.*)\)$/, '$1') : (it.cat==='m' ? 'Event or tournament medal, can\'t be traded' : 'Can\'t be traded and is no longer given out'))
     : av === 'code' ? 'Code item: ' + cq + ' came from redeeming promo codes' + (from ? ' that came with ' + from : '') + ', and unused codes may still exist'
     : av === 'expired' ? 'Expired: deleted itself from every backpack' + (typeof it.expired === 'string' ? ' on ' + new Date(it.expired + 'T00:00:00').toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}) : '')
     : av === 'rare' ? '1 of 1: only a single copy exists' + (it.day ? '. It only stays in a backpack for a day, then disappears' : '')
