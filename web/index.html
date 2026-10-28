@@ -198,6 +198,8 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .slot:hover .nm,.slot:hover .q,.slot:focus-within .nm,.slot:focus-within .q{visibility:hidden}
 .badges{position:absolute;top:6px;right:8px;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .badges .pk{width:20px;height:15px;filter:drop-shadow(0 1px 0 #000)}
+.badges .pyv{display:inline-block;width:18px;height:18px;background:url(/ui/viewmode_pyrovision.webp) center/contain no-repeat;filter:drop-shadow(0 1px 0 #000)}
+.pyvl{display:inline-block;width:48px;height:48px;margin-right:6px;background:url(/ui/viewmode_pyrovision.webp) center/contain no-repeat;flex:none}
 .wishmark{width:16px;height:16px;display:block;filter:drop-shadow(0 1px 0 #000)}
 .clockb{color:var(--TanLight);display:block;line-height:0}.clockb .gi{width:16px;height:16px;filter:drop-shadow(0 1px 0 #000)}
 .tick .gi{width:15px;height:15px;filter:drop-shadow(0 1px 0 #000)}
@@ -677,7 +679,7 @@ for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd,wslot] of RAW
   // paint cans, team paints and spells: the game draws the icon, then its overlay in the item's tint ("base|overlay@rgb|...")
   const ovl = (RAW.overlay || {})[id], im = RAW.imgs[img] || '';
   ITEMS[id] = {id, name, type, cat, mask, classes, rar, desc, region: region || '', wslot: wslot || '', snd: snd == null ? -1 : snd, img: im && ovl ? [im, ...ovl.map(([p, c]) => p + '@' + c)].join('|') : im,
-    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), pyro: !!(flags&512), reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), rare: !!(flags&2048), day: !!(flags&4096), action: !!(flags&16384), expired: !!(flags&8192) && ((RAW.expired || {})[id] || true), note: (RAW.notes || {})[id] || '', date, year: +date.slice(0,4),
+    warpaint: !!(flags&1), unob: !!(flags&2), untradable: !!(flags&4), holiday: !!(flags&8), pyro: flags&512 ? (flags&1024 ? 2 : flags&32768 ? 3 : 1) : 0, reskin: !!(flags&16), botkiller: !!(flags&32), newfest: !!(flags&64), rare: !!(flags&2048), day: !!(flags&4096), action: !!(flags&16384), expired: !!(flags&8192) && ((RAW.expired || {})[id] || true), note: (RAW.notes || {})[id] || '', date, year: +date.slice(0,4),
     ckey: classes.length===1 ? CLASSES.indexOf(classes[0]) : (classes.length===9 ? 10 : 9), cols: [], cases: []};
   NAMES[name.toLowerCase()] = id;
 }
@@ -782,9 +784,10 @@ function isUnob(id){ const o = S.override[String(id)]; return o === undefined ? 
 /* ---------------- filtering & sorting ---------------- */
 const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
-const typeOk = it => anyType() ? !!S.types[it.cat] : it.cat !== 'm';
-function inScope(id){
-  const it = ITEMS[id]; if (!it || !typeOk(it)) return false;
+// with Pyroland on Only these, its three groups list every type
+const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat] : it.cat !== 'm';
+function inScope(id, anyT){
+  const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
   if (S.solo && it.classes.length !== 1) return false;
   if (it.cat === 'm' && S.quality === 'genuine' && S.avail === 'unob') return false;
   if (S.region && !it.region.split(', ').includes(S.region)) return false;
@@ -802,8 +805,8 @@ function inScope(id){
 }
 // What the totals count: everything your filters, search and availability choice allow.
 // Owned / Missing / Dupes only changes which of those are shown, not the totals.
-function counted(id){
-  if (!inScope(id)) return false;
+function counted(id, anyT){
+  if (!inScope(id, anyT)) return false;
   const q = $('#q').value.trim().toLowerCase();
   if (q && !ITEMS[id].name.toLowerCase().includes(q)) return false;
   if (S.avail !== 'any' && availOf(id) !== S.avail) return false;
@@ -1042,7 +1045,7 @@ function slot(id){
     ${iconHtml(it)}<div class="nm"${nameStyle(id)}>${esc(it.name)}</div>
     ${o?'<span class="tick" aria-label="Owned">'+gi('check')+'</span>':''}${o>1?`<span class="q">×${o}</span>`:''}
     ${(t => t ? `<span class="${t[1]}">${t[0]}</span>` : '')(AVTAG[availOf(id)])}
-    ${w||it.holiday||it.day||ab?`<span class="badges">${ab}${w?'<img class="wishmark" src="ui/star_on.webp" alt="On wishlist">':''}${it.day?'<span class="clockb" title="Only stays in a backpack for a day">'+gi('clock')+'</span>':''}${it.holiday?'<span class="pk" title="Halloween / Full Moon restricted"></span>':''}</span>`:''}
+    ${w||it.holiday||it.pyro||it.day||ab?`<span class="badges">${ab}${w?'<img class="wishmark" src="ui/star_on.webp" alt="On wishlist">':''}${it.day?'<span class="clockb" title="Only stays in a backpack for a day">'+gi('clock')+'</span>':''}${it.holiday?'<span class="pk" title="Halloween / Full Moon restricted"></span>':''}${it.pyro?'<span class="pyv" title="'+['','Pyroland item','Turns into a baby bottle in Pyroland','Pyroland assist'][it.pyro]+'"></span>':''}</span>`:''}
     <div class="links"><a href="https://wiki.teamfortress.com/scripts/itemredirect.php?id=${id}&lang=en_US" target="_blank" rel="noopener" title="Open on the TF2 Wiki">Wiki</a>${marketable(it) ? `<a href="https://steamcommunity.com/market/search?appid=440&q=${encodeURIComponent('"'+(qOf(id) ? QUAL[qOf(id)].n+' ' : '')+it.name+'"')}" target="_blank" rel="noopener" title="Search the Steam Community Market">Market</a>` : ''}</div>
     <div class="acts">
       <button class="act ${w?'on':''}" type="button" data-a="wish" title="${w?'Remove from':'Add to'} wishlist" aria-label="Wishlist">${gi('star')}</button>
@@ -1059,7 +1062,7 @@ function countLabel(got, total, ids){
   return n(got) + '/' + n(total);
 }
 function section(key, num, title, sub, ids, tag, lead){
-  ids = ids.filter(counted);
+  ids = ids.filter(id => counted(id));
   const total = ids.length; if (!total) return '';
   const got = ids.filter(owns).length, pct = Math.round(got*100/total);
   if (S.hidedone && got === total) return '';
@@ -1085,6 +1088,11 @@ function render(){
       const sub = k === 'm' ? 'Unlocked by completing a class\'s achievements' : k === 'e' ? 'Event, map and game mode achievements' : 'Unlocked by an achievement in ' + (GAMES[k] || 'another game');
       html += section('ach' + k, null, title, sub, g.get(k), '');
     }
+  } else if (S.pyro === 'only' && (S.view === 'class' || S.view === 'craft' || S.view === 'year')){
+    // Pyroland: the items that let you see it or only show in it, the grenades that turn into baby bottles there, and the pets the kill feed credits with assists in it
+    const g = groupBy(it => it.pyro, S.view === 'craft' ? CRAFT : null);
+    const P = [[1, 'Pyroland', 'Let you see Pyroland, or only show up in it'], [2, 'Pyroland grenades', 'Grenades that turn into baby bottles in Pyroland'], [3, 'Pyroland assists', 'Credited with assists in the kill feed in Pyroland']];
+    for (const [k, t, sub] of P) if (g.has(k)) html += section('pyro' + k, null, t, sub, g.get(k), '', '<span class="pyv pyvl" aria-hidden="true"></span>');
   } else if (S.view === 'class' || S.view === 'craft'){
     const g = groupBy(it => it.ckey, S.view === 'craft' ? CRAFT : null);
     const names = [...CLASSES, 'Multi-class', 'All-class'];
@@ -1125,7 +1133,7 @@ function render(){
 function meter(){
   let ids, got;
   if (S.view === 'effects'){ fxIndex(); ids = Object.values(FX); got = ids.filter(fxCount).length; }
-  else { ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(counted); got = ids.filter(owns).length; }
+  else { ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(id => counted(id)); got = ids.filter(owns).length; }
   const pct = ids.length ? got*100/ids.length : 0;
   $('#pct').textContent = pct.toFixed(pct<10?1:0)+'%';
   $('#pfill').style.width = pct+'%';
@@ -1167,6 +1175,8 @@ function fadeFilters(){
   else if (bp) U = [...new Set(((BP && BP.items) || []).map(r => +(ALIAS[r[1]] || r[1])))].filter(id => ITEMS[id]);
   else U = (v === 'craft' ? [...CRAFT] : v === 'achieve' ? [...ACH] : v === 'wishlist' ? S.wishlist : ALL_IDS).filter(id => ITEMS[id]);
   const T = U.filter(id => typeOk(ITEMS[id]));
+  // the types that have something under the other filters (no War paints box when no war paint is a code item, or Vintage)
+  const U2 = (bp || fx) ? U : U.filter(id => counted(id, true));
   const has = (L, f) => L.some(id => f(ITEMS[id]));
   const here = fx ? 'unusual effects' : bp ? 'your backpack' : v === 'achieve' ? 'the achievement items' : v === 'craft' ? 'the craft hats'
     : v === 'wishlist' ? 'your wishlist' : 'the items in these types';
@@ -1206,7 +1216,8 @@ function fadeFilters(){
   na($('#clsbar').closest('.fld'), fx); na($('.tgrid[aria-label="Item types"]'), fx);
   for (const b of document.querySelectorAll('#clsbar [data-cls]')) { const c = b.dataset.cls; if (c === '') continue; const n = +c;
     na(b, !fx && !has(T, it => it.ckey === n || (n < 9 && it.mask >> n & 1)), `No ${b.title || b.textContent.trim()} items in ${here}`); }
-  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && !has(U, it => it.cat === i.dataset.type));
+  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => it.cat === i.dataset.type)),
+    S.pyro === 'only' ? 'Pyroland: Only these lists every type' : `No ${i.closest('.chk').textContent.trim()} match the other filters`);
   na($('#noresk').closest('.chk'), !has(T, it => it.reskin)); na($('#nobk').closest('.chk'), !has(T, it => it.botkiller)); na($('#nofest').closest('.chk'), !has(T, it => it.newfest));
   na($('#solo').closest('.chk'), !has(T, it => it.classes.length !== 1));
   na($('#hidedone').closest('.chk'), bp);

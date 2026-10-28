@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 30
+CATALOG_VERSION = 31
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -189,22 +189,27 @@ def overlays(R, keep):
 
 
 def pyroland(r):
-    """Items made for Pyroland: "vision opt in flags" / vision_filter_flags with TF_VISION_FILTER_PYRO (1) - the Pyrovision
-    Goggles let you see it, the Balloonicorn, Bongos and Orchestrina only show in it - or a model_vision_filtered model
-    shown there instead (the Rainblower, the Lollichop, the baby-bottle cosmetics)."""
+    """Which Pyroland group an item is in (0 for none):
+    1  Pyroland items: "vision opt in flags" / vision_filter_flags with TF_VISION_FILTER_PYRO (1) - the Pyrovision Goggles
+       let you see it; the Rainblower, Lollichop, Balloonicorn, Bongos and Orchestrina only show in it
+    2  grenades that turn into baby bottles there: a cosmetic with a model_vision_filtered model (the Jingle Belt, A Whiff
+       of the Old Brimstone, the Captain's Cocktails)
+    3  Pyroland assists: "counts as assister is some kind of pet" - credited with assists in the kill feed in Pyroland"""
     def num(v):
         try:
             return int(float(str(v.get("value") if isinstance(v, dict) else v).strip()))
         except (TypeError, ValueError):
             return 0
-    if num(r.get("vision_filter_flags", 0)) & 1 or str(r.get("model_vision_filtered") or "").strip():
-        return True
-    for b in ("attributes", "static_attrs"):
-        for n, v in (r.get(b) or {}).items():
-            cls = str(v.get("attribute_class", "") if isinstance(v, dict) else "").lower()
-            if (n.lower() == "vision opt in flags" or cls == "vision_opt_in_flags") and num(v) & 1:
-                return True
-    return False
+    attrs = [(n.lower(), str(v.get("attribute_class", "") if isinstance(v, dict) else "").lower(), v)
+             for b in ("attributes", "static_attrs") for n, v in (r.get(b) or {}).items()]
+    if num(r.get("vision_filter_flags", 0)) & 1 or any(
+            (n == "vision opt in flags" or c == "vision_opt_in_flags") and num(v) & 1 for n, c, v in attrs):
+        return 1
+    if str(r.get("model_vision_filtered") or "").strip():
+        return 2
+    if any(c == "counts_as_assister" and num(v) for n, c, v in attrs):
+        return 3
+    return 0
 
 
 def build(sources, data_dir, firstseen=None, progress=lambda m: None):
@@ -633,8 +638,9 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             flags |= 8192  # expired: deleted itself on a fixed date
         if r.get("item_slot") == "action":
             flags |= 16384  # goes in the action slot
-        if pyroland(r):
-            flags |= 512   # a Pyroland item (the backpack's viewmode_pyrovision badge)
+        py = pyroland(r)
+        if py:
+            flags |= 512 | (1024 if py == 2 else 32768 if py == 3 else 0)   # Pyroland: 1024 a baby-bottle grenade, 32768 an assist pet
         if cat[k] == "m" and k not in not_genuine:
             flags |= 256   # medals are handed out in Genuine quality
         if cat[k] == "w" and not warp:

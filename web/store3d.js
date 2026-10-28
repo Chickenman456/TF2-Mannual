@@ -346,10 +346,10 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    for(const n in A.b){const B=E.B[n];if(!B)continue;const[Q,P]=A.b[n];iq.fromArray(Q,f0*4);iq2.fromArray(Q,f1*4);B.quaternion.copy(iq).slerp(iq2,u);B.position.set(P[f0*3]+(P[f1*3]-P[f0*3])*u,P[f0*3+1]+(P[f1*3+1]-P[f0*3+1])*u,P[f0*3+2]+(P[f1*3+2]-P[f0*3+2])*u)}}}
  async function bonemerge(m,c,key,tint){let src,man;try{[src,man]=/^livepropx:/.test(key)?await ZLIVE.propOwn(key.slice(10)):/^liveprop:/.test(key)?await ZLIVE.prop(key.slice(9)):/^livexw:/.test(key)?await ZLIVE.loadXW(key):/^live:/.test(key)?await ZLIVE.load(key):await Promise.all([wload(key),wman()])}catch(e){if(/^live(xw)?:/.test(key))console.warn('[ZLIVE]',key,e);return null}
   const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
-  const pbl={};for(const k in pb)pbl[k.toLowerCase()]=pb[k];const held=!!(man[key]||{})._held,own=!!(man[key]||{})._own;
+  const pbl={};for(const k in pb)pbl[k.toLowerCase()]=pb[k];const own=!!(man[key]||{})._own;
   // own: a taunt prop entity - none of its bones merge; its root sits beside the merc's skeleton root, animated on its own (holder)
   let holder=null;if(own){const pr=Object.values(pb).find(b=>!b.parent||!b.parent.isBone);holder=new THREE.Group();holder.name='zprop';((pr&&pr.parent)||m.o).add(holder);extra.push(holder)}
-  const mk=b=>{if(bm[b.name])return bm[b.name];const pm=(held||own)?null:(pb[b.name]||pbl[b.name.toLowerCase()]);if(pm)return bm[b.name]=pm;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);{const br=((man[key]||{})._brot||{})[b.name];if(br)nb.quaternion.multiply(new THREE.Quaternion(...br))}const par=b.parent&&b.parent.isBone?mk(b.parent):(holder||(held&&pb.bip_hand_L)||pb.bip_head||m.o);par.add(nb);extra.push(nb);return bm[b.name]=nb};
+  const mk=b=>{if(bm[b.name])return bm[b.name];const pm=own?null:(pb[b.name]||pbl[b.name.toLowerCase()]);if(pm)return bm[b.name]=pm;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);{const br=((man[key]||{})._brot||{})[b.name];if(br)nb.quaternion.multiply(new THREE.Quaternion(...br))}const par=b.parent&&b.parent.isBone?mk(b.parent):(holder||pb.bip_head||m.o);par.add(nb);extra.push(nb);return bm[b.name]=nb};
   // festivized: the item's attached_models_festive model (strings of lights) bonemerged onto the weapon's own bones
   const meshes=src.map(s=>{const wm=s.clone();const bones=s.skeleton.bones.map(mk);const MI=(man[key]||{})[s.material.name]||{};wm.userData.srcMat=s.material.name;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P,P.itemTint&&tint?tint:null):s.material;if(P&&P.itemTint&&tint&&tint.spell!=null&&window.ZSPELL)ZSPELL.reg(wm,tint.spell,team);wm.frustumCulled=false;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm});
   if(window.ZJIG&&(man[key]||{})._jig)ZJIG.add(m,bm,man[key]._jig);
@@ -816,7 +816,7 @@ function mdlFor(e,cl,si,team){const r=e.r,c=clsKey(cl);if(!usedBy(r,c))return nu
  // CTFWeaponBase::GetWorldModel: a weapon's model_world is what third person shows (the Hot Hand's w_slapping_glove; its c_ model is the viewmodel rig)
  if(e.k=='wep'&&r.model_world&&typeof r.model_world=='string')cand.push(r.model_world);
  pcAdd(r.model_player_per_class);if(r.model_player)cand.push(r.model_player);
- // an action item with no worn model of its own shows its extra_wearable (the Secret Diary and Halloween Spellbook's books)
+ // an action item with no worn model of its own shows its extra_wearable (the spellbooks and the Secret Diary hang from the merc's mvm bone, at the hip)
  if(e.k=='action'&&!cand.length){const x=xwOf(e);if(x)cand.push(x)}
  for(const p of cand)if(has(p))return p;return null}
 // CEconItemView::GetSkin: the style's per-team (or single) skin, then visuals "skin", then the team's own family
@@ -1085,7 +1085,6 @@ async function assemble(key,p,e,si,pre,opt){pre=pre||'m';const md=await model(p,
  const pr=async t=>{try{const v=(mov&&await mov)||await findVmt(md.texn[t]||'',md.cds);if(!v)return null;const M=await vmt(v,0);return M?await params(M):null}catch(err){console.warn('[ZLIVE] material',md.texn[t],err);return null}};
  for(const s of md.slots){const r=md.skins[rs]?md.skins[rs][s]:s,b=md.skins[bs]?md.skins[bs][s]:r;const red=await pr(r),blu=b===r?red:await pr(b);man[pre+s]={red,blu:blu||red}}
  if(md.jig)man._jig=md.jig;if(pre=='m')ST.flex[key]=md.flex;
- if(pre=='m'&&e&&e.k=='action'&&xwOf(e)&&String(p).toLowerCase()===xwOf(e).toLowerCase())man._held=1;   // a spellbook: held in the hand
  // visuals.playback_activity: on_spawn / start_taunting activities (the Orchestrina: ACT_IDLE "stopped", ACT_RUN "started"); otherwise sequence 0
  // a worn weapon's own pack (the B.A.S.E. Jumper's c_paratrooper_pack) sits closed: its retract_idle sequence, as when the chute is put away
  if(((pre=='m'&&e&&(e.k=='cos'||e.k=='action'||e.k=='medal'))||(pre=='xw'&&e&&passiveXW(e)))&&md.seqs&&md.seqs.length){const pa=(e.r.visuals&&e.r.visuals.playback_activity)||{};const by=a=>a&&md.seqs.find(q=>q.act==String(a).toUpperCase());
