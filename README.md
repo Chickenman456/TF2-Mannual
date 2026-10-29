@@ -109,6 +109,24 @@ data/                Item classifications and reference data
 tools/               Data maintenance scripts
 assets/              Application assets
 ```
+## Known Issues
+* Some items like the Lucky Number 42, War on Smissmas Battle Socks, War on Smissmas Battle Hood, Tiny Texan, Balloonicorn, Reindoonicorn, Bacteria Blocker, and Soul of 'Spensers past are glitched in one way or another.
+* Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
+* particle effects are horribly inaccurate at the time being.
+* Destruction PDA, Grappling Hook previews the incorrect animation.
+* Some unusuals render at the incorrect bone.
+* Some taunts are missing their props (Circuit Breaker, Meet the Medic, Punchline, Pool Party)
+* Cases don't display their contents.
+* Taunts are missing their particles or sounds.
+* Some Taunts don't play their intro (bumper cars, soldier tank taunt)
+* Shred Alert doesn't play.
+
+## Planned Features
+* Preview styles for Contracker.
+* View cosmetics compiled in your workshop folder.
+* View styles for canteen.
+* Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
+* Preview Taunt actions.
 
 ## Legal
 
