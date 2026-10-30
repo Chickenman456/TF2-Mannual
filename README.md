@@ -120,6 +120,7 @@ assets/              Application assets
 * Taunts are missing their particles or sounds.
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
 * Shred Alert doesn't play.
+* Code section missing Steam Translation Bundle.
 
 ## Planned Features
 * Preview styles for Contracker.
@@ -127,6 +128,7 @@ assets/              Application assets
 * View styles for canteen.
 * Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
 * Preview Taunt actions.
+* Web version
 
 ## Legal
 
