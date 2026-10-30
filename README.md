@@ -130,6 +130,7 @@ assets/              Application assets
 * Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
 * Preview Taunt actions.
 * Web version
+* Preview noise maker sounds.
 
 ## Legal
 
