@@ -121,6 +121,7 @@ assets/              Application assets
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
 * Shred Alert doesn't play.
 * Code section missing Steam Translation Bundle.
+* Monstrous Memento is incorrectly tagged as unreleased in place of Mannanas Hat.
 
 ## Planned Features
 * Preview styles for Contracker.
