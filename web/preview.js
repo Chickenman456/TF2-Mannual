@@ -150,6 +150,8 @@
       else if (o.stock && stockSlot(cn)) { wname = o.name; wslot = stockSlot(cn); }   // the page's own stock weapon models
     }
     else if (WORN.has(o.kind)) cos = [ST.nm];
+    // a weapon picked with the number keys: the previewed weapon when it's for that slot, otherwise the stock one
+    if (ST.kslot && wslot !== ST.kslot) { wslot = ST.kslot; wname = null; }
     return {cls: cn, team: ST.team, cos, paint: ST.paint, wslot, wname, taunt};
   }
   const stockSlot = cn => (window.Store3D && Store3D.stockSlot) ? Store3D.stockSlot(cn, ST.o.name) : null;
@@ -431,7 +433,7 @@
     const tb = t.closest('[data-spt]');
     if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); if (ST.state === 'player') dress(); return; }
     const c = t.closest('[data-spc]');
-    if (c && ST.el.contains(c)) { ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
+    if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = null; } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
     const a = t.closest('[data-spv]'); if (!a) return;
     const k = a.dataset.spv;
     if (k === 'close') { close(); return; }
@@ -471,6 +473,27 @@
         <div class="pth"></div><pre tabindex="0"></pre><button type="button" class="cp" data-srccopy>Copy</button>`;
       show(0);
     } catch (e) { if (box.isConnected) box.querySelector('.bd').innerHTML = `<p>${E(e && e.message || String(e))}</p>`; }
+  }
+  // ---- playing the merc from the keyboard, as in game: 1-4 its weapons, W runs in place (again to stop), Ctrl crouches (again to stand),
+  // F fires, G taunts with the weapon in hand. Ctrl toggles here, so W never has to be pressed with Ctrl held (Ctrl+W closes the tab).
+  const KSLOTS = {Spy: ['secondary', 'building', 'melee'], Engineer: ['primary', 'secondary', 'melee', 'pda'], _: ['primary', 'secondary', 'melee']};
+  function ctlReset() { const cn = ST && CNAME[ST.cls]; if (cn && window.Store3D && Store3D.ctl) Store3D.ctl.reset(cn);  }
+  function onCtl(e) {
+    if (!ST || ST.state !== 'player' || !window.Store3D || !Store3D.ctl || e.altKey || e.metaKey) return;
+    const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable], .spv-src, .spv-menu')) return;
+    const cn = CNAME[ST.cls]; if (!cn) return;
+    if (e.key === 'Control') { if (!e.repeat) Store3D.ctl.crouch(cn); return; }
+    if (e.ctrlKey || e.repeat) return;
+    const k = e.key.toLowerCase();
+    if (/^[1-9]$/.test(k)) {
+      const sl = (KSLOTS[cn] || KSLOTS._)[+k - 1]; if (!sl) return;
+      e.preventDefault(); ST.kslot = sl; window.ZPREV = prevState();
+      const m = window.Z3D && Z3D.M[cn]; if (m && /^(taunt|live:)/.test(m.cn || '')) stopTaunt(cn);
+      Store3D.redress(cn); Store3D.ctl.refresh(cn); return;
+    }
+    if (k === 'w') { e.preventDefault(); Store3D.ctl.run(cn); }
+    else if (k === 'f') { e.preventDefault(); Store3D.ctl.fire(cn); }
+    else if (k === 'g') { e.preventDefault(); Store3D.ctl.taunt(cn); }
   }
   function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (b) b.textContent = ST.o.wish.on() ? 'On your Wishlist' : 'Add to Wishlist'; }
   function onKey(e) {
@@ -528,7 +551,7 @@
     ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name};
     if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
     el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown);
-    addEventListener('keydown', onKey, true); addEventListener('resize', layout);
+    addEventListener('keydown', onKey, true); addEventListener('keydown', onCtl); addEventListener('resize', layout);
     teamSel(); cycleText(); wishLabel();
     layout(); setTimeout(layout, 60);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
@@ -541,9 +564,9 @@
   function close() {
     if (!ST) return;
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
-    exitFS(); undress();
+    ctlReset(); exitFS(); undress();
     const s = ST; ST = null;
-    removeEventListener('keydown', onKey, true); removeEventListener('resize', layout);
+    removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('resize', layout);
     s.el.remove();
     if (s.o.close) s.o.close();
   }
