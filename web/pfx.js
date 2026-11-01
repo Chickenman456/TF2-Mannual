@@ -476,7 +476,7 @@
 
   // ---------- an effect on the merc ----------
   // where(): the Object3D the effect follows (an attachment, the item's root bone, or the merc), plus the merc for model points
-  let FX = null; const BURST = [];
+  let FX = null; const BURST = []; const KEEP = new Map();
   function makeFx(def, where, scaleOf) {
     const q = new THREE.Quaternion(), wp = new THREE.Vector3(), ax = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
     const fx = { def, where, scaleOf, acc: 0, cp0: null, frame: -1 };
@@ -531,6 +531,20 @@
       for (const S of fx.root.all()) S.mat = (S.rend && S.def.material) ? await material(S.def.material) : null;
       fx.age = 0; BURST.push(fx); ZPFX._nb = (ZPFX._nb || 0) + 1; return true;
     },
+    /* keep(key, system, where): an effect that stays on as long as what it belongs to (the Spy's cigarette smoke, a cosmetic's own
+       particle effect), alongside the unusual effect; where() returns null while it shouldn't show. unkeep(key) ends it */
+    async keep(key, system, where, scaleOf) {
+      if (KEEP.has(key)) return true; KEEP.set(key, null);
+      const def = await find(system); if (!def || !KEEP.has(key)) { if (KEEP.get(key) === null) KEEP.delete(key); return false; }
+      await preload(def);
+      const fx = makeFx(def, where, scaleOf || (() => 1));
+      for (const S of fx.root.all()) S.mat = (S.rend && S.def.material) ? await material(S.def.material) : null;
+      if (!KEEP.has(key)) { for (const S of fx.root.all()) dispose(S); return false; }
+      for (let k = 0; k < 60; k++) { fx.frame++; fx.root.step(1 / 60); }
+      KEEP.set(key, fx); return true;
+    },
+    unkeep(key) { const fx = KEEP.get(key); KEEP.delete(key); if (fx) for (const S of fx.root.all()) dispose(S); },
+    kept: () => [...KEEP.keys()],
     stop() { ZPFX._tok = (ZPFX._tok || 0) + 1; if (FX) { for (const S of FX.root.all()) dispose(S); FX = null; } },
     active: () => !!FX, bursts: () => ZPFX._nb || 0,
     tick(dt, sc, cam) {
@@ -539,6 +553,14 @@
         while (b.acc >= 1 / 60) { b.acc -= 1 / 60; b.frame++; b.root.step(1 / 60); }
         if (b.age > .1 && !b.root.alive() || b.age > 4) { for (const S of b.root.all()) dispose(S); BURST.splice(BURST.indexOf(b), 1); continue; }
         cam.updateMatrixWorld(); const bs = b.scaleOf(); for (const S of b.root.all()) draw(S, cam, sc, bs);
+      }
+      for (const [key, k] of KEEP) {
+        if (!k) continue;
+        const on = !!k.where(); for (const S of k.root.all()) if (S.dr) S.dr.mesh.visible = on; if (!on) continue;
+        k.acc += Math.min(dt, .1);
+        while (k.acc >= 1 / 60) { k.acc -= 1 / 60; k.frame++; k.root.step(1 / 60); }
+        if (!k.root.alive()) { const n = makeFx(k.def, k.where, k.scaleOf); for (const S of n.root.all()) { const o = k.root.all().find(x => x.def === S.def); S.mat = o ? o.mat : null; } for (const S of k.root.all()) dispose(S); KEEP.set(key, n); continue; }
+        cam.updateMatrixWorld(); const s = k.scaleOf(); for (const S of k.root.all()) draw(S, cam, sc, s);
       }
       if (!FX) return; const fx = FX;
       fx.acc += Math.min(dt, .1);

@@ -245,4 +245,14 @@ def unofficial_sets(catalog, flags):
         for L in runs:
             if len(L) >= 2 and sum(1 for k in L if k in official) * 2 < len(L):
                 out.append({"i": L, "how": "c"})
-    return out
+    # data/curation.json's corrections: sets as listed, groups that aren't one, items that belong to none
+    fix = catalog.get("uset_fix") or {}
+    forced = [sorted(s) for s in fix.get("sets", [])]
+    drop = set(fix.get("loose", [])) | {k for s in forced for k in s}
+    nots = {frozenset(s) for s in fix.get("not", [])}
+    kept = []
+    for s in out:
+        L = [k for k in s["i"] if k not in drop]
+        if len(L) >= 2 and frozenset(L) not in nots:
+            kept.append({"i": L, "how": "c"})
+    return kept + [{"i": s, "how": "c"} for s in forced if all(k in items for k in s)]

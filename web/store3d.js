@@ -211,7 +211,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();lightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
-   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);invisTick(m);whideTick(m);gestTick(m,dt);plantFeet(m);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
+   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
      if(typeof ianimTick=='function')ianimTick(m,t);
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
      if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
@@ -247,7 +247,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
    // "player skin override" (Voodoo-Cursed Souls): the class model switches to its zombie skin family (scout.mdl skins 4/5:
    // scout_red|blue_zombie_alphatest body with $alphatest, scout_head_zombie, eyeball_zombie = glowing eyeball_invun) while the soul is worn
    const heads=[...new Set([...cache.values()].filter(m=>m.name=='head'))],headMap=new Map(heads.map(m=>[m,m.map]));
-   const eyeMs=[];o.traverse(n=>{if(n.isMesh&&n.material&&n.material.uniforms&&n.material.uniforms.iris)eyeMs.push(n)});
+   const eyeMs=[];o.traverse(n=>{if(n.isMesh&&n.material&&n.material.uniforms&&n.material.uniforms.iris){n.userData.zeye=1;eyeMs.push(n)}});
    const skin=()=>{const t=ZTEAM(c);const z=!!(M[c]&&M[c].zskin)&&ZOMB[k];
     mats.forEach(m=>{const U=m.uniforms;if(!U.__z0)U.__z0=[U.boost.value,U.rimExp.value,U.rimBoost.value];
      if(z&&m.name=='body'){const x=ztex(t=='BLU'?z.blu:z.red);if(m.map!==x){m.map=x;m.needsUpdate=true}U.aTest.value=M[c].zsolid?0:1;U.boost.value=0;U.rimExp.value=15;U.rimBoost.value=.25;U.rimTint.value.set(...ZRIM);return}
@@ -259,7 +259,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
      let hb=null;if(!zh&&t=='BLU'&&k=='spy'){if(!blu.has(m)){blu.set(m,null);new THREE.TextureLoader().load('models/spy_head_blu.jpg',x=>{x.flipY=false;x.encoding=THREE.sRGBEncoding;blu.set(m,x);skin()})}hb=blu.get(m)}
      if(!zh){const LM=M[c]&&M[c]._lmat&&M[c]._lmat.head;if(LM){liveMat(m,LM[t]||LM.RED);return}}
      const x=zh?ztex(zh):(hb||headMap.get(m));if(m.map!==x){m.map=x;m.needsUpdate=true}const U=m.uniforms;U.aTest.value=zh&&z.headAT&&!M[c].zsolid?1:0;if(!U.__z0)U.__z0=[U.rimExp.value,U.rimBoost.value];[U.rimExp.value,U.rimBoost.value]=z?[15,.25]:U.__z0;U.rimTint.value.set(...(z?ZRIM:[1,1,1]))});
-    eyeMs.forEach(n=>{if(!n.userData.eyeMat)n.userData.eyeMat=n.material;n.material=z?ZEYE():n.userData.eyeMat;n.visible=!(M[c]&&M[c]._lbody)&&!(z&&k=='spy'&&!M[c].zsolid)})};// at LOD 1+ the class model's own eyes replace these
+    eyeMs.forEach(n=>{if(!n.userData.eyeMat)n.userData.eyeMat=n.material;n.material=z?ZEYE():n.userData.eyeMat;n.visible=!(z&&k=='spy'&&!M[c].zsolid)})};// kept at LOD 1+ too: the lower LODs' eyeballs are the same eyes (lodBody leaves theirs out)
    const STATIC={};g.animations.forEach(a=>STATIC[a.name]=a.tracks.every(t=>t.times.length<=2));const BR={};o.traverse(n=>{if(n.isBone&&/^bip_(spine_[123]|neck|head|upperArm_[LR]|clavicle_[LR])$/i.test(n.name))BR[n.name.toLowerCase()]=n});const BG={};o.traverse(n=>{if(/^bg_/.test(n.name))BG[n.name.slice(3)]=n});ok(M[c]={o,mx,play,skin,st0,A,STATIC,BR,eyes,BG})},undefined,e=>{delete loading[c];no(e)}))}
  // weapons: stock world models ripped from the game's VPKs (MDL+VVD+VTX -> glb), bonemerged onto the player's skeleton by bone name ($bonemerge),
  // materials rebuilt from their .vmt (phong / exponent maps / lightwarp / rim) and the pyro pilot light's UnlitTwoTexture + Sine/TextureScroll proxies
@@ -364,7 +364,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   let root=null;{const s0=src[0];const rb=s0&&s0.skeleton&&s0.skeleton.bones.find(b=>!b.parent||!b.parent.isBone);if(rb)root=bm[rb.name]||null}
   // a team change re-skins it in place (the taunt props, which aren't redressed with the cosmetics)
   const retint=t=>meshes.forEach(wm=>{const MI=(man[key]||{})[wm.userData.srcMat];if(!MI)return;const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P,null)});
-  return {meshes,extra,att,root,holder,retint}}
+  return {meshes,extra,att,root,holder,retint,key}}
   // a taunt that makes the player invisible hides the merc and everything worn (the taunt prop stays)
   // feet kept planted while the merc stands or crouches still, the way the game's autoplay IK locks keep them (the idle's sway and the
   // firing gestures move the body, the legs bend to keep the feet where they were): two-bone IK on hip, knee and foot
@@ -388,11 +388,23 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   // bones the gestures and the foot IK change are put back before the mixer runs, so a bone no clip drives never drifts
   function saveBone(m,B){const R=m._rest||(m._rest=new Map());if(!R.has(B))R.set(B,[B.quaternion.clone(),B.position.clone()])}
   function restoreBones(m){const R=m._rest;if(!R)return;for(const [B,[q,p]] of R){B.quaternion.copy(q);B.position.copy(p)}m._rest=null}
+  // effects that are always on (ZPFX.keep): the Spy's cigarette smoke (the cig_smoke particle on his cig_smoke attachment, as the game's
+  // client gives him), and a cosmetic's own particle effect (set_attached_particle_static: Aladdin's Private Reserve's Genteel Smoke...)
+  function pfxSync(m){if(!window.ZPFX||!ZPFX.keep||!(window.ZLIVE&&ZLIVE.ready)||!ZLIVE.on)return;if(((m._pfs=(m._pfs||0)+1)%20)!==1)return;const c=curC,want={};
+   if(c==='Spy'){if(m._cig===undefined){m._cig=null;ZLIVE.mercAtts(c).then(A=>{const a=(A||[]).find(x=>x.name==='cig_smoke');let b=null;if(a&&a.bone)m.o.traverse(x=>{if(!b&&x.isBone&&!x.userData.zx&&x.name===a.bone)b=x});if(!b)return;
+     const o=new THREE.Object3D();const q=a.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);b.add(o);m._cig=o}).catch(()=>{})}
+    if(m._cig)want['merc|Spy|cig_smoke']=['cig_smoke',m._cig]}
+   for(const r of m.cmesh||[]){if(!r||!r.key)continue;const nm=String(r.key).split(':').slice(3).join(':');const pf=nm&&ZLIVE.particle(nm);if(!pf)continue;const o=(pf.attachment&&r.att&&r.att[pf.attachment])||r.root;if(o)want['c|'+c+'|'+nm+'|'+pf.id]=[pf.system,o]}
+   for(const k of ZPFX.kept())if(!(k in want))ZPFX.unkeep(k);
+   for(const k in want){const [sys,o]=want[k];ZPFX.keep(k,sys,()=>m.o.visible&&curC===c&&!m._inv&&o.parent?{obj:o,merc:m.o}:null,()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}}
   // firing gestures (KCTL), layered onto what the mixer posed the way the game layers them (ZLIVE.gesture)
   let GQ=null,GV=null;
   function gestTick(m,dt){const G=m._gest;if(!G||!G.length)return;if(/^(taunt|live:)/.test(m.cn||'')){m._gest=null;return}
    if(!GQ){GQ=[0,1,2].map(()=>new THREE.Quaternion());GV=[0,1].map(()=>new THREE.Vector3())}const [I,qa,qb]=GQ,[va,vb]=GV;
    if(!m._gb){m._gb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)m._gb[x.name]=x})}
+   // the IK locks of the gestures playing: each locked chain's end bone where it was before the gestures (CIKContext::AddSequenceLocks)
+   const LK=[];for(const s of G){if(s.done||!s.g.locks)continue;for(const l of s.g.locks){const B=l.links.map(x=>m._gb[x.bone]);if(B.every(Boolean)&&!LK.some(k=>k.B[2]===B[2]))LK.push({l,B})}}
+   if(LK.length){m.o.updateMatrixWorld(true);for(const k of LK){k.p=k.B[2].getWorldPosition(new THREE.Vector3());k.q=k.B[2].getWorldQuaternion(new THREE.Quaternion())}}
    for(const s of G){s.t+=dt;let c=s.t/s.g.dur;if(c>=1){if(s.loop&&!s.stop){s.t%=s.g.dur;c=s.t/s.g.dur}else{s.done=1;continue}}
     if(s.stop){s.fw=(s.fw==null?1:s.fw)-dt/.15;if(s.fw<=0){s.done=1;continue}}const gw=s.stop?s.fw:1;
     for(const L of s.g.L){let lw=1;const f=L.fade;if(f){const [st,pk,tl,en]=f;lw=c<st||c>=en?0:c<pk?(pk>st?(c-st)/(pk-st):1):c>tl?(en>tl?(en-c)/(en-tl):1):1}lw*=gw;if(lw<=0)continue;
@@ -401,7 +413,26 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
       qa.fromArray(T.Q,i0*4);qb.fromArray(T.Q,i1*4);qa.slerp(qb,a);va.fromArray(T.P,i0*3);vb.fromArray(T.P,i1*3);va.lerp(vb,a);
       if(L.delta){if(w<1)qa.copy(I.identity().slerp(qa,w));B.quaternion.multiply(qa);B.position.addScaledVector(va,w)}
       else{B.quaternion.slerp(qa,w);B.position.lerp(va,w)}}}}
+   if(LK.length){m.o.updateMatrixWorld(true);for(const k of LK)solveLock(m,k)}
    m._gest=G.filter(s=>!s.done)}
+  // CIKContext::SolveLock: the end bone moved flPosWeight of the way back to where it was, the chain solved to reach it (Studio_SolveIK,
+  // knee kept bending the way it bends now), the end bone turned back to its old world orientation, then flLocalQWeight of its layered one
+  function solveLock(m,k){const [h,kn,f]=k.B,{pw,qw}=k.l;const v=()=>new THREE.Vector3();const a=h.getWorldPosition(v()),b=kn.getWorldPosition(v()),c=f.getWorldPosition(v());
+   const T=c.clone().lerp(k.p,pw),l1=b.distanceTo(a),l2=c.distanceTo(b),l3=c.distanceTo(a);if(l1<1e-4||l2<1e-4||l3<1e-4)return;
+   const ql=f.quaternion.clone();
+   if(l3<=(l1+l2)*.9998){const half=c.clone().sub(a).multiplyScalar(l1/l3);const kd=b.clone().sub(a).sub(half);if(kd.lengthSq()>1e-10){kd.normalize();
+    // Studio_SolveIK with a knee direction: the knee aimed far along it, the foot kept between about an 80 degree bend and nearly straight
+    let F=T.clone().sub(a);const d=Math.max(l1+l2,F.length()-Math.min(l1,l2))*100;const KT=b.clone().sub(a).addScaledVector(kd,d);
+    if(F.length()>(l1+l2)*.9998)F.setLength((l1+l2)*.9998);const mn=Math.max(Math.abs(l1-l2)*1.15,Math.min(l1,l2)*.15);if(F.length()<mn)F=c.clone().sub(a).setLength(mn);
+    const dl=F.length(),fw=F.clone().normalize(),up=KT.clone().addScaledVector(fw,-KT.dot(fw));if(up.lengthSq()>1e-10){up.normalize();
+     const x=(l1*l1-l2*l2+dl*dl)/(2*dl),y=Math.sqrt(Math.max(0,l1*l1-x*x));const K=a.clone().addScaledVector(fw,x).addScaledVector(up,y),FT=a.clone().add(F);
+     saveBone(m,h);saveBone(m,kn);saveBone(m,f);aimBone(h,b,K);aimBone(kn,f.getWorldPosition(v()),FT)}}}
+   // slam the orientation, then flLocalQWeight back toward the layered local rotation
+   saveBone(m,f);const pq=f.parent.getWorldQuaternion(new THREE.Quaternion());f.quaternion.copy(pq.invert().multiply(k.q));if(qw>0)f.quaternion.slerp(ql,qw);f.updateMatrixWorld(true)}
+  // turns bone B (in world space) so the point P0 that hangs off it goes to P1
+  function aimBone(B,P0,P1){B.updateMatrixWorld(true);const o=B.getWorldPosition(new THREE.Vector3()),d0=P0.clone().sub(o),d1=P1.clone().sub(o);if(d0.lengthSq()<1e-10||d1.lengthSq()<1e-10)return;
+   const r=new THREE.Quaternion().setFromUnitVectors(d0.normalize(),d1.normalize()),wq=B.getWorldQuaternion(new THREE.Quaternion()),pq=B.parent.getWorldQuaternion(new THREE.Quaternion());
+   B.quaternion.copy(pq.invert().multiply(r.multiply(wq)));B.updateMatrixWorld(true)}
   function whideTick(m){const a=m.act,W=a&&/^live:/.test(m.cn||'')&&a.getClip().zwhide;const h=!!(W&&!m._wmOff&&W.some(w=>a.time>=w.s&&a.time<w.e));if(h===!!m._whid)return;m._whid=h;(m.wmesh||[]).forEach(x=>x.visible=!h)}
   function invisTick(m){const a=m.act,IV=a&&/^live:/.test(m.cn||'')&&a.getClip().zinvis;const hid=!!(IV&&IV.some(w=>w.v>=1&&a.time>=w.s&&a.time<w.e));if(hid===!!m._inv)return;m._inv=hid;
    const keep=new Set((m._tprop&&m._tprop.meshes)||[]);m.o.traverse(n=>{if(!n.isMesh||keep.has(n))return;if(hid){n.userData._iv=n.visible;n.visible=false}else if('_iv' in n.userData){n.visible=n.userData._iv;delete n.userData._iv}})}
@@ -442,16 +473,16 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  // the taunt sequence's AE_WPN_UNHIDE / AE_WPN_HIDE cycles for when the prop is shown, and its AE_CL_CREATE_PARTICLE_EFFECT events
  // (models/workshop/player/animations/heavy_workshop_animations.mdl, sequence taunt_the_circuit_breaker)
  const TFX={taunt_circuit_breaker:{cls:'Heavy',prop:'taunt_the_circuit_breaker',show:[0.0275,0.9725],fx:[[0.3791,'taunt_circuitbreaker_parent','prop_bone_2']]}};
- const dropProp=m=>{const T=m.tp;if(!T)return;m.tp=null;if(T.r){T.r.meshes.forEach(x=>x.parent&&x.parent.remove(x));T.r.extra.forEach(b=>b.parent&&b.parent.remove(b))}if(window.ZPFX)ZPFX.clear()};
+ const dropProp=m=>{const T=m.tp;if(!T)return;m.tp=null;if(T.r){T.r.meshes.forEach(x=>x.parent&&x.parent.remove(x));T.r.extra.forEach(b=>b.parent&&b.parent.remove(b))}if(window.ZPFX&&ZPFX.clear)ZPFX.clear()};
  window.ZTFX=(m,c)=>{const d=TFX[m.cn];if(m.tp&&m.tp.clip!==m.cn)dropProp(m);if(!d||d.cls!==c)return;const a=m.A[m.cn];if(!a)return;
   const cyc=a.time/a.getClip().duration,run=a.isRunning();
-  if(!m.tp){const T=m.tp={clip:m.cn,r:null,fired:new Set(),last:cyc};if(window.ZPFX)d.fx.forEach(f=>ZPFX.preload(f[1]));
+  if(!m.tp){const T=m.tp={clip:m.cn,r:null,fired:new Set(),last:cyc};if(window.ZPFX&&ZPFX.preload)d.fx.forEach(f=>ZPFX.preload(f[1]));
    bonemerge(m,c,d.prop,null).then(r=>{if(m.tp!==T){if(r){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}return}T.r=r;if(r)r.meshes.forEach(x=>x.visible=false)})}
-  const T=m.tp;if(cyc<T.last-.2){T.fired.clear();if(window.ZPFX)ZPFX.clear()}T.last=cyc;
+  const T=m.tp;if(cyc<T.last-.2){T.fired.clear();if(window.ZPFX&&ZPFX.clear)ZPFX.clear()}T.last=cyc;
   const vis=run&&cyc>=d.show[0]&&cyc<=d.show[1];if(T.r)T.r.meshes.forEach(x=>x.visible=vis);
   // team skin follows the player's skin family (RED = family 0, BLU = family 1), re-applied whenever the team toggles
   const team=ZTEAM(c);if(T.r&&T.team!==team){T.team=team;wman().then(man=>{if(m.tp!==T)return;const W=man[d.prop]||{};T.r.meshes.forEach(x=>{const MI=W[x.userData.srcMat]||{};const P=team=='BLU'&&MI.blu?MI.blu:MI.red;if(P)x.material=wmat(P)})})}
-  if(run&&window.ZPFX)d.fx.forEach((f,i)=>{if(cyc>=f[0]&&!T.fired.has(i)){T.fired.add(i);let b=null;m.o.traverse(n=>{if(!b&&n.isBone&&n.name==f[2])b=n});const v=new THREE.Vector3();ZPFX.spawn(f[1],()=>(b?b.getWorldPosition(v):v.set(0,40,0)))}})};
+  if(run&&window.ZPFX&&ZPFX.spawn)d.fx.forEach((f,i)=>{if(cyc>=f[0]&&!T.fired.has(i)){T.fired.add(i);let b=null;m.o.traverse(n=>{if(!b&&n.isBone&&n.name==f[2])b=n});const v=new THREE.Vector3();ZPFX.spawn(f[1],()=>(b?b.getWorldPosition(v):v.set(0,40,0)))}})};
  // what this prototype can actually put on a merc: weapons with ripped models, installed cosmetics, taunts with baked animations
  function wnorm(n){let s=String(n||'').toLowerCase().replace(/\s*\((factory new|minimal wear|field-tested|well-worn|battle scarred)\)/,'');let o;do{o=s;s=s.replace(/^(self-made|strange|unique|vintage|genuine|festive|festivized|australium|botkiller|unusual|haunted|collector's|decorated|specialized killstreak|professional killstreak|killstreak) /,'')}while(s!==o);return s.trim()}
  // backpack names -> the weapon they are: qualities, festivized and killstreak prefixes stripped, then an exact item name
@@ -517,10 +548,10 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
 // (run_ at move_x 1: running forward), and becomes what the merc returns to after a taunt or a gesture.
 const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,crouch:false})):null};const busy=m=>/^(taunt|live:)/.test(m.cn||'');
  const suf=m=>String(zIdle(m)||'stand_PRIMARY').replace(/^stand_/,'');const bones=m=>{const bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});return bs};
- const want=m=>{const v=m._mv||{};return v.crouch?(v.run?'crouch_walk_':'crouch_')+suf(m):v.run?'run_'+suf(m):null};
+ const want=m=>{const v=m._mv||{};if(m._spin)return v.crouch?'crouch_deployed_PRIMARY':v.run?'PRIMARY_deployed_movement':'stand_deployed_PRIMARY';return v.crouch?(v.run?'crouch_walk_':'crouch_')+suf(m):v.run?'run_'+suf(m):null};
  async function move(c){const m=M[c];if(!m||!m.play)return;const nm=want(m);
   if(!nm){const a=zIdle(m);if(m.st0.idle!==a||!busy(m)&&m.cn!==a){m.st0.idle=a;if(!busy(m))m.play(a)}return}
-  if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),{move_x:/^run_|^crouch_walk_/.test(nm)?1:0,move_y:0});if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
+  if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),{move_x:/^run_|^crouch_walk_|deployed_movement/.test(nm)?1:0,move_y:0});if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
   if(want(m)!==nm)return;m.st0.idle=nm;if(!busy(m)&&m.cn!==nm)m.play(nm)}
  // F: the firing gesture over what the merc is doing, the weapon's firing sound, its muzzle flash; held, it fires again at the weapon's rate
  const pickW=L=>{let t=L.reduce((a,x)=>a+x.w,0)*Math.random();for(const x of L){t-=x.w;if(t<=0)return x}return L[0]};
@@ -535,13 +566,22 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   return F}
  // F held: shot after shot at the weapon's rate; the minigun and flamethrower keep one looping gesture and sound, with a flash per shot
  let FT=null;
- async function fireDown(c){fireUp();const tok={c};FT=tok;const F=await fire(c,tok);if(FT!==tok||!F)return;
+ const vol=()=>{try{return window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){return 1}};
+ const sound=(L,loop)=>{if(!L||!L.length)return null;const au=new Audio(L[(Math.random()*L.length)|0]);const v=vol();au.volume=v*.6;au.loop=!!loop;if(v>0)au.play().catch(()=>{});return au};
+ const gest=async(c,m,a)=>{const G=await ZLIVE.gesture(c,'ACT_MP_ATTACK_'+((m._mv||{}).crouch?'CROUCH':'STAND')+'_'+a,bones(m)).catch(()=>null);if(G&&M[c]===m&&!busy(m))m._gest=(m._gest||[]).filter(x=>!x.done&&!x.stop).concat({g:pickW(G),t:0})};
+ async function fireDown(c){fireUp();const tok={c};FT=tok;
+  // the minigun spins up first (the Heavy's spool-up gesture into his deployed stance, the wind-up sound), then fires
+  {const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F0=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(FT!==tok)return;
+   if(F0&&F0.spin){tok.spin=m;m._spin=1;move(c);gest(c,m,'PREFIRE');tok.au=sound(F0.spin.up);await new Promise(r=>tok.t=setTimeout(r,F0.spin.time*1000));if(FT!==tok)return;if(tok.au){try{tok.au.pause()}catch(e){}tok.au=null}}}
+  const F=await fire(c,tok);if(FT!==tok||!F)return;
   const step=async()=>{if(FT!==tok)return;const m=M[c];if(!m||busy(m)){fireUp();return}
    if(F.cont){if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wname(m));if(o&&FT===tok)ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}}
    else await fire(c,tok);
    if(FT===tok)tok.t=setTimeout(step,F.rate*1000)};
   tok.t=setTimeout(step,F.rate*1000)}
- function fireUp(){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au){try{t.au.pause()}catch(e){}}if(t.ga)t.ga.stop=true}
+ function fireUp(){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au){try{t.au.pause()}catch(e){}}if(t.ga)t.ga.stop=true;
+  // the minigun winds down: the spool-down gesture out of the deployed stance, the wind-down sound
+  const m=t.spin;if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!busy(m)){gest(t.c,m,'POSTFIRE');const wn=wname(m);if(wn)ZLIVE.fireInfo(t.c,wn).then(F=>{if(F&&F.spin)sound(F.spin.down)}).catch(()=>{})}}}}
  // the weapon's muzzle attachment, from the mesh (a weapon read from the install) or from its model in the install (the page's own stock models)
  async function muzzleOf(m,c,wn){const w=(m.wmesh||[])[0];if(!w||!w.skeleton)return null;if(w.userData._matt&&w.userData._matt.parent)return w.userData._matt;
   let t=null;for(const x of m.wmesh){t=(x.userData.att||[]).find(a=>/^muzzle$/i.test(a.name));if(t)break}
@@ -551,7 +591,11 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  // the weapon in hand by name: the one picked, or the class's stock weapon for the slot (the Heavy's Fists have no model)
  const wname=m=>{const b=m._wbase;if(b.lname)return b.lname;const k=(STOCK[b.c]||{})[b.slot];if(!k)return b.c=='Heavy'&&b.slot=='melee'?'Fists':null;for(const n in BYNAME)if(BYNAME[n]===k)return n;return null};
  async function taunt(c){fireUp();const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
-  const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);m.play('live:@scene:'+sp,true);return true}
+  const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);const key='live:@scene:'+sp;m.play(key,true);
+  // a worn cosmetic's taunt sound (cosmetic_taunt_sound: the Boston Boom-Bringer's and the Infernal Orchestrina's music) plays through the taunt
+  ZLIVE.tauntSound((m.cmesh||[]).map(r=>r&&r.key?String(r.key).split(':').slice(3).join(':'):'').filter(Boolean)).then(L=>{if(!L||!L.length)return;let au=null;const t0=performance.now();
+   const iv=setInterval(()=>{const on=M[c]===m&&m.cn===key;if(!au){if(on){au=new Audio(L[(Math.random()*L.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(v>0)au.play().catch(()=>{})}else if(performance.now()-t0>8000)clearInterval(iv);return}
+    if(!on||au.ended){clearInterval(iv);try{au.pause()}catch(e){}}},100)}).catch(()=>{});return true}
  return{run:c=>{const v=st(c);if(!v)return false;v.run=!v.run;move(c);return v.run},crouch:c=>{const v=st(c);if(!v)return false;v.crouch=!v.crouch;move(c);return v.crouch},
   fire,fireDown,fireUp,taunt,refresh:c=>move(c),
   // every slot's weapon read and built ahead (models, materials, the stand_ animation), so switching with the number keys is instant
@@ -565,13 +609,14 @@ async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;
  await lodBody(c);m.csig=null;m.wname=null;window.ZREDRESS(c)}
 // the class model at the LOD, worn with the bodygroups the cosmetics leave (rebuilt when they change: setCosmetics calls it)
 async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0;
- const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody)L.push(x)});return L})());
+ const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
  if(n<=0||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
  const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
  const sig=n+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
  try{const [src,man]=await ZLIVE.body(c,bg);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
-  const meshes=src.map(s=>{const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+  // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
+  const meshes=src.map(s=>{if(/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
   drop();if(meshes.length){m._lbody=meshes;own.forEach(x=>x.layers.set(31))}else own.forEach(x=>x.layers.set(0))}catch(e){console.warn('[ZLIVE] LOD body',e)}}
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
@@ -1491,13 +1536,23 @@ async function gestureOf(b,so,boneSet){const dv=new DataView(b.buffer,b.byteOffs
  const n=dv.getInt32(so+148,true),li=dv.getInt32(so+152,true);
  for(let k=0;k<n&&k<16;k++){const lo=so+li+k*24;const q=dv.getInt16(lo,true);if(q<0||q>=ns)continue;const qo=si+q*212;
   const f=[0,1,2,3].map(j=>dv.getFloat32(lo+8+j*4,true));const x=layer(qo,f.some(Boolean)?f:null);if(x)L.push(x)}
- return L.length?{dur,L}:null}
+ // the sequence's IK locks (mstudioseqdesc_t numiklocks 164, iklockindex 168 -> mstudioiklock_t {chain, flPosWeight, flLocalQWeight, ...}):
+ // after the layer the game puts these chains' end bones (the feet) back where they were before it, solved through the chain
+ const nk=dv.getInt32(so+164,true),ki=dv.getInt32(so+168,true),locks=[];for(let k=0;k<nk&&k<8;k++){const o=so+ki+k*32;locks.push({chain:dv.getInt32(o,true),pw:dv.getFloat32(o+4,true),qw:dv.getFloat32(o+8,true)})}
+ return L.length?{dur,L,locks}:null}
+// the player model's IK chains (studiohdr numikchains 284, ikchainindex 288 -> mstudioikchain_t -> mstudioiklink_t {bone, kneeDir}): bone names
+async function ikChains(c){const k=c+'|ikc';if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{const b=await mdlBuf('models/player/'+SHORT[c]+'.mdl');if(!b)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true);
+ const bi=I(160),bn=I(156),nm=x=>x>=0&&x<bn?cstr(b,bi+x*216+I(bi+x*216)):null,out=[];
+ for(let i=0;i<I(284);i++){const o=I(288)+i*16,nl=I(o+8),li=I(o+12);const L=[];for(let j=0;j<nl;j++){const l=o+li+j*28;L.push({bone:nm(I(l)),knee:[dv.getFloat32(l+4,true),dv.getFloat32(l+8,true),dv.getFloat32(l+12,true)]})}out.push(L)}return out})()}
 // a weapon model's attachments (the muzzle), read from its .mdl: for the page's own stock weapon models, which don't carry them
-async function attachments(n,cl){const e=entry(n);const p=e&&mdlFor(e,cl,0);if(!p)return null;const b=await mdlBuf(p);if(!b)return null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true);
+async function attachments(n,cl){const e=entry(n);const p=e&&mdlFor(e,cl,0);if(!p)return null;return attsOf(p)}
+// the merc's own (the Spy's cig_smoke)
+async function mercAtts(cl){return attsOf('models/player/'+SHORT[clsKey(cl)]+'.mdl')}
+async function attsOf(p){const b=await mdlBuf(p);if(!b)return null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true);
  const bn=I(156),bi=I(160),out=[];for(let k=0;k<I(240);k++){const o=I(244)+k*92,lb=I(o+8),mm=[];for(let q=0;q<12;q++)mm.push(dv.getFloat32(o+12+4*q,true));out.push({name:cstr(b,o+I(o)).toLowerCase(),bone:lb>=0&&lb<bn?cstr(b,bi+lb*216+I(bi+lb*216)):null,m:mm})}return out}
 async function gesture(cl,act,boneSet){const c=clsKey(cl);const k=c+'|g|'+act.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{const out=[];
  for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const L=seqList(b).filter(x=>x.act.toLowerCase()===act.toLowerCase());
-  for(const x of L){try{const g=await gestureOf(b,x.o,boneSet);if(g){g.name=x.name;g.w=Math.max(1,x.w);out.push(g)}}catch(e){console.warn('[ZLIVE] gesture',x.name,e)}}if(out.length)break}
+  const CH=await ikChains(c);for(const x of L){try{const g=await gestureOf(b,x.o,boneSet);if(g){g.name=x.name;g.w=Math.max(1,x.w);g.locks=g.locks.map(l=>({...l,links:CH[l.chain]})).filter(l=>l.links&&l.links.length===3&&l.links.every(q=>q.bone));out.push(g)}}catch(e){console.warn('[ZLIVE] gesture',x.name,e)}}if(out.length)break}
  return out.length?out:null})()}
 // a weapon model's own looping animation (STUDIO_AUTOPLAY: the bread monsters chewing), on the bones that are its own, not the merc's
 async function autoplay(n,cl,boneSet){const e=entry(n);const p=e&&mdlFor(e,cl,0);if(!p)return[];const b=await mdlBuf(p);if(!b)return[];const out=[];
@@ -1558,11 +1613,20 @@ async function fireInfo(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)
  if(snd&&typeof snd=='string'){const W=/\.(wav|mp3)$/i.test(snd)?[snd]:await waves(snd);for(const f of W){const u=await audioURL(f);if(u)urls.push(u)}}
  // the time between shots: the script's TimeFireDelay times the item's fire rate attributes (mult_postfiredelay)
  let rate=+S.timefiredelay||.5;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='mult_postfiredelay'&&+x.value>0)rate*=+x.value}}
- const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont,nofire:/^tf_weapon_laser_pointer/.test(ic)}}// the Wrangler aims the sentry; it doesn't fire itself
+ // the minigun's spin-up (0.75 s in tf_weapon_minigun, times mult_minigun_spinup_time) and its wind-up / wind-down sounds
+ let spin=null;if(ic.startsWith('tf_weapon_minigun')){const su=async k=>{const s=vis['sound_'+k]||sd[k];if(!s||typeof s!='string')return[];const W=/\.(wav|mp3)$/i.test(s)?[s]:await waves(s);const o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}return o};
+  let tm=.75;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='mult_minigun_spinup_time'&&+x.value>0)tm*=+x.value}}
+  spin={time:tm,up:await su('special1'),down:await su('special2')}}
+ const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont,spin,nofire:/^tf_weapon_laser_pointer/.test(ic)}}// the Wrangler aims the sentry; it doesn't fire itself
+async function tauntSound(names){for(const n of names){const e=entry(n);if(!e)continue;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;
+  for(const k in B){const x=B[k];if(!x||typeof x!='object'||String(x.attribute_class||'').toLowerCase()!='cosmetic_taunt_sound'||!x.value)continue;const s=String(x.value);const W=/\.(wav|mp3)$/i.test(s)?[s]:await waves(s);const o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}if(o.length)return o}}}return null}
 async function weaponTaunt(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();
- const ic=String(e.r.item_class||'').toLowerCase();const ctx={concept:'TLK_PLAYER_TAUNT',playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
+ const ic=String(e.r.item_class||'').toLowerCase();// a weapon that teleports its owner home (the Eureka Effect: alt_fire_teleport_to_spawn) taunts with TLK_TAUNT_EUREKA_EFFECT, as CTFPlayer::Taunt does
+ const has=a=>['attributes','static_attrs'].some(k=>{const B=e.r[k];return B&&typeof B=='object'&&Object.values(B).some(x=>x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()==a&&+x.value)});
+ const concept=has('alt_fire_teleport_to_spawn')?'TLK_TAUNT_EUREKA_EFFECT':'TLK_PLAYER_TAUNT';
+ const ctx={concept,playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
   playerweapon:(WTRANS[ic]&&WTRANS[ic][c])||ic,item_name:e.r.name,item_type_name:e.r.item_type_name};
- let best=null,bs=-1;for(const r of R.rules){let sc=0,ok=true,taunt=false;for(const n of r.crit){const C=R.crit[n];if(!C){ok=false;break}if(C.key=='concept'&&String(C.val).toUpperCase()=='TLK_PLAYER_TAUNT')taunt=true;
+ let best=null,bs=-1;for(const r of R.rules){let sc=0,ok=true,taunt=false;for(const n of r.crit){const C=R.crit[n];if(!C){ok=false;break}if(C.key=='concept'&&String(C.val).toUpperCase()==concept)taunt=true;
    if(ccmp(ctx[C.key],C.val))sc+=C.w;else if(C.req){ok=false;break}}
   if(ok&&taunt&&sc>bs){const sc0=r.resp.flatMap(x=>R.resp[x]||[]);if(sc0.length){best=sc0;bs=sc}}}
  return best?best[Math.floor(Math.random()*best.length)].replace(/\\/g,'/').toLowerCase():null}
@@ -1678,7 +1742,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
