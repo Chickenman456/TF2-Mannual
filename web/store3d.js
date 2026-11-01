@@ -1001,6 +1001,8 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
   P.envMask=skin?(nma?2:1):(nma?2:bae?3:0);P.envFres=num(k.$envmapfresnel,0);P.envCon=num(k.$envmapcontrast,0);P.envSat=num(k.$envmapsaturation,1);
   if(!skin&&k.$envmapmask)P.envMaskTex=await tex(k.$envmapmask,false).catch(()=>null);
   P.envCube=String(em).toLowerCase()=='env_cubemap'?await defCube():await cube(em)}
+ // the skin shader writes alpha 1 with $selfillum or $blendtintbybasealpha, so $alphatest clips nothing there (the Soul of 'Spenser's Past)
+ if(P.aTest&&phong&&(P.si||P.tintA))P.aTest=0;
  // CBaseShader::TextureIsTranslucent: base alpha is opacity only on $translucent / $alphatest, not when it is a selfillum / envmap / tint mask
  P.useBA=(P.translucent||P.aTest)&&!P.si&&!num(k.$basealphaenvmapmask,0)&&!num(k.$opaquetexture,0)&&!(P.tintA&&!P.si)?1:0;P.opac=num(k.$alpha,1);
  if(P.aTest)P.aRef=num(k.$alphatestreference,.7)||.7;if(num(k.$nocull,0))P.nocull=1;
