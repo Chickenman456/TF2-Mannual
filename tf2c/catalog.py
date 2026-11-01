@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 33
+CATALOG_VERSION = 34
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -743,8 +743,31 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             if nm and not nm.startswith(("#", "TF_")):
                 equip[str(k)] = [nm, kind]
 
+    # item sets (items_game item_sets): their items listed by name, as the checklist shows them; "b": the set has a set bonus
+    by_iname = {}
+    for k, r in R.items():
+        n = r.get("name")
+        if n and n not in by_iname:
+            by_iname[n] = k
+    sets = []
+    for sk, sv in (ig.get("item_sets") or {}).items():
+        if not isinstance(sv, dict):
+            continue
+        members = []
+        for n in (sv.get("items") or {}):
+            k = by_iname.get(n)
+            if k is None:
+                continue
+            k = dup.get(k, k)
+            if k not in keep:
+                k = alias.get(str(k))
+            if k is not None and k in keep and k not in members:
+                members.append(k)
+        if members:
+            sets.append({"id": sk, "n": L(sv.get("name") or sk), "i": members, "b": 1 if sv.get("attributes") else 0})
+
     return {"built": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "imgs": list(imgs), "items": items,
-            "cols": cols, "cases": case_out, "alias": alias,
+            "cols": cols, "sets": sets, "cases": case_out, "alias": alias,
             "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])],
             "notes": {str(k): v for k, v in one_day.items() if k in keep},
             "not_single": sorted(k for k in not_single if k in keep),

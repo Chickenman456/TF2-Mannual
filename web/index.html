@@ -582,6 +582,7 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="class" title="Every item, grouped by the class that uses it">By Class</button>
         <button class="btn" type="button" data-view="year" title="Every item, grouped by release year">By Year</button>
         <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
+        <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
       </div>
       <div class="tabs" role="group" aria-label="Special lists">
         <button class="btn" type="button" data-view="craft" title="Cosmetics you can get by crafting">Craft Hats</button>
@@ -1137,6 +1138,11 @@ function render(){
       const sub = !cs.length ? 'Operation or contract reward' : (c.k === 'crate' ? 'Crate series ' : (cs.length > 1 ? 'Cases ' : 'Case ')) + nums.join(', ') + (c.k !== 'crate' ? ' · ' + cs.map(x => x.n).filter((v,i,a) => a.indexOf(v) === i).join(', ') : '');
       html += section('col'+c.id, cs.length ? nums[nums.length-1] : null, title, sub, c.i, '');
     }
+  } else if (S.view === 'set'){
+    // the game's item sets (items_game item_sets), oldest first like the other lists, by their earliest item
+    const first = s => Math.min(...s.i.map(id => { const d = ITEMS[id] && ITEMS[id].date; return d ? Date.parse(d.length > 4 ? d : d + '-01-01') : Infinity; }));
+    const sets = (RAW.sets || []).filter(s => s.i.some(id => ITEMS[id])).sort((a,b) => (desc ? first(b)-first(a) : first(a)-first(b)) || a.n.localeCompare(b.n));
+    for (const s of sets) html += section('set'+s.id, null, s.n, (s.b ? 'Set bonus when worn together · ' : '') + s.i.length + ' item' + (s.i.length > 1 ? 's' : ''), s.i.filter(id => ITEMS[id]), '');
   } else if (S.view === 'effects'){
     fxIndex(); const all = Object.values(FX);
     if (S.lastSync && !S.fxSynced) html += `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>`;

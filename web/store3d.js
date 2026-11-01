@@ -522,7 +522,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  async function fire(c,tok){const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return null;const sx=suf(m).toUpperCase(),cr=!!(m._mv||{}).crouch;
   const wn=wname(m);const [G,F]=await Promise.all([ZLIVE.gesture(c,'ACT_MP_ATTACK_'+(cr?'CROUCH':'STAND')+'_'+sx,bones(m)).catch(()=>null),wn?ZLIVE.fireInfo(c,wn).catch(()=>null):null]);
   if(M[c]!==m||busy(m))return null;
-  if(tok&&FT!==tok)return null;const cont=!!(F&&F.cont&&tok);
+  if(tok&&FT!==tok)return null;if(F&&F.nofire)return null;const cont=!!(F&&F.cont&&tok);
   if(G){const g={g:pickW(G),t:0,loop:cont};m._gest=(m._gest||[]).filter(x=>!x.done&&!x.stop).concat(g);if(cont)tok.ga=g}
   if(!F)return null;
   if(F.urls.length){const au=new Audio(F.urls[(Math.random()*F.urls.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(cont){au.loop=true;tok.au=au}if(v>0)au.play().catch(()=>{})}
@@ -1550,7 +1550,7 @@ async function fireInfo(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)
  if(snd&&typeof snd=='string'){const W=/\.(wav|mp3)$/i.test(snd)?[snd]:await waves(snd);for(const f of W){const u=await audioURL(f);if(u)urls.push(u)}}
  // the time between shots: the script's TimeFireDelay times the item's fire rate attributes (mult_postfiredelay)
  let rate=+S.timefiredelay||.5;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='mult_postfiredelay'&&+x.value>0)rate*=+x.value}}
- const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont}}
+ const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont,nofire:/^tf_weapon_laser_pointer/.test(ic)}}// the Wrangler aims the sentry; it doesn't fire itself
 async function weaponTaunt(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();
  const ic=String(e.r.item_class||'').toLowerCase();const ctx={concept:'TLK_PLAYER_TAUNT',playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
   playerweapon:(WTRANS[ic]&&WTRANS[ic][c])||ic,item_name:e.r.name,item_type_name:e.r.item_type_name};
