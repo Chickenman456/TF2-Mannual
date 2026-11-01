@@ -479,6 +479,8 @@
   // F fires, G taunts with the weapon in hand. Ctrl toggles here, so W never has to be pressed with Ctrl held (Ctrl+W closes the tab).
   const KSLOTS = {Spy: ['secondary', 'building', 'melee'], Engineer: ['primary', 'secondary', 'melee', 'pda'], _: ['primary', 'secondary', 'melee']};
   function ctlReset() { const cn = ST && CNAME[ST.cls]; if (cn && window.Store3D && Store3D.ctl) Store3D.ctl.reset(cn);  }
+  // F released (or the window left): the gun stops
+  function onCtlUp(e) { if (e.type === 'keyup' && String(e.key).toLowerCase() !== 'f') return; if (window.Store3D && Store3D.ctl && Store3D.ctl.fireUp) Store3D.ctl.fireUp(); }
   function onCtl(e) {
     if (!ST || ST.state !== 'player' || !window.Store3D || !Store3D.ctl || e.altKey || e.metaKey) return;
     const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable], .spv-src, .spv-menu')) return;
@@ -493,7 +495,7 @@
       Store3D.redress(cn); Store3D.ctl.refresh(cn); return;
     }
     if (k === 'w') { e.preventDefault(); Store3D.ctl.run(cn); }
-    else if (k === 'f') { e.preventDefault(); Store3D.ctl.fire(cn); }
+    else if (k === 'f') { e.preventDefault(); Store3D.ctl.fireDown(cn); }
     else if (k === 'g') { e.preventDefault(); Store3D.ctl.taunt(cn); }
   }
   function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (b) b.textContent = ST.o.wish.on() ? 'On your Wishlist' : 'Add to Wishlist'; }
@@ -552,7 +554,7 @@
     ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name};
     if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
     el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown);
-    addEventListener('keydown', onKey, true); addEventListener('keydown', onCtl); addEventListener('resize', layout);
+    addEventListener('keydown', onKey, true); addEventListener('keydown', onCtl); addEventListener('keyup', onCtlUp); addEventListener('blur', onCtlUp); addEventListener('resize', layout);
     teamSel(); cycleText(); wishLabel();
     layout(); setTimeout(layout, 60);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
@@ -567,7 +569,7 @@
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
     ctlReset(); exitFS(); undress();
     const s = ST; ST = null;
-    removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('resize', layout);
+    removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('keyup', onCtlUp); removeEventListener('blur', onCtlUp); removeEventListener('resize', layout);
     s.el.remove();
     if (s.o.close) s.o.close();
   }

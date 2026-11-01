@@ -211,7 +211,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();lightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
-   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}m.mx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);invisTick(m);whideTick(m);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
+   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}m.mx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);invisTick(m);whideTick(m);plantFeet(m);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
      if(typeof ianimTick=='function')ianimTick(m,t);
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
      if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
@@ -363,6 +363,25 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   const retint=t=>meshes.forEach(wm=>{const MI=(man[key]||{})[wm.userData.srcMat];if(!MI)return;const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P,null)});
   return {meshes,extra,att,root,holder,retint}}
   // a taunt that makes the player invisible hides the merc and everything worn (the taunt prop stays)
+  // feet kept planted while the merc stands or crouches still, the way the game's autoplay IK locks keep them (the idle's sway and the
+  // firing gestures move the body, the legs bend to keep the feet where they were): two-bone IK on hip, knee and foot
+  let IKV=null,IKQ=null;
+  function ikLeg(h,k,f,T){const [a,b,c,ca,ba,ab,cb,ta]=IKV,[ag,bg,r0,r1,r2,iq]=IKQ;h.getWorldPosition(a);k.getWorldPosition(b);f.getWorldPosition(c);
+   const cl=x=>Math.max(-1,Math.min(1,x)),lab=b.distanceTo(a),lcb=b.distanceTo(c);if(lab<1e-4||lcb<1e-4)return;const lat=Math.max(1e-4,Math.min(lab+lcb-1e-4,T.distanceTo(a)));
+   ca.subVectors(c,a).normalize();ba.subVectors(b,a).normalize();ab.subVectors(a,b).normalize();cb.subVectors(c,b).normalize();ta.subVectors(T,a).normalize();
+   const ac_ab_0=Math.acos(cl(ca.dot(ba))),ba_bc_0=Math.acos(cl(ab.dot(cb))),ac_at_0=Math.acos(cl(ca.dot(ta)));
+   const ac_ab_1=Math.acos(cl((lcb*lcb-lab*lab-lat*lat)/(-2*lab*lat))),ba_bc_1=Math.acos(cl((lat*lat-lab*lab-lcb*lcb)/(-2*lab*lcb)));
+   const ax0=new THREE.Vector3().crossVectors(ca,ba),ax1=new THREE.Vector3().crossVectors(ca,ta);if(ax0.lengthSq()<1e-12)return;ax0.normalize();
+   h.getWorldQuaternion(ag);k.getWorldQuaternion(bg);
+   r0.setFromAxisAngle(ax0.clone().applyQuaternion(iq.copy(ag).invert()),ac_ab_1-ac_ab_0);r1.setFromAxisAngle(ax0.clone().applyQuaternion(iq.copy(bg).invert()),ba_bc_1-ba_bc_0);
+   if(ax1.lengthSq()>1e-12)r2.setFromAxisAngle(ax1.normalize().applyQuaternion(iq.copy(ag).invert()),ac_at_0);else r2.identity();
+   h.quaternion.multiply(r0.multiply(r2));k.quaternion.multiply(r1);h.updateMatrixWorld(true)}
+  function plantFeet(m){if(!IKV){IKV=[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector3());IKQ=[0,1,2,3,4,5].map(()=>new THREE.Quaternion())}const n=m.cn||'';if(!/^(stand|crouch)_/i.test(n)||/^crouch_walk/i.test(n)){m._plant=null;return}
+   if(!m._legs){const B={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx&&/^bip_(hip|knee|foot)_[LR]$/i.test(x.name))B[x.name.toLowerCase()]=x});m._legs=['l','r'].map(s=>[B['bip_hip_'+s],B['bip_knee_'+s],B['bip_foot_'+s]]).filter(L=>L.every(Boolean))}
+   if(!m._legs.length)return;const now=performance.now();if(!m._plant||m._plant.cn!==n){m._plant={cn:n,t0:now,T:null};return}
+   m.o.updateMatrixWorld(true);const P=m._plant;
+   if(!P.T){if(now-P.t0<350)return;P.T=m._legs.map(L=>m.o.worldToLocal(L[2].getWorldPosition(new THREE.Vector3())));return}
+   m._legs.forEach((L,i)=>{const T=m.o.localToWorld(IKV[7].copy(P.T[i]));if(L[2].getWorldPosition(IKV[6]).distanceTo(T)>.01)ikLeg(L[0],L[1],L[2],T.clone())})}
   function whideTick(m){const a=m.act,W=a&&/^live:/.test(m.cn||'')&&a.getClip().zwhide;const h=!!(W&&!m._wmOff&&W.some(w=>a.time>=w.s&&a.time<w.e));if(h===!!m._whid)return;m._whid=h;(m.wmesh||[]).forEach(x=>x.visible=!h)}
   function invisTick(m){const a=m.act,IV=a&&/^live:/.test(m.cn||'')&&a.getClip().zinvis;const hid=!!(IV&&IV.some(w=>w.v>=1&&a.time>=w.s&&a.time<w.e));if(hid===!!m._inv)return;m._inv=hid;
    const keep=new Set((m._tprop&&m._tprop.meshes)||[]);m.o.traverse(n=>{if(!n.isMesh||keep.has(n))return;if(hid){n.userData._iv=n.visible;n.visible=false}else if('_iv' in n.userData){n.visible=n.userData._iv;delete n.userData._iv}})}
@@ -480,26 +499,43 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   if(!nm){const a=zIdle(m);if(m.st0.idle!==a||!busy(m)&&m.cn!==a){m.st0.idle=a;if(!busy(m))m.play(a)}return}
   if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),{move_x:/^run_|^crouch_walk_/.test(nm)?1:0,move_y:0});if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
   if(want(m)!==nm)return;m.st0.idle=nm;if(!busy(m)&&m.cn!==nm)m.play(nm)}
- async function fire(c){const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready))return;const nm=((m._mv||{}).crouch?'AttackCrouch_':'AttackStand_')+suf(m);
-  const g=await ZLIVE.gesture(c,nm,bones(m));if(!g||!g.add||M[c]!==m||busy(m))return;
-  const a=m.mx.clipAction(g.clip,undefined,THREE.AdditiveAnimationBlendMode);a._zg=1;a.reset();a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=false;a.play();
-  const wn=m._wbase&&wname(m);const F=wn&&await ZLIVE.fireInfo(c,wn).catch(()=>null);if(!F||M[c]!==m)return;
-  if(F.urls.length){const au=new Audio(F.urls[(Math.random()*F.urls.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(v>0)au.play().catch(()=>{})}
-  if(F.muzzle&&window.ZPFX&&ZPFX.burst){const w=(m.wmesh||[]).find(x=>(x.userData.att||[]).some(t=>t.name=='muzzle'));if(!w)return;
-   let o=w.userData._matt;if(!o){const t=w.userData.att.find(x=>x.name=='muzzle');const b=w.skeleton&&w.skeleton.bones.find(x=>x.name===t.bone);if(!b)return;o=new THREE.Object3D();const q=t.m;
-    new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);b.add(o);w.userData._matt=o}
-   const sc=()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1};ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),sc).catch(()=>{})}}
+ // F: the firing gesture over what the merc is doing, the weapon's firing sound, its muzzle flash; held, it fires again at the weapon's rate
+ const pickW=L=>{let t=L.reduce((a,x)=>a+x.w,0)*Math.random();for(const x of L){t-=x.w;if(t<=0)return x}return L[0]};
+ async function fire(c,tok){const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return null;const sx=suf(m).toUpperCase(),cr=!!(m._mv||{}).crouch;
+  const wn=wname(m);const [G,F]=await Promise.all([ZLIVE.gesture(c,'ACT_MP_ATTACK_'+(cr?'CROUCH':'STAND')+'_'+sx,bones(m)).catch(()=>null),wn?ZLIVE.fireInfo(c,wn).catch(()=>null):null]);
+  if(M[c]!==m||busy(m))return null;
+  if(tok&&FT!==tok)return null;const cont=!!(F&&F.cont&&tok);
+  if(G){const g=pickW(G);const a=m.mx.clipAction(g.clip,undefined,THREE.AdditiveAnimationBlendMode);a._zg=1;a.reset();a.setLoop(cont?THREE.LoopRepeat:THREE.LoopOnce,cont?Infinity:1);a.clampWhenFinished=false;a.setEffectiveWeight(1);a.play();if(cont)tok.ga=a}
+  if(!F)return null;
+  if(F.urls.length){const au=new Audio(F.urls[(Math.random()*F.urls.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(cont){au.loop=true;tok.au=au}if(v>0)au.play().catch(()=>{})}
+  if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wn);if(o){const sc=()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1};ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),sc).catch(()=>{})}}
+  return F}
+ // F held: shot after shot at the weapon's rate; the minigun and flamethrower keep one looping gesture and sound, with a flash per shot
+ let FT=null;
+ async function fireDown(c){fireUp();const tok={c};FT=tok;const F=await fire(c,tok);if(FT!==tok||!F)return;
+  const step=async()=>{if(FT!==tok)return;const m=M[c];if(!m||busy(m)){fireUp();return}
+   if(F.cont){if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wname(m));if(o&&FT===tok)ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}}
+   else await fire(c,tok);
+   if(FT===tok)tok.t=setTimeout(step,F.rate*1000)};
+  tok.t=setTimeout(step,F.rate*1000)}
+ function fireUp(){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au){try{t.au.pause()}catch(e){}}if(t.ga){t.ga.fadeOut(.15);setTimeout(()=>t.ga.stop(),200)}}
+ // the weapon's muzzle attachment, from the mesh (a weapon read from the install) or from its model in the install (the page's own stock models)
+ async function muzzleOf(m,c,wn){const w=(m.wmesh||[])[0];if(!w||!w.skeleton)return null;if(w.userData._matt&&w.userData._matt.parent)return w.userData._matt;
+  let t=null;for(const x of m.wmesh){t=(x.userData.att||[]).find(a=>/^muzzle$/i.test(a.name));if(t)break}
+  if(!t&&ZLIVE.attachments&&wn){const L=await ZLIVE.attachments(wn,c).catch(()=>null);t=L&&L.find(a=>/^muzzle$/i.test(a.name))}
+  if(!t||(m.wmesh||[])[0]!==w)return null;const bn=w.skeleton.bones.find(x=>x.name===t.bone)||w.skeleton.bones.find(x=>x.name.toLowerCase()===String(t.bone).toLowerCase());if(!bn)return null;
+  const o=new THREE.Object3D(),q=t.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);bn.add(o);w.userData._matt=o;return o}
  // the weapon in hand by name: the one picked, or the class's stock weapon for the slot (the Heavy's Fists have no model)
  const wname=m=>{const b=m._wbase;if(b.lname)return b.lname;const k=(STOCK[b.c]||{})[b.slot];if(!k)return b.c=='Heavy'&&b.slot=='melee'?'Fists':null;for(const n in BYNAME)if(BYNAME[n]===k)return n;return null};
- async function taunt(c){const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
+ async function taunt(c){fireUp();const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
   const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);m.play('live:@scene:'+sp,true);return true}
  return{run:c=>{const v=st(c);if(!v)return false;v.run=!v.run;move(c);return v.run},crouch:c=>{const v=st(c);if(!v)return false;v.crouch=!v.crouch;move(c);return v.crouch},
-  fire,taunt,refresh:c=>move(c),
+  fire,fireDown,fireUp,taunt,refresh:c=>move(c),
   // every slot's weapon read and built ahead (models, materials, the stand_ animation), so switching with the number keys is instant
   preload:(c,slots)=>{if(!M[c])return;for(const sl of slots){const p=window.ZPREV&&ZPREV.cls==c&&ZPREV.wslot==sl?ZPREV.wname:null;const nk=wkey(p);let key=nk?BYNAME[nk]:(STOCK[c]||{})[sl];
     let ln=p;if(!ln){try{ln=LOX.stockFor(c,sl)}catch(e){}}if(ln&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(ln,c))key='live:'+c+':'+((window.ZSTYLE&&ZSTYLE.get(ln))||0)+':'+ln;
     if(!key)continue;(/^live:/.test(key)?ZLIVE.load(key):Promise.all([wload(key),wman()])).catch(()=>{});
-    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{const m=M[c];if(m&&m._mv){m._mv=null;move(c)}}}})();
+    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._mv){m._mv=null;move(c)}}}})();
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
@@ -1383,19 +1419,34 @@ async function propClip(path,seqName){const k='pclip|'+path+'|'+seqName;if(ST.ca
 async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0).then(A=>{A[1][key]._own=1;return A})}
 const SEQ={};
 async function seq(cl,name,boneSet,P){const c=clsKey(cl);const k=c+'|'+name.toLowerCase()+(P?'|'+JSON.stringify(P):'');if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet,P).then(r=>r&&r.clip)}
-// a delta sequence (the AttackStand_ / AttackCrouch_ firing gestures) as a clip for additive blending over whatever the merc plays:
-// its rotations multiply the pose, its positions add to it (Source's delta animations; THREE's AdditiveAnimationBlendMode does the same)
-async function gesture(cl,name,boneSet){const c=clsKey(cl);const k=c+'|g|'+name.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{
- for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const ai=findSeq(b,name);if(ai<0)continue;const A=decodeAnim(b,ai,await aniOf(b));
-  if(!(A.flags&4)){const r=await clipOf(b,name,name,boneSet);return r?{clip:r.clip,add:false}:null}
-  const F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x)return null;F.push(x)}if(!F.length)return null;
-  const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
-  const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];const v=new THREE.Vector3();
-  A.bones.forEach((B,bi)=>{if(boneSet&&!boneSet.has(B.name))return;const QV=new Float32Array(F.length*4),PV=new Float32Array(F.length*3);
-   F.forEach((fr,i)=>{QV.set(fr.Q[bi],i*4);v.set(...fr.P[bi]);if(B.parent<0)v.applyQuaternion(C);PV.set([v.x,v.y,v.z],i*3)});
-   tracks.push(new THREE.QuaternionKeyframeTrack(B.name+'.quaternion',times,QV),new THREE.VectorKeyframeTrack(B.name+'.position',times,PV))});
-  return{clip:new THREE.AnimationClip('gesture:'+name,(F.length-1)/A.fps,tracks),add:true}}
- return null})()}
+// the firing gestures: the sequences of the activity the game plays when the weapon fires (ACT_MP_ATTACK_STAND_<anim slot>, _CROUCH_),
+// one picked by its activity weight when there are several (the Heavy's left and right punches). Played additively over whatever the merc
+// does: a delta sequence's rotations multiply the pose and its positions add (Source's delta animations; THREE's additive blending does the
+// same), scaled per bone by the sequence's weight list, so a gesture that leaves the legs alone does. A placeholder sequence (all zeros)
+// plays its motion through its autolayers; a sequence that isn't a delta (the Huntsman's ITEM2_fire) is taken relative to its first frame.
+function seqList(b){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const ns=dv.getInt32(188,true),si=dv.getInt32(192,true),o=[];for(let i=0;i<ns;i++){const q=si+i*212;o.push({o:q,name:cstr(b,q+dv.getInt32(q+4,true)),act:cstr(b,q+dv.getInt32(q+8,true)),w:dv.getInt32(q+20,true)})}return o}
+async function gestureOf(b,so,boneSet,clipName){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const ani=await aniOf(b);const ns=dv.getInt32(188,true),si=dv.getInt32(192,true);
+ let o=so,A=decodeAnim(b,seqAnim(b,o),ani);
+ if(A.flags&0x20){const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true);let L=null;for(let k=0;k<n&&k<16&&!L;k++){const q=dv.getInt16(o+li+k*24,true);if(q<0||q>=ns)continue;const lo=si+q*212;const X=decodeAnim(b,seqAnim(b,lo),ani);if(!(X.flags&0x20)){L=X;o=lo}}if(!L)return null;A=L}
+ const F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x)return null;F.push(x)}if(F.length<2)return null;
+ const nb=dv.getInt32(156,true),wl=dv.getInt32(o+156,true);const W=bi=>{if(!wl||bi>=nb)return 1;const w=dv.getFloat32(o+wl+bi*4,true);return isFinite(w)?Math.max(0,Math.min(1,w)):1};
+ const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
+ const delta=!!(A.flags&4),I0=new THREE.Quaternion(),q=new THREE.Quaternion(),q0=new THREE.Quaternion(),v=new THREE.Vector3(),v0=new THREE.Vector3();
+ const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];
+ A.bones.forEach((B,bi)=>{if(boneSet&&!boneSet.has(B.name))return;const w=W(bi);if(w<=0)return;const QV=new Float32Array(F.length*4),PV=new Float32Array(F.length*3);
+  const at=(fr,qq,vv)=>{qq.set(...fr.Q[bi]);vv.set(...fr.P[bi]);if(B.parent<0){if(!delta)qq.premultiply(C);vv.applyQuaternion(C)}};
+  if(!delta)at(F[0],q0,v0);
+  F.forEach((fr,i)=>{at(fr,q,v);if(!delta){q.premultiply(q0.clone().invert());v.sub(v0)}// relative to the first frame
+   if(w<1){q.copy(I0.clone().slerp(q,w));v.multiplyScalar(w)}QV.set([q.x,q.y,q.z,q.w],i*4);PV.set([v.x,v.y,v.z],i*3)});
+  tracks.push(new THREE.QuaternionKeyframeTrack(B.name+'.quaternion',times,QV),new THREE.VectorKeyframeTrack(B.name+'.position',times,PV))});
+ return new THREE.AnimationClip(clipName,(F.length-1)/A.fps,tracks)}
+// a weapon model's attachments (the muzzle), read from its .mdl: for the page's own stock weapon models, which don't carry them
+async function attachments(n,cl){const e=entry(n);const p=e&&mdlFor(e,cl,0);if(!p)return null;const b=await mdlBuf(p);if(!b)return null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true);
+ const bn=I(156),bi=I(160),out=[];for(let k=0;k<I(240);k++){const o=I(244)+k*92,lb=I(o+8),mm=[];for(let q=0;q<12;q++)mm.push(dv.getFloat32(o+12+4*q,true));out.push({name:cstr(b,o+I(o)).toLowerCase(),bone:lb>=0&&lb<bn?cstr(b,bi+lb*216+I(bi+lb*216)):null,m:mm})}return out}
+async function gesture(cl,act,boneSet){const c=clsKey(cl);const k=c+'|g|'+act.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{const out=[];
+ for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const L=seqList(b).filter(x=>x.act.toLowerCase()===act.toLowerCase());
+  for(const x of L){try{const cl=await gestureOf(b,x.o,boneSet,'gesture:'+x.name);if(cl)out.push({clip:cl,w:Math.max(1,x.w)})}catch(e){console.warn('[ZLIVE] gesture',x.name,e)}}if(out.length)break}
+ return out.length?out:null})()}
 // ---------- weapon taunts: the game's response rules (scripts/talker, concept TLK_PLAYER_TAUNT) pick the scene for the weapon in hand ----------
 // TranslateWeaponEntForClass: the entity a multi-class weapon spawns as for each class (the talker's "playerweapon")
 const WTRANS={tf_weapon_shotgun:{soldier:'tf_weapon_shotgun_soldier',heavy:'tf_weapon_shotgun_hwg',pyro:'tf_weapon_shotgun_pyro',engineer:'tf_weapon_shotgun_primary'},
@@ -1446,9 +1497,13 @@ function wscript(ic){if(ic in WSCR)return WSCR[ic];return WSCR[ic]=(async()=>{le
 // a melee weapon's swing is its melee_miss sound
 async function fireInfo(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const ic0=String(e.r.item_class||'').toLowerCase();const ic=(WTRANS[ic0]&&WTRANS[ic0][c])||ic0;
  const S=await wscript(ic)||{};const sd=S.sounddata||{},vis=(e.r.visuals&&typeof e.r.visuals=='object')?e.r.visuals:{};
- const snd=vis.sound_single_shot||sd.single_shot||vis.sound_melee_miss||sd.melee_miss||null;const urls=[];
+ // the minigun and the flamethrower fire continuously: their firing sound loops while the trigger is held
+ const cont=/^tf_weapon_(minigun|flamethrower)/.test(ic);
+ const snd=(ic.startsWith('tf_weapon_flamethrower')?(vis.sound_special1||sd.special1):null)||vis.sound_single_shot||sd.single_shot||vis.sound_double_shot||sd.double_shot||vis.sound_melee_miss||sd.melee_miss||null;const urls=[];
  if(snd&&typeof snd=='string'){const W=/\.(wav|mp3)$/i.test(snd)?[snd]:await waves(snd);for(const f of W){const u=await audioURL(f);if(u)urls.push(u)}}
- const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null}}
+ // the time between shots: the script's TimeFireDelay times the item's fire rate attributes (mult_postfiredelay)
+ let rate=+S.timefiredelay||.5;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='mult_postfiredelay'&&+x.value>0)rate*=+x.value}}
+ const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont}}
 async function weaponTaunt(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();
  const ic=String(e.r.item_class||'').toLowerCase();const ctx={concept:'TLK_PLAYER_TAUNT',playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
   playerweapon:(WTRANS[ic]&&WTRANS[ic][c])||ic,item_name:e.r.name,item_type_name:e.r.item_type_name};
@@ -1554,7 +1609,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

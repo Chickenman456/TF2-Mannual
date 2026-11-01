@@ -529,10 +529,10 @@
       await preload(def);
       const fx = makeFx(def, where, scaleOf || (() => 1));
       for (const S of fx.root.all()) S.mat = (S.rend && S.def.material) ? await material(S.def.material) : null;
-      fx.age = 0; BURST.push(fx); return true;
+      fx.age = 0; BURST.push(fx); ZPFX._nb = (ZPFX._nb || 0) + 1; return true;
     },
     stop() { ZPFX._tok = (ZPFX._tok || 0) + 1; if (FX) { for (const S of FX.root.all()) dispose(S); FX = null; } },
-    active: () => !!FX,
+    active: () => !!FX, bursts: () => ZPFX._nb || 0,
     tick(dt, sc, cam) {
       for (const b of BURST.slice()) {
         b.acc += Math.min(dt, .1); b.age += dt;
