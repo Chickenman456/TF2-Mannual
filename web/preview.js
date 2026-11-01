@@ -151,8 +151,10 @@
     }
     else if (WORN.has(o.kind)) cos = [ST.nm];
     // a weapon picked with the number keys: the previewed weapon when it's for that slot, otherwise the stock one
+    // what the previewed weapon puts on the body (the Razorback, the Gunboats, a banner's backpack) stays on whatever is held
+    const worn = wname;
     if (ST.kslot && wslot !== ST.kslot) { wslot = ST.kslot; wname = null; }
-    return {cls: cn, team: ST.team, cos, paint: ST.paint, wslot, wname, taunt};
+    return {cls: cn, team: ST.team, cos, paint: ST.paint, wslot, wname, worn, taunt};
   }
   const stockSlot = cn => (window.Store3D && Store3D.stockSlot) ? Store3D.stockSlot(cn, ST.o.name) : null;
   // worn on the body like a cosmetic: cosmetics, medals, expired items, action items (the canteen on the belt) and other items that have a model
