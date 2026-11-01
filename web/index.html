@@ -90,6 +90,7 @@ select.in{padding:6px 8px;font-family:var(--head);font-size:14px}
 label.chk{display:flex;gap:6px;align-items:center;cursor:pointer;color:var(--ink-2);font-size:13px}
 label.vol{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--ink-2);font-size:13px}
 label.vol input{flex:1;max-width:240px;accent-color:var(--TFOrange)}
+label.vol span{min-width:86px}
 label.vol input:disabled{opacity:.45}
 label.vol output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
 label.chk input{accent-color:var(--TFOrange)}
@@ -656,7 +657,9 @@ button.vg:focus-visible{outline:none}
   <div class="mbox panel">
     <div class="mhead"><h2 id="setTitle">Settings</h2><button class="btn ibtn" type="button" data-setclose aria-label="Close settings"><span class="gi" style="--g:url(ui/gi_x.webp)"></span></button></div>
     <section class="mrow"><h3>Sound</h3><label class="chk"><input type="checkbox" id="sndOn"> Play TF2's interface and item sounds</label>
-      <label class="vol" for="sndVol"><span>Volume</span><input type="range" id="sndVol" min="0" max="100" step="1" value="100" aria-describedby="sndVolV"><output id="sndVolV">100%</output></label></section>
+      <label class="vol" for="sndVol"><span>Interface</span><input type="range" id="sndVol" min="0" max="100" step="1" value="100" aria-describedby="sndVolV"><output id="sndVolV">100%</output></label>
+      <label class="vol" for="gameVol"><span>Game sounds</span><input type="range" id="gameVol" min="0" max="100" step="1" value="100" aria-describedby="gameVolV"><output id="gameVolV">100%</output></label>
+      <p>Game sounds are what the merc in the store preview makes: gunfire, voice lines, taunt music.</p></section>
     <section class="mrow"><h3>Top bar</h3><label class="chk"><input type="checkbox" id="pinbar"> Bring the top bar back when scrolling up</label>
       <p>On wide screens the controls stay in the column on the right, so this only changes smaller windows.</p></section>
     <section class="mrow" id="gameSet"></section>
@@ -718,7 +721,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100};
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
@@ -1482,11 +1485,15 @@ function itemSound(id, pickup){
   sfx(pair ? pair[pickup ? 0 : 1] : (pickup ? 'item_default_pickup' : 'item_default_drop'));
 }
 function volume(){ const v = +S.vol; return S.mute ? 0 : (isFinite(v) ? Math.max(0, Math.min(100, v)) : 100) / 100; }
-window.ZVOL = volume;   // the store window's voice lines and taunt music follow it too
-function syncMute(){ $('#sndOn').checked = !S.mute; $('#sndVol').value = isFinite(+S.vol) ? +S.vol : 100; $('#sndVolV').textContent = $('#sndVol').value + '%'; $('#sndVol').disabled = !!S.mute; }
+// the merc in the store preview (gunfire, voice lines, taunt music) has a volume of its own
+function gameVolume(){ const v = +S.gvol; return S.mute ? 0 : (isFinite(v) && S.gvol != null ? Math.max(0, Math.min(100, v)) : 100) / 100; }
+window.ZVOL = gameVolume;
+function syncMute(){ $('#sndOn').checked = !S.mute; $('#sndVol').value = isFinite(+S.vol) ? +S.vol : 100; $('#sndVolV').textContent = $('#sndVol').value + '%'; $('#sndVol').disabled = !!S.mute;
+  $('#gameVol').value = isFinite(+S.gvol) && S.gvol != null ? +S.gvol : 100; $('#gameVolV').textContent = $('#gameVol').value + '%'; $('#gameVol').disabled = !!S.mute; }
 $('#sndOn').addEventListener('change', () => { S.mute = !$('#sndOn').checked; save(); syncMute(); if (!S.mute) sfx('buttonclick'); });
 $('#sndVol').addEventListener('input', () => { S.vol = +$('#sndVol').value; $('#sndVolV').textContent = S.vol + '%'; save(); });
 $('#sndVol').addEventListener('change', () => sfx('buttonclick'));
+$('#gameVol').addEventListener('input', () => { S.gvol = +$('#gameVol').value; $('#gameVolV').textContent = S.gvol + '%'; save(); });
 // the settings dialog
 /* ---------------- Workshop: the items you've compiled with TF2's Workshop importer ----------------
    The importer saves each one as a zip in tf/workshop/import_source. With your TF2 folder linked, this lists them and opens
