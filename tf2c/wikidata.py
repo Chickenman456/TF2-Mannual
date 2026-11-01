@@ -101,6 +101,14 @@ def fetch_item_flags(names, progress=lambda m: None):
                 row["q"] = q   # the only quality this item comes in (e.g. Genuine promos)
             if market is None and row["t"] and "marketable" not in flags:
                 row["m"] = None  # infobox doesn't say
+            # who made it and the Steam Workshop entry it came from: items contributed as one entry (or by the same people
+            # in the same update, for the same class) make up the sets Valve no longer names in the item schema
+            creators = sorted(set(re.findall(r"7656119\d{10}", _field(text, "contributed-by") or "")))
+            if creators:
+                row["c"] = creators
+            ws = list(dict.fromkeys(re.findall(r"filedetails/\?id=(\d+)", text)))
+            if ws:
+                row["w"] = ws
             for title in [p["title"]] + back.get(p["title"], []):
                 out[title] = row
                 for t2 in back.get(title, []):
@@ -198,4 +206,63 @@ def apply(catalog, data):
     # "Craft hats": cosmetics you can get by crafting (the wiki's "craft" availability)
     cosmetic = {it[0] for it in catalog["items"] if it[3] == "c"}
     craft = sorted(k for k, r in flags.items() if k in cosmetic and "craft" in (r.get("a") or "").split("|"))
-    return {"q": qual, "nomarket": nomarket, "only": only, "limited": sorted(limited), "code": sorted(code), "craft": craft}
+    return {"q": qual, "nomarket": nomarket, "only": only, "limited": sorted(limited), "code": sorted(code), "craft": craft,
+            "usets": unofficial_sets(catalog, flags)}
+
+
+def unofficial_sets(catalog, flags):
+    """Sets the item schema doesn't name (Valve stopped adding item_sets): cosmetics and weapons contributed to the Steam
+    Workshop as one entry (the same Workshop link on their wiki pages), and cosmetics for the same class released the same
+    day with a creator in common (the wiki's "contributed-by"). Groups the official item sets already cover are left out.
+    [{"n": name, "i": [ids], "how": "w" (one Workshop entry) | "c" (same creators, update and class)}]"""
+    items = {it[0]: it for it in catalog["items"] if it[3] in ("c", "w")}
+    up = {}
+
+    def find(x):
+        while up.get(x, x) != x:
+            up[x] = up.get(up[x], up[x])
+            x = up[x]
+        return x
+
+    def union(L, how):
+        for x in L[1:]:
+            a, b = find(L[0]), find(x)
+            if a != b:
+                up[b] = a
+                hows[a] = hows.get(a, set()) | hows.get(b, set()) | {how}
+        hows[find(L[0])] = hows.get(find(L[0]), set()) | {how}
+
+    hows = {}
+    by_ws, by_cr = {}, {}
+    for k, r in flags.items():
+        if k not in items:
+            continue
+        for w in r.get("w") or []:
+            by_ws.setdefault(w, []).append(k)
+        it = items[k]
+        if it[3] == "c" and r.get("c") and bin(it[4]).count("1") == 1:
+            for c in r["c"]:   # a creator shared with another item for the same class, released the same day
+                by_cr.setdefault((c, it[8], it[4]), []).append(k)
+    for L in by_ws.values():
+        L = sorted(set(L))
+        if 2 <= len(L) <= 8:
+            union(L, "w")
+    for L in by_cr.values():
+        L = sorted(set(L))
+        if 2 <= len(L) <= 6:
+            union(L, "c")
+    comps = {}
+    for k in up:
+        comps.setdefault(find(k), set()).add(k)
+    official = set()
+    for st in catalog.get("sets") or []:
+        official |= set(st["i"])
+    out = []
+    for root, ks in comps.items():
+        ks = sorted(ks, key=lambda k: (items[k][8] or "", items[k][1]))
+        if len(ks) < 2 or sum(1 for k in ks if k in official) * 2 >= len(ks):
+            continue
+        names = [items[k][1] for k in ks]
+        n = names[0] if len(names) == 1 else (" & ".join(names) if len(names) == 2 else ", ".join(names[:-1]) + " & " + names[-1])
+        out.append({"n": n, "i": ks, "how": "w" if "w" in hows.get(root, ()) else "c"})
+    return sorted(out, key=lambda s: s["n"])

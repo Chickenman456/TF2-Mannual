@@ -252,12 +252,14 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
     mats.forEach(m=>{const U=m.uniforms;if(!U.__z0)U.__z0=[U.boost.value,U.rimExp.value,U.rimBoost.value];
      if(z&&m.name=='body'){const x=ztex(t=='BLU'?z.blu:z.red);if(m.map!==x){m.map=x;m.needsUpdate=true}U.aTest.value=M[c].zsolid?0:1;U.boost.value=0;U.rimExp.value=15;U.rimBoost.value=.25;U.rimTint.value.set(...ZRIM);return}
      U.aTest.value=0;[U.boost.value,U.rimExp.value,U.rimBoost.value]=U.__z0;U.rimTint.value.set(1,1,1);
+     {const LM=M[c]&&M[c]._lmat&&M[c]._lmat[m.name];if(LM){liveMat(m,LM[t]||LM.RED);return}}
      if(t=='BLU'){if(!blu.has(m)){blu.set(m,null);new THREE.TextureLoader().load('models/'+k+'_'+m.name+'_blu.jpg',x=>{x.flipY=false;x.encoding=THREE.sRGBEncoding;blu.set(m,x);skin()})}const x=blu.get(m);if(x){m.map=x;m.needsUpdate=true}}else if(m.map!==red.get(m)){m.map=red.get(m);m.needsUpdate=true}});
     heads.forEach(m=>{const zh=z&&z.head?(t=='BLU'&&z.headBlu?z.headBlu:z.head):null;
      // the Spy's mask is team coloured (spy_head_blue): its BLU map loads on demand like the bodies'
      let hb=null;if(!zh&&t=='BLU'&&k=='spy'){if(!blu.has(m)){blu.set(m,null);new THREE.TextureLoader().load('models/spy_head_blu.jpg',x=>{x.flipY=false;x.encoding=THREE.sRGBEncoding;blu.set(m,x);skin()})}hb=blu.get(m)}
+     if(!zh){const LM=M[c]&&M[c]._lmat&&M[c]._lmat.head;if(LM){liveMat(m,LM[t]||LM.RED);return}}
      const x=zh?ztex(zh):(hb||headMap.get(m));if(m.map!==x){m.map=x;m.needsUpdate=true}const U=m.uniforms;U.aTest.value=zh&&z.headAT&&!M[c].zsolid?1:0;if(!U.__z0)U.__z0=[U.rimExp.value,U.rimBoost.value];[U.rimExp.value,U.rimBoost.value]=z?[15,.25]:U.__z0;U.rimTint.value.set(...(z?ZRIM:[1,1,1]))});
-    eyeMs.forEach(n=>{if(!n.userData.eyeMat)n.userData.eyeMat=n.material;n.material=z?ZEYE():n.userData.eyeMat;n.visible=!(z&&k=='spy'&&!M[c].zsolid)})};
+    eyeMs.forEach(n=>{if(!n.userData.eyeMat)n.userData.eyeMat=n.material;n.material=z?ZEYE():n.userData.eyeMat;n.visible=!(M[c]&&M[c]._lbody)&&!(z&&k=='spy'&&!M[c].zsolid)})};// at LOD 1+ the class model's own eyes replace these
    const STATIC={};g.animations.forEach(a=>STATIC[a.name]=a.tracks.every(t=>t.times.length<=2));const BR={};o.traverse(n=>{if(n.isBone&&/^bip_(spine_[123]|neck|head|upperArm_[LR]|clavicle_[LR])$/i.test(n.name))BR[n.name.toLowerCase()]=n});const BG={};o.traverse(n=>{if(/^bg_/.test(n.name))BG[n.name.slice(3)]=n});ok(M[c]={o,mx,play,skin,st0,A,STATIC,BR,eyes,BG})},undefined,e=>{delete loading[c];no(e)}))}
  // weapons: stock world models ripped from the game's VPKs (MDL+VVD+VTX -> glb), bonemerged onto the player's skeleton by bone name ($bonemerge),
  // materials rebuilt from their .vmt (phong / exponent maps / lightwarp / rim) and the pyro pilot light's UnlitTwoTexture + Sine/TextureScroll proxies
@@ -427,7 +429,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(m.ctok!==tok){res.forEach(j=>j&&drop(j.r));return}
   (m.cmesh||[]).forEach(drop);m.cmesh=[];Object.values(m.BG||{}).forEach(n=>n.visible=true);
   res.forEach(j=>{if(!j)return;(j.bg||[]).forEach(b=>{if(m.BG&&m.BG[b])m.BG[b].visible=false});if(j.r){j.r.meshes.forEach(x=>x.visible=true);m.cmesh.push(j.r);if(window.ZFACE)ZFACE.attach(c,m,j.key,j.r.meshes)}});
-  m._cbg=new Set(res.flatMap(j=>(j&&j.bg)||[]));wmBG(m);
+  m._cbg=new Set(res.flatMap(j=>(j&&j.bg)||[]));wmBG(m);if(window.ZLIVE&&ZLIVE.lod>0)lodBody(c);
   // the bundled soul meshes take the zombie body's .vmt values; souls read from the install already carry their own
   res.forEach(j=>{if(!j||!j.r||!(j.zo||(/_zombie$/.test(j.key)&&!/^live/.test(j.key))))return;j.r.meshes.forEach(x=>{const U=x.material&&x.material.uniforms;if(!U)return;
    if(U.boost)U.boost.value=0;if(U.rimExp)U.rimExp.value=15;if(U.rimBoost)U.rimBoost.value=.25;if(U.rimTint)U.rimTint.value.set(...ZRIM)})});
@@ -503,7 +505,10 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   d.tr.forEach(t=>{const nm=THREE.PropertyBinding.sanitizeNodeName(t.b);tr.push(new THREE.QuaternionKeyframeTrack(nm+'.quaternion',t.q.length==4?[0]:T,t.q));tr.push(new THREE.VectorKeyframeTrack(nm+'.position',t.p.length==3?[0]:T,t.p))});
   return new THREE.AnimationClip('selectionMenu_Idle',-1,tr)}));
  window.ZTEAM=c=>(window.ZSELT&&ZSELT.c==c&&ZSELT.t)||(window.ZPREV&&ZPREV.cls==c&&ZPREV.team)||(window.LOX&&LOX.ls(c).team)||'RED';
- window.ZREDRESS=c=>{const m=M[c];if(!m)return;if(m._lbody){const t=ZTEAM(c);m._lbody.forEach(x=>{if(x.userData.lteam===t)return;x.userData.lteam=t;const MI=x.userData.mi||{};const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)x.material=wmat(P)})}if(m._tprop&&m._tprop.retint)m._tprop.retint(ZTEAM(c));m.csig=null;m.wteam=null;m.skin&&m.skin();weaponTeam(c);setCosmetics(c);if(window.ZPREV&&ZPREV.cls==c)setWeapon(c,ZPREV.wslot||firstSlot(c),ZPREV.wname)};
+ // the game's own player materials on the merc (ZLIVE.playerMats): every material setting copied from one built from the VMT
+ const LIVEM=new WeakMap();
+ function liveMat(mat,P){if(!P)return;let L=LIVEM.get(P);if(!L){L=wmat(P);LIVEM.set(P,L)}const U=mat.uniforms;for(const k in L.uniforms){if(U[k]&&k!=='amb'&&k!=='lDir'&&k!=='lCol')U[k].value=L.uniforms[k].value}mat.needsUpdate=true}
+ window.ZREDRESS=c=>{const m=M[c];if(!m)return;if(window.ZLIVE&&ZLIVE.ready&&ZLIVE.playerMats&&!m._lmatReq){m._lmatReq=1;ZLIVE.playerMats(c).then(L=>{if(L&&Object.keys(L).length&&M[c]===m){m._lmat=L;m.skin&&m.skin()}})}if(m._lbody){const t=ZTEAM(c);m._lbody.forEach(x=>{if(x.userData.lteam===t)return;x.userData.lteam=t;const MI=x.userData.mi||{};const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)x.material=wmat(P)})}if(m._tprop&&m._tprop.retint)m._tprop.retint(ZTEAM(c));m.csig=null;m.wteam=null;m.skin&&m.skin();weaponTeam(c);setCosmetics(c);if(window.ZPREV&&ZPREV.cls==c)setWeapon(c,ZPREV.wslot||firstSlot(c),ZPREV.wname)};
  window.Z3D={M,load,clipFor,setWeapon:(...a)=>setWeapon(...a),get V(){return V}};
  // catalog hooks: mount the merc in an element, re-dress it, zoom and turn it (the store preview's controls)
  // the store preview's taunt controls: replay from the start (with its sounds), pause / resume, and whether it is still going
@@ -556,16 +561,19 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
     if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._mv){m._mv=null;move(c)}}}})();
 // the preview's LOD button: the merc, his cosmetics and his weapon at LOD 0, 1 or 2, read from the install. The merc's own (LOD 0)
 // model is swapped for the class model's LOD from the install, worn with the same bodygroups.
-async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;const tok=m._lodTok=(m._lodTok||0)+1;
+async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;
+ await lodBody(c);m.csig=null;m.wname=null;window.ZREDRESS(c)}
+// the class model at the LOD, worn with the bodygroups the cosmetics leave (rebuilt when they change: setCosmetics calls it)
+async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0;
  const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody)L.push(x)});return L})());
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
- if(n>0){const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=m.BG[k].visible?0:1;
-  try{const [src,man]=await ZLIVE.body(c,bg);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
-   const meshes=src.map(s=>{const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
-    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
-   drop();if(meshes.length){m._lbody=meshes;own.forEach(x=>x.visible=false)}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
- else{drop();own.forEach(x=>x.visible=true)}
- m.csig=null;m.wname=null;window.ZREDRESS(c)}
+ if(n<=0||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
+ const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
+ const sig=n+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
+ try{const [src,man]=await ZLIVE.body(c,bg);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
+  const meshes=src.map(s=>{const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+   wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
+  drop();if(meshes.length){m._lbody=meshes;own.forEach(x=>x.layers.set(31))}else own.forEach(x=>x.layers.set(0))}catch(e){console.warn('[ZLIVE] LOD body',e)}}
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
@@ -1637,10 +1645,21 @@ function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t;if(WS[key])return WS[
   const mine=L.filter(n=>n.split('/').pop().replace(/\.qci?$/,'')===base);const o=[];for(const n of (mine.length?mine:L)){const d=await zipGet(f,Z.get(n));if(d)o.push({kind:'qc',path:n.slice(8),note:'from '+it.name,text:text(d)})}return o}};
  let full=null;const load=()=>full||(full=(async()=>{for(const n of game)if(!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}return true})().catch(err=>{full=null;throw err}));
  e.ws.load=load;return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
+// the class model's own materials (body, head, medic backpack; RED and BLU): with the TF2 folder linked the merc the page ships is
+// drawn with the game's textures and material settings in place of the page's own copies
+const PMAT={};
+function playerMats(cl){const c=clsKey(cl);if(PMAT[c])return PMAT[c];return PMAT[c]=(async()=>{const b=await mdlBuf('models/player/'+SHORT[c]+'.mdl');if(!b)return null;
+ const dv=new DataView(b.buffer,b.byteOffset,b.byteLength),I=o=>dv.getInt32(o,true);const texn=[];for(let k=0;k<I(204);k++){const o=I(208)+k*64;texn.push(cstr(b,o+I(o)))}
+ const cds=[];for(let k=0;k<I(212);k++)cds.push(cstr(b,I(I(216)+k*4)));const nr=I(220),nf=I(224),si=I(228),fam=(f,k)=>dv.getInt16(si+(f*nr+k)*2,true);
+ const pick=re=>{for(let k=0;k<nr;k++){const nm=String(texn[fam(0,k)]||'').toLowerCase().split(/[\\/]/).pop();if(re.test(nm))return k}return -1};
+ const out={};for(const [part,re] of [['body',/^(?!.*(head|backpack|mech_hand|sheen|invun|zombie|eyeball|lens|mask|medal|rocket|arrow|smiley)).*_red$/],['head',/head_red$/],['pack',/backpack_red$/]]){
+  const k=pick(re);if(k<0)continue;const R={};for(const [team,f] of [['RED',0],['BLU',1]]){const v=await findVmt(texn[fam(Math.min(f,nf-1),k)]||'',cds);if(!v)continue;const M=await vmt(v,0);if(M)R[team]=await params(M)}
+  if(R.RED)out[part]=R}
+ return out})().catch(e=>{console.warn('[ZLIVE] player materials',e);return null})}
 // the class model itself at a level of detail (the preview's LOD button), its bodygroups as the merc wears them
 function body(cl,bg){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=assemble(key,'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:bg||{}})}
-async function connect(src){ST.src=src;ST.lod=0;ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
+async function connect(src){ST.src=src;ST.lod=0;for(const k in PMAT)delete PMAT[k];ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
   try{localStorage.setItem('zlive','1')}catch(e){}return true}
@@ -1659,7 +1678,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
