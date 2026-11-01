@@ -494,7 +494,7 @@
   function lodLabel() { const b = ST && ST.el.querySelector('[data-spv=lod]'); if (!b) return; b.hidden = !live(); b.textContent = 'LOD ' + (ST.lod || 0); }
   function ctlReset() { const cn = ST && CNAME[ST.cls]; if (cn && window.Store3D && Store3D.ctl) Store3D.ctl.reset(cn);  }
   // F released (or the window left): the gun stops
-  function onCtlUp(e) { if (e.type === 'keyup' && String(e.key).toLowerCase() !== 'f') return; if (window.Store3D && Store3D.ctl && Store3D.ctl.fireUp) Store3D.ctl.fireUp(); }
+  function onCtlUp(e) { if (e.type === 'keyup' && String(e.key).toLowerCase() !== 'f') return; if (window.Store3D && Store3D.ctl && Store3D.ctl.fireUp) Store3D.ctl.fireUp(e.type === 'blur'); }
   function onCtl(e) {
     if (!ST || ST.state !== 'player' || !window.Store3D || !Store3D.ctl || e.altKey || e.metaKey) return;
     const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable], .spv-src, .spv-menu')) return;

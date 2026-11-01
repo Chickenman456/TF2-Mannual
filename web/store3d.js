@@ -39,7 +39,8 @@ vec3 perturb(vec3 eye_pos,vec3 N,vec3 mapN){vec3 q0=dFdx(eye_pos);vec3 q1=dFdy(e
 void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(fract(tUv.y)+frame)/frames):tUv;// $basetexturetransform + AnimatedTexture frame strip
  vec4 base=texture2D(map,bUv);if(aTest>.5&&base.a<aRef)discard;vec3 albedo=base.rgb;if(tintA>.5){vec3 tc=albedo*tint;tc=mix(tc,tint,tintOver);albedo=mix(albedo,tc,base.a);}albedo*=c2;
  vec3 nV=length(vNormalV)>1e-6?normalize(vNormalV):vec3(0.,0.,1.);if(!gl_FrontFacing)nV=-nV;vec4 nt=texture2D(normalMap,vUv);
- if(hasNormal>.5){vec3 mN=nt.xyz*2.-1.;mN.xy*=normalScale;nV=perturb(-vViewPosition,nV,mN);}
+ // skin_ps20b: with $basemapalphaphongmask the normal map is set aside (lerp to a flat normal by g_fBaseMapAlphaPhongMask): the Lucky No. 42 names its colour texture as its $bumpmap
+ if(hasNormal>.5&&!(specOn>.5&&maskMode>.5&&maskMode<1.5)){vec3 mN=nt.xyz*2.-1.;mN.xy*=normalScale;nV=perturb(-vViewPosition,nV,mN);}
  vec3 N=normalize((vec4(nV,0.)*viewMatrix).xyz);vec3 V=normalize(cameraPosition-vWPos);
  // SpecExponentSampler is TEXTURE_WHITE when the vmt has no $phongexponenttexture
  vec4 ex=hasExp>.5?texture2D(expMap,tUv):vec4(1.);
@@ -548,7 +549,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
 // (run_ at move_x 1: running forward), and becomes what the merc returns to after a taunt or a gesture.
 const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,crouch:false})):null};const busy=m=>/^(taunt|live:)/.test(m.cn||'');
  const suf=m=>String(zIdle(m)||'stand_PRIMARY').replace(/^stand_/,'');const bones=m=>{const bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});return bs};
- const want=m=>{const v=m._mv||{};if(m._spin)return v.crouch?'crouch_deployed_PRIMARY':v.run?'PRIMARY_deployed_movement':'stand_deployed_PRIMARY';return v.crouch?(v.run?'crouch_walk_':'crouch_')+suf(m):v.run?'run_'+suf(m):null};
+ const want=m=>{const v=m._mv||{};if(m._spin){const x=suf(m);return v.crouch?'crouch_deployed_'+x:v.run?x+'_deployed_movement':'stand_deployed_'+x}return v.crouch?(v.run?'crouch_walk_':'crouch_')+suf(m):v.run?'run_'+suf(m):null};
  async function move(c){const m=M[c];if(!m||!m.play)return;const nm=want(m);
   if(!nm){const a=zIdle(m);if(m.st0.idle!==a||!busy(m)&&m.cn!==a){m.st0.idle=a;if(!busy(m))m.play(a)}return}
   if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),{move_x:/^run_|^crouch_walk_|deployed_movement/.test(nm)?1:0,move_y:0});if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
@@ -572,6 +573,8 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  async function fireDown(c){fireUp();const tok={c};FT=tok;
   // the minigun spins up first (the Heavy's spool-up gesture into his deployed stance, the wind-up sound), then fires
   {const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F0=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(FT!==tok)return;
+   // the Huntsman is drawn while the trigger is held (the deployed stance, the bow's pull sound) and looses its arrow on release
+   if(F0&&F0.hold){tok.hold=m;m._spin=1;move(c);tok.au=sound(F0.hold.pull);return}
    if(F0&&F0.spin){tok.spin=m;m._spin=1;move(c);gest(c,m,'PREFIRE');tok.au=sound(F0.spin.up);await new Promise(r=>tok.t=setTimeout(r,F0.spin.time*1000));if(FT!==tok)return;if(tok.au){try{tok.au.pause()}catch(e){}tok.au=null}}}
   const F=await fire(c,tok);if(FT!==tok||!F)return;
   const step=async()=>{if(FT!==tok)return;const m=M[c];if(!m||busy(m)){fireUp();return}
@@ -579,7 +582,8 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
    else await fire(c,tok);
    if(FT===tok)tok.t=setTimeout(step,F.rate*1000)};
   tok.t=setTimeout(step,F.rate*1000)}
- function fireUp(){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au){try{t.au.pause()}catch(e){}}if(t.ga)t.ga.stop=true;
+ function fireUp(quiet){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au&&!t.hold){try{t.au.pause()}catch(e){}}if(t.ga)t.ga.stop=true;
+  {const m=t.hold;if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!quiet&&!busy(m))fire(t.c).catch(()=>{})}}}
   // the minigun winds down: the spool-down gesture out of the deployed stance, the wind-down sound
   const m=t.spin;if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!busy(m)){gest(t.c,m,'POSTFIRE');const wn=wname(m);if(wn)ZLIVE.fireInfo(t.c,wn).then(F=>{if(F&&F.spin)sound(F.spin.down)}).catch(()=>{})}}}}
  // the weapon's muzzle attachment, from the mesh (a weapon read from the install) or from its model in the install (the page's own stock models)
@@ -590,7 +594,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   const o=new THREE.Object3D(),q=t.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);bn.add(o);w.userData._matt=o;return o}
  // the weapon in hand by name: the one picked, or the class's stock weapon for the slot (the Heavy's Fists have no model)
  const wname=m=>{const b=m._wbase;if(b.lname)return b.lname;const k=(STOCK[b.c]||{})[b.slot];if(!k)return b.c=='Heavy'&&b.slot=='melee'?'Fists':null;for(const n in BYNAME)if(BYNAME[n]===k)return n;return null};
- async function taunt(c){fireUp();const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
+ async function taunt(c){fireUp(true);const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
   const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);const key='live:@scene:'+sp;m.play(key,true);
   // a worn cosmetic's taunt sound (cosmetic_taunt_sound: the Boston Boom-Bringer's and the Infernal Orchestrina's music) plays through the taunt
   ZLIVE.tauntSound((m.cmesh||[]).map(r=>r&&r.key?String(r.key).split(':').slice(3).join(':'):'').filter(Boolean)).then(L=>{if(!L||!L.length)return;let au=null;const t0=performance.now();
@@ -603,7 +607,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   preload:(c,slots)=>{if(!M[c])return;for(const sl of slots){const p=window.ZPREV&&ZPREV.cls==c&&ZPREV.wslot==sl?ZPREV.wname:null;const nk=wkey(p);let key=nk?BYNAME[nk]:(STOCK[c]||{})[sl];
     let ln=p;if(!ln){try{ln=LOX.stockFor(c,sl)}catch(e){}}if(ln&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(ln,c))key='live:'+c+':'+((window.ZSTYLE&&ZSTYLE.get(ln))||0)+':'+ln;
     if(!key)continue;(/^live:/.test(key)?ZLIVE.load(key):Promise.all([wload(key),wman()])).catch(()=>{});
-    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._tsnd){try{m._tsnd.pause()}catch(e){}m._tsnd=null}if(m&&m._mv){m._mv=null;move(c)}}}})();
+    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp(true);const m=M[c];if(m&&m._tsnd){try{m._tsnd.pause()}catch(e){}m._tsnd=null}if(m&&m._mv){m._mv=null;move(c)}}}})();
 // the preview's LOD button: the merc, his cosmetics and his weapon at LOD 0, 1 or 2, read from the install. The merc's own (LOD 0)
 // model is swapped for the class model's LOD from the install, worn with the same bodygroups.
 async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;
@@ -1620,7 +1624,8 @@ async function fireInfo(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)
  let spin=null;if(ic.startsWith('tf_weapon_minigun')){const su=async k=>{const s=vis['sound_'+k]||sd[k];if(!s||typeof s!='string')return[];const W=/\.(wav|mp3)$/i.test(s)?[s]:await waves(s);const o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}return o};
   let tm=.75;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='mult_minigun_spinup_time'&&+x.value>0)tm*=+x.value}}
   spin={time:tm,up:await su('special1'),down:await su('special2')}}
- const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont,spin,nofire:/^tf_weapon_laser_pointer/.test(ic)}}// the Wrangler aims the sentry; it doesn't fire itself
+ let hold=null;if(ic.startsWith('tf_weapon_compound_bow')){const W=await waves('Weapon_CompoundBow.SinglePull'),o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}hold={pull:o}}
+ const mz=vis.muzzle_flash||S.muzzleflashparticleeffect||null;return{urls,muzzle:typeof mz=='string'?mz:null,rate:Math.max(.05,rate),cont,spin,hold,nofire:/^tf_weapon_laser_pointer/.test(ic)}}// the Wrangler aims the sentry; it doesn't fire itself
 async function tauntSound(names){for(const n of names){const e=entry(n);if(!e)continue;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;
   for(const k in B){const x=B[k];if(!x||typeof x!='object'||String(x.attribute_class||'').toLowerCase()!='cosmetic_taunt_sound'||!x.value)continue;const s=String(x.value);const W=/\.(wav|mp3)$/i.test(s)?[s]:await waves(s);const o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}if(o.length)return o}}}return null}
 async function weaponTaunt(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();

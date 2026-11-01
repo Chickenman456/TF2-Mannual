@@ -256,5 +256,6 @@ def unofficial_sets(catalog, flags):
         if len(L) >= 2 and frozenset(L) not in nots:
             kept.append({"i": L, "how": "c"})
     # belated sets: a newer item made to go with older ones ("how": "b")
-    late = [{"i": sorted(s), "how": "b"} for s in fix.get("belated", []) if all(k in items for k in s)]
-    return kept + [{"i": s, "how": "c"} for s in forced if all(k in items for k in s)] + late
+    every = {it[0] for it in catalog["items"]}   # the curated ones may hold weapons too
+    late = [{"i": sorted(s), "how": "b"} for s in fix.get("belated", []) if all(k in every for k in s)]
+    return kept + [{"i": s, "how": "c"} for s in forced if all(k in every for k in s)] + late

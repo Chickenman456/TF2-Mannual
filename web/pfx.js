@@ -129,9 +129,10 @@
       const [tex, raw] = await Promise.all([L()._tex(tp, false).catch(() => null), L()._read('materials/' + tp + '.vtf').catch(() => null)]);
       if (!tex) return null;
       tex.encoding = THREE.LinearEncoding; tex.needsUpdate = true;
-      return { tex, sheet: raw ? sheetOf(raw) : null, add: num('$additive', 0) > 0, self: num('$addself', 0), ob: num('$overbrightfactor', 1), blend: num('$blendframes', 1) > 0,
-        // SpriteCard's screen-size limits: $minsize / $maxsize (fractions of the screen) and the fade between $startfadesize and $endfadesize
-        mins: num('$minsize', 0), maxs: num('$maxsize', 0), fs0: num('$startfadesize', 0), fs1: num('$endfadesize', 0) };
+      return { tex, sheet: raw ? sheetOf(raw) : null, add: num('$additive', 0) > 0, self: num('$addself', 0), aob: num('$addoverblend', 0) > 0, ob: num('$overbrightfactor', 1), blend: num('$blendframes', 1) > 0,
+        // SpriteCard's size limits, as ratios of the radius to the distance from the eye: $minsize, $maxsize and the fade between
+        // $startfadesize and $endfadesize (spritecard.cpp SHADER_INIT_PARAMS defaults: 0, 20, 10, 20)
+        mins: num('$minsize', 0), maxs: num('$maxsize', 20), fs0: num('$startfadesize', 10), fs1: num('$endfadesize', 20) };
     } catch (e) { console.warn('[pfx] material', path, e); return null; } })();
     MATS.set(path, p); return p;
   }
@@ -141,22 +142,29 @@
     walk(def); return Promise.all([...mats].map(m => material(m)));
   }
 
-  // ---------- SpriteCard (spritecard_vsxx.fxc / spritecard_ps2x.fxc), as the prototype ported it ----------
-  const VS = `uniform vec4 sz;attribute vec3 aC;attribute vec2 aK;attribute vec4 aU0,aU1,aP,aT;varying vec2 v0,v1;varying vec4 vT;varying float vB;
+  // ---------- SpriteCard (spritecard_vsxx.fxc / spritecard_ps2x.fxc, SDK 2013) ----------
+  // vertex: GammaToLinear(tint); the radius held between $minsize and $maxsize times the distance to the eye, faded out between
+  // $startfadesize and $endfadesize; ORIENTATION 0 a camera-facing card (yawed about view up), 1 a card standing on the world's up axis
+  // facing the eye (faded when the eye is within two radii); 2 (flat on the ground plane) is built on the CPU with the radius as is
+  const VS = `uniform vec4 sz;uniform float ori;attribute vec3 aC;attribute vec2 aK;attribute vec4 aU0,aU1,aP,aT;varying vec2 v0,v1;varying vec4 vT;varying float vB;
   void main(){vec4 tint=vec4(pow(max(aT.rgb,vec3(0.)),vec3(2.2)),aT.a);vec2 sy=vec2(cos(aP.w),sin(aP.w)),sc=vec2(cos(aP.y),sin(aP.y));vec2 ix=2.*aK-1.;
-   float x1=dot(ix,sc),y1=sc.x*ix.y-sc.y*ix.x;vec3 d=vec3(-x1,y1,0.);float tx=d.x*sy.x+d.z*sy.y;d.z=d.z*sy.x-d.x*sy.y;d.x=tx;
-   vec4 vp=modelViewMatrix*vec4(aC,1.);float rad=aP.z;
-   if(rad>0.){float l=rad*projectionMatrix[1][1]/max(1e-3,-vp.z);
-    if(sz.y>0.&&l>sz.y)rad*=sz.y/l;if(sz.x>0.&&l<sz.x)rad*=sz.x/l;
-    if(sz.w>sz.z)tint.a*=clamp((sz.w-l)/(sz.w-sz.z),0.,1.);}
-   vp.xyz+=d*rad;gl_Position=projectionMatrix*vp;
+   float x1=dot(ix,sc),y1=sc.x*ix.y-sc.y*ix.x;float rad=aP.z;vec3 v2p=aC-cameraPosition;float l=length(v2p);
+   if(rad>0.){rad=max(rad,sz.x*l);if(rad>sz.z*l){if(rad>sz.w*l){tint=vec4(0.);rad=0.;}else tint*=1.-(rad-sz.z*l)/(sz.w*l-sz.z*l);}rad=min(rad,sz.y*l);}
+   vec4 vp;
+   if(ori>.5&&rad>0.){vec3 wp=aC;if(l>rad/2.){vec3 right=normalize(cross(vec3(0.,1.,0.),v2p));vec2 rs=vec2(right.x,-right.z);float tx=rs.x*sy.x+rs.y*sy.y;rs.y=rs.y*sy.x-rs.x*sy.y;rs.x=tx;
+     wp+=(x1*rad)*vec3(rs.x,0.,-rs.y);wp.y+=y1*rad;if(l<rad*2.)tint*=smoothstep(rad/2.,rad,l);}vp=viewMatrix*vec4(wp,1.);}
+   else{vp=modelViewMatrix*vec4(aC,1.);vec3 d=vec3(-x1,y1,0.);float tx=d.x*sy.x+d.z*sy.y;d.z=d.z*sy.x-d.x*sy.y;d.x=tx;vp.xyz+=d*rad;}
+   gl_Position=projectionMatrix*vp;
    v0=vec2(mix(aU0.z,aU0.x,aK.x),mix(aU0.w,aU0.y,aK.y));v1=vec2(mix(aU1.z,aU1.x,aK.x),mix(aU1.w,aU1.y,aK.y));vT=tint;vB=aP.x;}`;
-  // blend modes: $additive (SRC_ALPHA:ONE), translucent (SRC_ALPHA:ONE_MINUS_SRC_ALPHA), and $addself (ONE:ONE_MINUS_SRC_ALPHA, rgb * (alpha + addself))
-  const FS = `uniform sampler2D map;uniform float ob,aself;varying vec2 v0,v1;varying vec4 vT;varying float vB;
+  // pixel: the frames blended, times $overbrightfactor; with $addself the colour is premultiplied and the texture added to itself
+  // (rgb * a * (1 + overbright * addself * tint.a), ONE:INV_SRC_ALPHA); otherwise times the tint, alpha-tested at 0.01 and blended
+  // SRC_ALPHA:ONE ($additive), ONE:INV_SRC_ALPHA without premultiplying ($addoverblend) or SRC_ALPHA:INV_SRC_ALPHA
+  const FS = `uniform sampler2D map;uniform float ob,aself,mode;varying vec2 v0,v1;varying vec4 vT;varying float vB;
   vec4 rd(vec2 u){vec4 t=texture2D(map,u);return vec4(pow(t.rgb,vec3(2.2)),t.a);}
-  void main(){vec4 t=mix(rd(v0),rd(v1),vB);t.rgb*=ob;t*=vT;
-   vec4 o=linearToOutputTexel(vec4(t.rgb,1.));
-   gl_FragColor=aself>0.?vec4(o.rgb*(t.a+aself),t.a):vec4(o.rgb,t.a);}`;
+  void main(){vec4 t=mix(rd(v0),rd(v1),vB);t.rgb*=ob;
+   if(mode>.5&&mode<1.5){t.a*=vT.a;t.rgb*=t.a;t.rgb+=ob*aself*vT.a*t.rgb;t.rgb*=vT.rgb;}
+   else{t*=vT;if(t.a<=.01)discard;}
+   gl_FragColor=vec4(linearToOutputTexel(vec4(t.rgb,1.)).rgb,t.a);}`;
   function mkMesh(M, n) {
     const N = Math.max(1, n), g = new THREE.BufferGeometry(), I = new Uint32Array(N * 6);
     for (let k = 0; k < N; k++) { const v = k * 4; I.set([v, v + 1, v + 2, v, v + 2, v + 3], k * 6); }
@@ -164,9 +172,9 @@
     for (const k in A) { B[k] = new Float32Array(N * 4 * A[k]); g.setAttribute(k, new THREE.BufferAttribute(B[k], A[k]).setUsage(THREE.DynamicDrawUsage)); }
     g.setAttribute('position', g.getAttribute('aC')); g.setIndex(new THREE.BufferAttribute(I, 1));
     for (let k = 0; k < N; k++) B.aK.set([0, 0, 1, 0, 1, 1, 0, 1], k * 8);
-    const add = M.add, self = !add && M.self > 0;
-    const mat = new THREE.ShaderMaterial({ uniforms: { map: { value: M.tex }, ob: { value: M.ob }, aself: { value: self ? M.self : 0 }, sz: { value: new THREE.Vector4(M.mins || 0, M.maxs || 0, M.fs0 || 0, M.fs1 || 0) } }, vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-      blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: self ? THREE.OneFactor : THREE.SrcAlphaFactor, blendDst: add ? THREE.OneFactor : THREE.OneMinusSrcAlphaFactor,
+    const self = M.self !== 0, one = self || M.aob, add = M.add && !one;
+    const mat = new THREE.ShaderMaterial({ uniforms: { map: { value: M.tex }, ob: { value: M.ob }, aself: { value: M.self }, mode: { value: self ? 1 : M.aob ? 2 : 0 }, ori: { value: 0 }, sz: { value: new THREE.Vector4(M.mins, M.maxs, M.fs0, M.fs1) } }, vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: one ? THREE.OneFactor : THREE.SrcAlphaFactor, blendDst: add ? THREE.OneFactor : THREE.OneMinusSrcAlphaFactor,
       // the canvas is transparent over the page: additive sprites only add light, translucent ones write coverage
       blendEquationAlpha: THREE.AddEquation, blendSrcAlpha: add ? THREE.ZeroFactor : THREE.OneFactor, blendDstAlpha: add ? THREE.OneFactor : THREE.OneMinusSrcAlphaFactor });
     const mesh = new THREE.Mesh(g, mat); mesh.frustumCulled = false; mesh.renderOrder = add ? 12 : 11;
@@ -405,7 +413,8 @@
         p.age += dt; p.af = 1;
         if (this.hasMove) {
           a.x = g[0]; a.y = g[1]; a.z = g[2]; for (const o of this.forces) FORCE[o.functionName](this, p, o, a);
-          p.vx = (p.vx + a.x * dt) * (1 - drag); p.vy = (p.vy + a.y * dt) * (1 - drag); p.vz = (p.vz + a.z * dt) * (1 - drag);
+          // drag damps the motion at a 30 Hz reference rate whatever the step; the forces' acceleration is added undamped
+          const dk = Math.pow(1 - drag, dt * 30); p.vx = p.vx * dk + a.x * dt; p.vy = p.vy * dk + a.y * dt; p.vz = p.vz * dk + a.z * dt;
           p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
         }
         for (const o of this.ops) { const fn = OPS[o.functionName]; if (fn) fn(this, p, o, dt); }
@@ -424,19 +433,20 @@
   let TMP = null;
   function frameUV(S, p, rend) {
     const q = S.seqOf(p); if (!q || !q.f.length) return [[0, 0, 1, 1], [0, 0, 1, 1], 0];
-    const nf = q.f.length; if (nf < 2) return [q.f[0].uv, q.f[0].uv, 0];
-    const rate = P(rend, 'animation rate', .1);
-    let x = P(rend, 'animation_fit_lifetime', 0) ? (p.age / (p.life || 1)) * nf : P(rend, 'use animation rate as FPS', 0) ? p.age * rate : p.age * rate * nf;
-    if (q.clamp) x = Math.min(x, nf - 1);
-    const i0 = Math.floor(x) % nf, i1 = q.clamp ? Math.min(i0 + 1, nf - 1) : (i0 + 1) % nf;
-    return [q.f[i0].uv, q.f[i1].uv, S.mat.blend ? x - Math.floor(x) : 0];
+    const F = q.f, nf = F.length; if (nf < 2) return [F[0].uv, F[0].uv, 0];
+    // the sheet's own frame times (a sequence's frames can show for different lengths); the animation runs over their total
+    const T = q.T || (q.T = F.reduce((s, f) => s + (f.d > 0 ? f.d : 0), 0) || nf), rate = P(rend, 'animation rate', .1);
+    let x = P(rend, 'animation_fit_lifetime', 0) ? (p.age / (p.life || 1)) * T : P(rend, 'use animation rate as FPS', 0) ? p.age * rate : p.age * rate * T;
+    x = q.clamp ? Math.min(Math.max(x, 0), T - 1e-6) : ((x % T) + T) % T;
+    for (let i = 0; i < nf; i++) { const d = F[i].d > 0 ? F[i].d : (T / nf); if (x < d || i === nf - 1) { const j = q.clamp ? Math.min(i + 1, nf - 1) : (i + 1) % nf; return [F[i].uv, F[j].uv, S.mat.blend ? clamp(x / d, 0, 1) : 0]; } x -= d; }
+    return [F[0].uv, F[0].uv, 0];
   }
   function draw(S, cam, sc, scale) {
     if (!S.rend || !S.mat) return;
     const fn = S.rend.functionName, rope = fn === 'render_rope', need = rope ? Math.max(1, S.max - 1) : S.max;
     if (!S.dr || S.dr.N < need) { if (S.dr) { S.dr.mesh.parent && S.dr.mesh.parent.remove(S.dr.mesh); S.dr.g.dispose(); S.dr.mesh.material.dispose(); } S.dr = mkMesh(S.mat, need); }
     if (!S.dr.mesh.parent) sc.add(S.dr.mesh);
-    const B = S.dr.B; let n = 0;
+    const B = S.dr.B; let n = 0; S.dr.mesh.material.uniforms.ori.value = fn === 'render_animated_sprites' && P(S.rend, 'orientation_type', 0) === 1 ? 1 : 0;
     if (!TMP) TMP = { a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(), d: new THREE.Vector3() };
     const W = (p, o) => o.set(p.x * scale, p.z * scale, -p.y * scale);
     let ps = S.ps;
@@ -457,7 +467,7 @@
       if (fn === 'render_sprite_trail') {
         const sp = Math.hypot(p.vx, p.vy, p.vz); if (sp < .01) continue;
         let len = sp * p.tl; len = clamp(len, P(S.rend, 'min length', 0), P(S.rend, 'max length', 2000)); const fi = P(S.rend, 'length fade in time', 0); if (fi > 0) len *= Math.min(1, p.age / fi);
-        TMP.c.set(-p.vx, -p.vz, p.vy).normalize().multiplyScalar(len * scale); TMP.d.copy(C).sub(cam.position); const sd = TMP.d.cross(TMP.c).normalize().multiplyScalar(p.r * scale);
+        TMP.c.set(-p.vx, -p.vz, p.vy).normalize().multiplyScalar(len * scale); TMP.d.copy(C).sub(cam.position); const sd = TMP.d.cross(TMP.c).normalize().multiplyScalar(Math.min(p.r, len) * .5 * scale);
         const E = TMP.b.copy(C).add(TMP.c);
         put([E.x + sd.x, E.y + sd.y, E.z + sd.z, E.x - sd.x, E.y - sd.y, E.z - sd.z, C.x - sd.x, C.y - sd.y, C.z - sd.z, C.x + sd.x, C.y + sd.y, C.z + sd.z], uv, p.c, p.a);
       } else if (fn === 'render_animated_sprites' && P(S.rend, 'orientation_type', 0) === 2) {

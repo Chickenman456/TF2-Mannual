@@ -1166,7 +1166,7 @@ function render(){
     for (const s of all){
       if (s.u === 'b' ? S.hideB : s.u ? S.hideU : S.hideO) continue;
       const d = done(s), when = d ? new Date(d).toLocaleDateString(undefined, {year:'numeric', month:'short'}) : '';
-      const kind = s.u === 'b' ? 'Belated set: a newer item made to go with older ones' : s.u ? 'Unofficial set: same creators, same class, released together' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
+      const kind = s.u === 'b' ? 'Belated set: a newer item made to go with older ones' : s.u ? 'Unofficial set: made to go together, but not named in the game' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
       const title = s.u ? usetTitle(s, when) : s.n;
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
