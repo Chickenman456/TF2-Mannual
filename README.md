@@ -110,7 +110,7 @@ tools/               Data maintenance scripts
 assets/              Application assets
 ```
 ## Known Issues
-* Some items like the Lucky Number 42, War on Smissmas Battle Socks, War on Smissmas Battle Hood, Tiny Texan, Balloonicorn, Reindoonicorn, Bacteria Blocker, and Soul of 'Spensers past are glitched in one way or another.
+* Lucky Number 42 is bugged.
 * Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
 * particle effects are horribly inaccurate at the time being.
 * Destruction PDA, Grappling Hook previews the incorrect animation.
@@ -121,7 +121,6 @@ assets/              Application assets
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
 * Shred Alert doesn't play.
 * Code section missing Steam Translation Bundle.
-* Monstrous Memento is incorrectly tagged as unreleased in place of Mannanas Hat.
 
 ## Planned Features
 * Preview styles for Contracker.
