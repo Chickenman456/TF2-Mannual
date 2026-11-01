@@ -211,58 +211,36 @@ def apply(catalog, data):
 
 
 def unofficial_sets(catalog, flags):
-    """Sets the item schema doesn't name (Valve stopped adding item_sets): cosmetics and weapons contributed to the Steam
-    Workshop as one entry (the same Workshop link on their wiki pages), and cosmetics for the same class released the same
-    day with a creator in common (the wiki's "contributed-by"). Groups the official item sets already cover are left out.
-    [{"n": name, "i": [ids], "how": "w" (one Workshop entry) | "c" (same creators, update and class)}]"""
-    items = {it[0]: it for it in catalog["items"] if it[3] in ("c", "w")}
-    up = {}
-
-    def find(x):
-        while up.get(x, x) != x:
-            up[x] = up.get(up[x], up[x])
-            x = up[x]
-        return x
-
-    def union(L, how):
-        for x in L[1:]:
-            a, b = find(L[0]), find(x)
-            if a != b:
-                up[b] = a
-                hows[a] = hows.get(a, set()) | hows.get(b, set()) | {how}
-        hows[find(L[0])] = hows.get(find(L[0]), set()) | {how}
-
-    hows = {}
-    by_ws, by_cr = {}, {}
+    """Sets the item schema doesn't name (Valve stopped adding item_sets): cosmetics for the same class, released the same
+    day, that the schema lists one after another (a set's pieces get neighbouring defindexes) and that the same people made
+    (the wiki's "contributed-by": the same creators, or at least two in common). A set has at most three pieces; groups the
+    official item sets already cover are left out.  [{"i": [ids], "how": "c"}]"""
+    items = {it[0]: it for it in catalog["items"] if it[3] == "c"}
+    pool = {}
     for k, r in flags.items():
-        if k not in items:
-            continue
-        for w in r.get("w") or []:
-            by_ws.setdefault(w, []).append(k)
-        it = items[k]
-        if it[3] == "c" and r.get("c") and bin(it[4]).count("1") == 1:
-            for c in r["c"]:   # a creator shared with another item for the same class, released the same day
-                by_cr.setdefault((c, it[8], it[4]), []).append(k)
-    for L in by_ws.values():
-        L = sorted(set(L))
-        if 2 <= len(L) <= 8:
-            union(L, "w")
-    for L in by_cr.values():
-        L = sorted(set(L))
-        if 2 <= len(L) <= 6:
-            union(L, "c")
-    comps = {}
-    for k in up:
-        comps.setdefault(find(k), set()).add(k)
+        it = items.get(k)
+        if it and r.get("c") and bin(it[4]).count("1") == 1:
+            pool.setdefault((it[8], it[4]), {})[k] = set(r["c"])
     official = set()
     for st in catalog.get("sets") or []:
         official |= set(st["i"])
     out = []
-    for root, ks in comps.items():
-        ks = sorted(ks, key=lambda k: (items[k][8] or "", items[k][1]))
-        if len(ks) < 2 or sum(1 for k in ks if k in official) * 2 >= len(ks):
-            continue
-        names = [items[k][1] for k in ks]
-        n = names[0] if len(names) == 1 else (" & ".join(names) if len(names) == 2 else ", ".join(names[:-1]) + " & " + names[-1])
-        out.append({"n": n, "i": ks, "how": "w" if "w" in hows.get(root, ()) else "c"})
-    return sorted(out, key=lambda s: s["n"])
+    for grp in pool.values():
+        ks = sorted(grp)
+        runs, cur = [], []
+        for k in ks:
+            if cur:
+                p = cur[-1]
+                a, b = grp[p], grp[k]
+                same = a == b or len(a & b) >= 2 or (a & b and (a <= b or b <= a))
+                if k - p <= 4 and same and len(cur) < 3:
+                    cur.append(k)
+                    continue
+                runs.append(cur)
+            cur = [k]
+        if cur:
+            runs.append(cur)
+        for L in runs:
+            if len(L) >= 2 and sum(1 for k in L if k in official) * 2 < len(L):
+                out.append({"i": L, "how": "c"})
+    return out

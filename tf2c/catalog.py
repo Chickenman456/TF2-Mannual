@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 34
+CATALOG_VERSION = 35
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -749,6 +749,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         n = r.get("name")
         if n and n not in by_iname:
             by_iname[n] = k
+    attr_defs = {str(v.get("name", "")).lower(): v for v in (ig.get("attributes") or {}).values() if isinstance(v, dict)}
     sets = []
     for sk, sv in (ig.get("item_sets") or {}).items():
         if not isinstance(sv, dict):
@@ -764,7 +765,23 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             if k is not None and k in keep and k not in members:
                 members.append(k)
         if members:
-            sets.append({"id": sk, "n": L(sv.get("name") or sk), "i": members, "b": 1 if sv.get("attributes") else 0})
+            # the set bonus, worded as the game words it (the attribute's description_string, its value formatted the same way)
+            bonus = []
+            for an, av in (sv.get("attributes") or {}).items():
+                d = attr_defs.get(str(an).lower())
+                ds = d and d.get("description_string")
+                if not d or str(d.get("hidden", "0")) == "1" or not ds:
+                    continue
+                try:
+                    v = float((av or {}).get("value", 0)) if isinstance(av, dict) else float(av)
+                except (TypeError, ValueError):
+                    v = 0.0
+                fmt = str(d.get("description_format") or "")
+                v = (v - 1) * 100 if fmt == "value_is_percentage" else (1 - v) * 100 if fmt == "value_is_inverted_percentage" else v * 100 if fmt == "value_is_additive_percentage" else v
+                txt = L(ds).replace("%s1", ("%g" % round(v, 2)))
+                if txt and not txt.startswith("#"):
+                    bonus.append(txt.replace("\\n", " ").strip())
+            sets.append({"id": sk, "n": L(sv.get("name") or sk), "i": members, "b": 1 if bonus else 0, "bt": "; ".join(bonus)})
 
     return {"built": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "imgs": list(imgs), "items": items,
             "cols": cols, "sets": sets, "cases": case_out, "alias": alias,

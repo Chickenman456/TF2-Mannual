@@ -91,6 +91,7 @@ label.chk{display:flex;gap:6px;align-items:center;cursor:pointer;color:var(--ink
 label.vol{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--ink-2);font-size:13px}
 label.vol input{flex:1;max-width:240px;accent-color:var(--TFOrange)}
 label.vol span{min-width:86px}
+.setbar{padding:2px 14px 10px;color:var(--ink-2);font-size:13px}
 label.vol input:disabled{opacity:.45}
 label.vol output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
 label.chk input{accent-color:var(--TFOrange)}
@@ -723,14 +724,14 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100};
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
 const BUY_QUAL = ['vintage','genuine','strange','haunted','collectors','unusual'];  // qualities tracked from sync
 const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODEONLY = new Set(), CRAFT = new Set(), ACH = new Set();
 const CODEQ = {};
-let USETS = [];   // sets the item schema doesn't name, put together from the wiki (wikidata.unofficial_sets)
+let USETS = [], SETMAP = {};   // sets the item schema doesn't name, put together from the wiki (wikidata.unofficial_sets)
 function initExtra(x){
   for (const [q, ids] of Object.entries((x && x.q) || {})) QPOSS[q] = new Set(ids.map(i => +(ALIAS[i] || i)));
   NOMARKET = new Set(((x && x.nomarket) || []).map(Number));
@@ -1147,10 +1148,15 @@ function render(){
     const all = [...(RAW.sets || []).map((s, k) => ({...s, ord: k})), ...USETS.map((s, k) => ({...s, id: 'u' + s.i[0], ord: 1e4 + k}))]
       .map(s => ({...s, i: s.i.filter(id => ITEMS[id])})).filter(s => s.i.length);
     all.sort((a,b) => (desc ? done(b)-done(a) : done(a)-done(b)) || (desc ? b.ord-a.ord : a.ord-b.ord));
+    html += `<div class="setbar"><label class="chk"><input type="checkbox" id="hideU"${S.hideU ? ' checked' : ''}> Hide unofficial sets (the ones the game doesn\u2019t name)</label></div>`;
+    SETMAP = {};
     for (const s of all){
+      if (s.u && S.hideU) continue;
       const d = done(s), when = d ? new Date(d).toLocaleDateString(undefined, {year:'numeric', month:'short'}) : '';
-      const kind = s.u ? 'Unofficial set (the schema doesn\u2019t name it): ' + (s.u === 'w' ? 'one Steam Workshop entry' : 'same creators, same class, released together') : (s.b ? 'Item set with a set bonus' : 'Item set');
-      html += section('set'+s.id, null, s.n, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
+      const kind = s.u ? 'Unofficial set: same creators, same class, released together' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
+      const title = s.u ? s.i.map(id => ITEMS[id].name).join(' \u00b7 ') : s.n;
+      SETMAP['set'+s.id] = s.i;
+      html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
     }
   } else if (S.view === 'effects'){
     fxIndex(); const all = Object.values(FX);
@@ -1509,6 +1515,7 @@ function syncMute(){ $('#sndOn').checked = !S.mute; $('#sndVol').value = isFinit
 $('#sndOn').addEventListener('change', () => { S.mute = !$('#sndOn').checked; save(); syncMute(); if (!S.mute) sfx('buttonclick'); });
 $('#sndVol').addEventListener('input', () => { S.vol = +$('#sndVol').value; $('#sndVolV').textContent = S.vol + '%'; save(); });
 $('#sndVol').addEventListener('change', () => sfx('buttonclick'));
+document.addEventListener('change', e => { if (e.target && e.target.id === 'hideU') { S.hideU = e.target.checked; save(); render(); } });
 $('#gameVol').addEventListener('input', () => { S.gvol = +$('#gameVol').value; $('#gameVolV').textContent = S.gvol + '%'; save(); });
 // the settings dialog
 /* ---------------- Workshop: the items you've compiled with TF2's Workshop importer ----------------
@@ -1860,6 +1867,7 @@ function openPreview(id, opt){
   if (it.date) attrs.push(['Released ' + (it.date.length > 4 ? new Date(it.date + 'T00:00:00').toLocaleDateString(undefined, {year:'numeric', month:'short'}) : it.date), '#766B5E']);
   tip.hidden = true; sfx('panel_open');
   ItemPreview.open({id, name: (tq ? QUAL[tq].n + ' ' : '') + it.name, nm: linked ? '#' + id : it.name, esc, sfx,
+    set: opt && opt.set ? opt.set.filter(x => x !== id && ITEMS[x]).map(x => ({nm: linked ? '#' + x : ITEMS[x].name, kind: ITEMS[x].cat === 's' ? (ITEMS[x].action ? 'a' : 'w') : ITEMS[x].cat})) : null,
     iconHtml: iconHtml(it), icons: () => watchIcons(), img: it.img || '', fx: opt && opt.fx != null ? opt.fx : null,
     color: tq ? QUAL[tq].c : (it.warpaint ? '#FAFAFA' : (r ? r.c : '')),
     kind: it.cat === 's' ? (it.action ? 'a' : 'w') : it.cat, stock: it.cat === 's' && !it.action, effects: fxByKind(), classes: it.classes.map(c => c.toLowerCase()), col: previewCollection(it),
@@ -1874,7 +1882,7 @@ function openPreview(id, opt){
 }
 document.addEventListener('click', e => {
   const s = e.target.closest('.slot'); if (!s || e.target.closest('.acts, .links, a, button')) return;
-  if (s.dataset.id){ openPreview(+s.dataset.id); return; }
+  if (s.dataset.id){ const sec = S.view === 'set' && s.closest('.sec'), set = sec && SETMAP[sec.dataset.key]; openPreview(+s.dataset.id, set ? {set} : undefined); return; }   // in Item Sets, the whole set on the merc
   if (s.dataset.fx){ fxPreview(+s.dataset.fx); return; }
   if (s.dataset.bpi !== undefined && BP){ const r = BP.items[+s.dataset.bpi]; const id = r && +(ALIAS[r[1]] || r[1]); if (ITEMS[id]) openPreview(id); }
 });

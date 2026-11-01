@@ -152,6 +152,11 @@
     }
     else if (WORN.has(o.kind)) cos = [ST.nm];
     // a weapon picked with the number keys: the previewed weapon when it's for that slot, otherwise the stock one
+    // a whole item set (the Item Sets list): its other cosmetics worn too, and its weapon held when the item itself isn't one
+    for (const x of o.set || []) {
+      if (WORN.has(x.kind)) { if (!cos.includes(x.nm)) cos.push(x.nm); }
+      else if (x.kind === 'w' && !wname && live() && ZLIVE.hasWep(x.nm, cn)) { wname = x.nm; wslot = ZLIVE.wepSlot(x.nm, cn) || null; }
+    }
     // what the previewed weapon puts on the body (the Razorback, the Gunboats, a banner's backpack) stays on whatever is held
     const worn = wname;
     if (ST.kslot && wslot !== ST.kslot) { wslot = ST.kslot; wname = null; }
