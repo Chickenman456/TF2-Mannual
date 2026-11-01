@@ -110,10 +110,12 @@ tools/               Data maintenance scripts
 assets/              Application assets
 ```
 ## Known Issues
+* Character animations can be bugged, and weapon particles are equally funky.
 * Lucky Number 42 is bugged.
 * Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
 * particle effects are horribly inaccurate at the time being.
-* Destruction PDA, Grappling Hook previews the incorrect animation.
+* Destruction PDA doesn't display correctly.
+* Construction PDA is duplicated for some reason.
 * Some unusuals render at the incorrect bone.
 * Some taunts are missing their props (Circuit Breaker, Meet the Medic, Punchline, Pool Party)
 * Cases don't display their contents.
