@@ -714,13 +714,15 @@ const RAW={scout:'scout',soldier:'soldier',pyro:'pyro',demoman:'demoman',heavy:'
 // ---------- file sources ----------
 // a source maps a top-level tf/ file name (tf2_misc_dir.vpk, tf2_misc_012.vpk ...) to a Blob
 // h: the tf folder; h2: Team Fortress 2/hl2 when the page was given it (hl2_*.vpk come from there)
-function dirSource(h,h2){const F={};return{kind:'dir',handle:h,async get(n){if(n in F)return F[n];const d=/^hl2_/i.test(n)?h2:h;if(!d)return F[n]=null;try{F[n]=await (await d.getFileHandle(n)).getFile()}catch(e){F[n]=null}return F[n]}}}
+function dirSource(h,h2){const F={};return{kind:'dir',handle:h,async get(n){if(n in F)return F[n];const d=/^hl2_/i.test(n)?h2:h;if(!d)return F[n]=null;try{F[n]=await (await d.getFileHandle(n)).getFile()}catch(e){F[n]=null}return F[n]},
+ async list(dir){try{let x=h;for(const s of dir.split('/'))x=await x.getDirectoryHandle(s);const o=[];for await(const [n,v] of x.entries())if(v.kind=='file'){const f=await v.getFile();o.push({name:n,size:f.size,t:f.lastModified})}return o}catch(e){return null}}}}
 function listSource(files){const F={},R={};for(const f of files){const p=(f.webkitRelativePath||f.name).replace(/\\/g,'/').split('/');const nm=p[p.length-1];
   // .vpk files sitting directly in a tf/ folder (or at the top of whatever was picked); everything else by its path below tf/
   // (hl2_*.vpk sit in the hl2 folder next to tf, when the whole Team Fortress 2 folder was picked)
   const up=(p[p.length-2]||'').toLowerCase();if(p.length<=2||up=='tf'||(up=='hl2'&&/^hl2_/i.test(nm)))if(!(nm in F)||up=='tf'||up=='hl2')F[nm]=f;
   const ti=p.map(x=>x.toLowerCase()).lastIndexOf('tf');const rel=(ti>=0?p.slice(ti+1):p.slice(1)).join('/').toLowerCase();if(rel)R[rel]=f}
- return{kind:'list',async get(n){return F[n]||null},async path(p){return R[p]||null},has:n=>n in F}}
+ return{kind:'list',async get(n){return F[n]||null},async path(p){return R[p]||null},has:n=>n in F,
+  async list(dir){const pre=dir.toLowerCase()+'/';return Object.keys(R).filter(k=>k.startsWith(pre)&&!k.slice(pre.length).includes('/')).map(k=>({name:k.slice(pre.length),size:R[k].size,t:R[k].lastModified}))}}}
 
 // ---------- VPK ----------
 async function openVpk(src,base){const f=await src.get(base+'_dir.vpk');if(!f)return null;const b=new Uint8Array(await f.arrayBuffer());const dv=new DataView(b.buffer);
@@ -733,12 +735,12 @@ async function openVpk(src,base){const f=await src.get(base+'_dir.vpk');if(!f)re
  return{base,E,async read(p){const e=E.get(p.toLowerCase().replace(/\\/g,'/'));if(!e)return null;const out=new Uint8Array(e.pre+e.len);out.set(b.subarray(e.po,e.po+e.pre),0);
   if(e.len){if(e.ai===0x7fff)out.set(b.subarray(data+e.off,data+e.off+e.len),e.pre);else{const af=await arc(e.ai);if(!af)throw new Error('missing '+base+'_'+e.ai+'.vpk');out.set(new Uint8Array(await af.slice(e.off,e.off+e.len).arrayBuffer()),e.pre)}}
   return out},has:p=>E.has(p.toLowerCase().replace(/\\/g,'/'))}}
-async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
+async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');{const o=OV.get(p);if(o)return o}for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
  if(ST.src&&ST.src.kind=='dir'){// loose files under tf/ (custom content is skipped; this is only for files Valve ships loose)
   try{let h=ST.src.handle;const parts=p.split('/');for(let i=0;i<parts.length-1;i++)h=await h.getDirectoryHandle(parts[i]);const f=await (await h.getFileHandle(parts[parts.length-1])).getFile();return new Uint8Array(await f.arrayBuffer())}catch(e){}}
  if(ST.src&&ST.src.path){const f=await ST.src.path(p);if(f)return new Uint8Array(await f.arrayBuffer())}
  return null}
-const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
+const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return OV.has(p)||VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
 
 // TF2's own archives first, then the Half-Life 2 content it also mounts (shared particle materials)
 const VPKS=['tf2_misc','tf2_textures','tf2_sound_misc','tf2_sound_vo_english','hl2_misc','hl2_textures'];
@@ -1346,7 +1348,43 @@ async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return
 const SEQ={};
 async function seq(cl,name,boneSet){const c=clsKey(cl);const k=c+'|'+name.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet).then(r=>r&&r.clip)}
 async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0)}
-async function connect(src){ST.src=src;ST.ready=false;ST.on=true;ST.cache={};ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
+// ---------- Workshop: items compiled with TF2's Workshop importer (tf/workshop/import_source/<name>.zip) ----------
+// each zip holds the compiled game files (game/models, game/materials) and manifest.txt, the import session with its ItemSchema
+// (the items_game entry the importer writes). Opening one lays its game files over the install (OV) and adds that entry.
+const OV=new Map(),WS={};let WSN=0;const WSDIR='workshop/import_source';
+// the zip is read a slice at a time: its directory, then only the entries asked for (the files hold the uncompressed sources too)
+async function srcBlob(p){const s=ST.src;if(!s)return null;
+ if(s.handle){try{let h=s.handle;const parts=p.split('/');for(let i=0;i<parts.length-1;i++)h=await h.getDirectoryHandle(parts[i]);return await (await h.getFileHandle(parts[parts.length-1])).getFile()}catch(e){}}
+ if(s.blob)return s.blob(p);if(s.path)return s.path(p);return null}
+async function zipDir(f){const n=f.size;const t=new Uint8Array(await f.slice(Math.max(0,n-65600),n).arrayBuffer());const dv=new DataView(t.buffer);let e=t.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('not a zip file');
+ const cnt=dv.getUint16(e+10,true),csz=dv.getUint32(e+12,true),cof=dv.getUint32(e+16,true);const b=new Uint8Array(await f.slice(cof,cof+csz).arrayBuffer());const D=new DataView(b.buffer);const out=new Map();
+ for(let i=0,o=0;i<cnt&&o+46<=b.length&&D.getUint32(o,true)===0x02014b50;i++){const nl=D.getUint16(o+28,true);const name=td.decode(b.subarray(o+46,o+46+nl)).replace(/\\/g,'/').toLowerCase();
+  if(!name.endsWith('/'))out.set(name,{m:D.getUint16(o+10,true),cs:D.getUint32(o+20,true),lo:D.getUint32(o+42,true)});o+=46+nl+D.getUint16(o+30,true)+D.getUint16(o+32,true)}
+ return out}
+async function zipGet(f,z){const h=new DataView(await f.slice(z.lo,z.lo+30).arrayBuffer());const d0=z.lo+30+h.getUint16(26,true)+h.getUint16(28,true);const d=new Uint8Array(await f.slice(d0,d0+z.cs).arrayBuffer());
+ if(z.m===0)return d;if(z.m!==8||typeof DecompressionStream=='undefined')return null;
+ return new Uint8Array(await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}
+async function wsList(){const s=ST.src;if(!ST.ready||!s||!s.list)return null;const L=await s.list(WSDIR);return L&&L.filter(x=>/\.zip$/i.test(x.name)).sort((a,b)=>b.t-a.t)}
+const WSCLS={scout:'scout',soldier:'soldier',pyro:'pyro',demo:'demoman',demoman:'demoman',heavy:'heavy',heavyweapons:'heavy',engineer:'engineer',medic:'medic',sniper:'sniper',spy:'spy'};
+// open one: its import session and backpack icon (enough for the list); load() then adds the rest of its game files
+function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t;if(WS[key])return WS[key];return WS[key]=(async()=>{
+ const f=await srcBlob(WSDIR+'/'+it.name.toLowerCase());if(!f)throw new Error('not in the saved copy: link your TF2 folder again');const Z=await zipDir(f);
+ const mf=Z.get('manifest.txt');const M=mf?KV(text(await zipGet(f,mf)),true):{};const A=M.asset||M;const IS=A.importsession||{};
+ const game=[...Z.keys()].filter(n=>n.startsWith('game/')).map(n=>n.slice(5));
+ for(const n of game)if(n.startsWith('materials/backpack/')){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}
+ const sch=IS.itemschema&&typeof IS.itemschema=='object'?IS.itemschema:null;let r;
+ if(sch){r={};for(const k in sch)if(k!='import_name')r[k]=sch[k]}
+ else{// an import session without an ItemSchema: the models it compiled, by the class folder they're in
+  r={prefab:String(IS.prefab||'misc'),equip_region:IS.equip_region};const ub={},pc={};
+  for(const n of game){const m=/^models\/.*\/items\/([^/]+)\/[^/]+\/([^/]+)\.mdl$/.exec(n);if(!m)continue;let c=WSCLS[m[1]];if(m[1]=='all_class'){const x=/_(scout|soldier|pyro|demo|heavy|engineer|medic|sniper|spy)$/.exec(m[2]);c=x&&WSCLS[x[1]]}if(c){ub[c]='1';pc[c]=n}}
+  r.used_by_classes=ub;r.model_player_per_class=pc;const ic=game.find(n=>/^materials\/backpack\/.*\.vmt$/.test(n)&&!/_large\.vmt$/.test(n));if(ic)r.image_inventory=ic.slice(10,-4);
+  if(String(IS.paintable0||'0')!=='0')r.capabilities={paintable:'1'}}
+ const rr=resolve(r,0);const k0=kindOf(rr);const name=String(IS.name||(sch&&sch.import_name)||it.name.replace(/\.zip$/i,'')).replace(/_/g,' ');
+ const id=String(900000000+(++WSN));const e={id,r:rr,k:k0=='other'||k0=='wep'?'cos':k0,dn:name};ST.byId.set(id,e);
+ const classes=[...new Set(Object.keys(rr.used_by_classes||{}).map(c=>WSCLS[c.toLowerCase()]).filter(Boolean))];
+ let full=null;const load=()=>full||(full=(async()=>{for(const n of game)if(!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}return true})().catch(err=>{full=null;throw err}));
+ return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
+async function connect(src){ST.src=src;ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
   try{localStorage.setItem('zlive','1')}catch(e){}return true}
@@ -1355,7 +1393,7 @@ async function connect(src){ST.src=src;ST.ready=false;ST.on=true;ST.cache={};ST.
 const idb=(mode,fn)=>new Promise((ok,no)=>{const r=indexedDB.open('zlive',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onerror=()=>no(r.error);r.onsuccess=()=>{const tx=r.result.transaction('h',mode);const s=tx.objectStore('h');const q=fn(s);tx.oncomplete=()=>ok(q&&q.result);tx.onerror=()=>no(tx.error)}});
 async function tfDir(h){try{await h.getFileHandle('tf2_misc_dir.vpk');return h}catch(e){}try{const t=await h.getDirectoryHandle('tf');await t.getFileHandle('tf2_misc_dir.vpk');return t}catch(e){}return h}
 function pickList(){return new Promise(ok=>{const i=document.createElement('input');i.type='file';i.webkitdirectory=true;i.multiple=true;i.style.display='none';document.body.appendChild(i);
- i.onchange=()=>{const f=[...i.files].filter(x=>/\.vpk$/i.test(x.name)||/(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt)$/i.test(x.webkitRelativePath||''));i.remove();ok(f.length?f:null)};i.addEventListener('cancel',()=>{i.remove();ok(null)});i.click()})}
+ i.onchange=()=>{const f=[...i.files].filter(x=>/\.vpk$/i.test(x.name)||/(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(x.webkitRelativePath||''));i.remove();ok(f.length?f:null)};i.addEventListener('cancel',()=>{i.remove();ok(null)});i.click()})}
 async function pick(){// must run inside the click that asked for it
  if(window.showDirectoryPicker){try{const h=await tfDir(await showDirectoryPicker({id:'tf2',mode:'read'}));try{await idb('readwrite',s=>s.put(h,'dir'))}catch(e){}return connect(dirSource(h))}
   catch(e){if(e&&e.name=='AbortError')return false}}// blocked (cross-origin frame) -> folder input
@@ -1365,7 +1403,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={workshop:{list:wsList,open:wsOpen},get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

@@ -87,7 +87,7 @@
     if (o.attrs && o.attrs.length) rows.push(`<div class="spv-attrs big">${o.attrs.map(([t, c]) => `<div${c ? ` style="color:${c}"` : ''}>${E(t)}</div>`).join('')}</div>`);
     // the item's collection, the way its description lists it in game (grade colours, this item marked), and the case it comes from
     if (o.col) rows.push(`<div class="spv-col big">${o.col.cases.length ? `<div class="cs">Found in: ${E(o.col.cases.join(', '))}</div>` : ''}<div class="h">${E(o.col.name)}</div>${o.col.items.map(([n, c, cur]) => `<div${cur ? ' class="cur"' : ''}${c ? ` style="color:${c}"` : ''}>${E(n)}</div>`).join('')}</div>`);
-    rows.push(`<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Item Wiki Page...</a>`);
+    if (o.wiki) rows.push(`<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Item Wiki Page...</a>`);
     if (o.tradable != null) rows.push(lab('Tradable:', o.tradable ? 'Yes' : 'No', 'big'));
     ST.el.querySelector('.spv-rows').innerHTML = rows.join('');
   }

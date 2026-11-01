@@ -260,6 +260,7 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .mrow .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mrow .path{color:var(--TanLight);word-break:break-all}
 .modal .pvbox{width:min(1000px,100%)}
+.modal .wsbox{width:min(1000px,100%)}.wsgrid{padding:0}.wsico{width:var(--is,96px);height:var(--is,96px);background:center/contain no-repeat;flex:none}.wsgrid .slot .nm{visibility:visible}.wscl{font-size:10.5px;line-height:1.2;color:var(--TanDark);text-align:center;padding-inline:4px}
 .pvstage{position:relative;height:min(62vh,580px);background:radial-gradient(ellipse at 50% 30%,#4A423B,#1F1C1B 75%);border-radius:4px;cursor:grab;touch-action:none;overflow:hidden}
 .pvstage:active{cursor:grabbing}
 .pvstage canvas{width:100%;height:100%;display:block}
@@ -557,6 +558,7 @@ button.vg:focus-visible{outline:none}
     <div class="sync">
       <input id="sid" class="in" placeholder="Steam ID or profile link" aria-label="Steam ID or profile link" autocomplete="off" spellcheck="false">
       <button id="syncBtn" class="btn big" type="button">Sync</button>
+      <button id="wsBtn" class="btn ibtn" type="button" title="Workshop: your compiled items" aria-label="Workshop"><span class="gi" style="--g:url(ui/glyph_steamworkshop.webp)"></span></button>
       <button id="setBtn" class="btn ibtn" type="button" title="Settings" aria-label="Settings"><span class="gi" style="--g:url(ui/glyph_options.webp)"></span></button>
     </div>
     <div class="meter"><b id="pct">0%</b><div class="track"><div class="fill" id="pfill" style="width:0"></div></div><span id="ptxt" class="sub"></span></div>
@@ -649,6 +651,13 @@ button.vg:focus-visible{outline:none}
       <p>On wide screens the controls stay in the column on the right, so this only changes smaller windows.</p></section>
     <section class="mrow" id="gameSet"></section>
     <section class="mrow" id="updSet"><h3>Updates</h3><p id="updMsg">Version <span id="appVer">…</span></p><button class="btn" type="button" id="updBtn">Check for updates</button></section>
+  </div>
+</div>
+<div class="modal" id="wsWin" hidden role="dialog" aria-modal="true" aria-labelledby="wsTitle">
+  <div class="mbox panel wsbox">
+    <div class="mhead"><h2 id="wsTitle">Workshop</h2><button class="btn ibtn" type="button" data-wsclose aria-label="Close the Workshop window"><span class="gi" style="--g:url(ui/gi_x.webp)"></span></button></div>
+    <p class="sub" id="wsMsg"></p>
+    <div class="grid wsgrid" id="wsGrid"></div>
   </div>
 </div>
 <div class="tip" id="tip" hidden></div>
@@ -1469,6 +1478,57 @@ $('#sndOn').addEventListener('change', () => { S.mute = !$('#sndOn').checked; sa
 $('#sndVol').addEventListener('input', () => { S.vol = +$('#sndVol').value; $('#sndVolV').textContent = S.vol + '%'; save(); });
 $('#sndVol').addEventListener('change', () => sfx('buttonclick'));
 // the settings dialog
+/* ---------------- Workshop: the items you've compiled with TF2's Workshop importer ----------------
+   The importer saves each one as a zip in tf/workshop/import_source. With your TF2 folder linked, this lists them and opens
+   one in the store preview, on the merc in 3D, from its compiled model and materials (store3d.js: ZLIVE.workshop). */
+const WS_CLS = {scout:'Scout', soldier:'Soldier', pyro:'Pyro', demoman:'Demoman', heavy:'Heavy', engineer:'Engineer', medic:'Medic', sniper:'Sniper', spy:'Spy'};
+let WSL = null;
+async function openWorkshop(){
+  const win = $('#wsWin'), msg = $('#wsMsg'), grid = $('#wsGrid');
+  win.hidden = false; sfx('panel_open'); grid.innerHTML = '';
+  if (!(window.ZLIVE && ZLIVE.ready && ZLIVE.workshop)) { msg.textContent = 'Link your TF2 folder (Settings > Sync with your game) to see the items you\u2019ve compiled with the Workshop importer.'; WSL = null; return; }
+  msg.textContent = 'Reading tf/workshop/import_source\u2026';
+  const L = await ZLIVE.workshop.list(); WSL = L;
+  if (!L) { msg.textContent = 'Couldn\u2019t read tf/workshop/import_source. Link your TF2 folder again (Settings > Sync with your game) so the page can read it.'; return; }
+  if (!L.length) { msg.textContent = 'No compiled items yet: the Workshop importer saves each item it compiles to tf/workshop/import_source.'; return; }
+  msg.textContent = L.length + ' compiled item' + (L.length > 1 ? 's' : '') + ' in tf/workshop/import_source, newest first. Click one to see it on the merc.';
+  grid.innerHTML = L.map((w, i) => `<div class="slot own" data-ws="${i}" tabindex="0"><div class="wsico"></div><div class="nm">${esc(w.name.replace(/\.zip$/i, '').replace(/_/g, ' '))}</div><div class="wscl"></div></div>`).join('');
+  for (let i = 0; i < L.length; i++){
+    if (WSL !== L) return;
+    const el = grid.querySelector(`[data-ws="${i}"]`);
+    try {
+      const w = L[i].w = await ZLIVE.workshop.open(L[i]);
+      el.querySelector('.nm').textContent = w.name;
+      el.querySelector('.wscl').textContent = w.classes.map(c => WS_CLS[c] || c).join(', ') || 'No class';
+      const u = await ZLIVE.iconLoad('#' + w.id); if (u) el.querySelector('.wsico').style.backgroundImage = `url("${u}")`;
+    } catch (e) { L[i].err = e && e.message || String(e); el.classList.replace('own', 'miss'); el.querySelector('.wscl').textContent = 'Couldn\u2019t open it: ' + L[i].err; }
+  }
+}
+function closeWorkshop(){ if ($('#wsWin').hidden) return; $('#wsWin').hidden = true; WSL = null; sfx('panel_close'); }
+async function previewWorkshop(i){
+  const L = WSL, x = L && L[i]; if (!x || !window.ItemPreview) return;
+  try {
+    const w = x.w || (x.w = await ZLIVE.workshop.open(x)); await w.load();
+    if (WSL !== L) return;
+    const cls = w.classes.map(c => WS_CLS[c] || c);
+    tip.hidden = true; sfx('panel_open'); $('#wsWin').hidden = true;   // back to the list when the preview closes
+    ItemPreview.open({id: 'ws' + w.id, name: w.name, nm: '#' + w.id, esc, sfx,
+      iconHtml: `<div class="wsico" style="background-image:url('${(ZLIVE.icon('#' + w.id) || '').replace(/'/g, '%27')}')"></div>`, img: '', fx: null,
+      color: '#FAFAFA', kind: 'c', stock: false, effects: fxByKind(), classes: w.classes,
+      level: 'Workshop Item' + (cls.length ? ' \u2013 ' + cls.join(', ') : ''), holiday: null,
+      status: ['Compiled with the Workshop importer', '#766B5E'], attrs: [[x.name, '#766B5E']], tradable: null, wiki: null, market: null, wish: null,
+      close: () => { sfx('panel_close'); if (WSL === L) $('#wsWin').hidden = false; }});
+  } catch (e) { status('Couldn\u2019t open ' + x.name + ': ' + (e && e.message || e)); }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#wsBtn')) { openWorkshop(); return; }
+  if (e.target.closest('[data-wsclose]') || e.target.id === 'wsWin') { closeWorkshop(); return; }
+  const s = e.target.closest('[data-ws]'); if (s) previewWorkshop(+s.dataset.ws);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#wsWin').hidden && !document.querySelector('.spv-frame')) closeWorkshop();
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-ws]')) previewWorkshop(+e.target.dataset.ws);
+});
 function openSettings(){ $('#settings').hidden = false; sfx('panel_open'); $('#settings [data-setclose]').focus(); }
 function closeSettings(){ if ($('#settings').hidden) return; $('#settings').hidden = true; sfx('panel_close'); }
 document.addEventListener('click', e => {
@@ -1501,7 +1561,7 @@ function placeTip(e){
 }
 document.addEventListener('mousemove', e => {
   const s = e.target.closest('.slot');
-  if (!s || e.target.closest('.acts, .links')) { tip.hidden = true; return; }
+  if (!s || e.target.closest('.acts, .links') || s.dataset.ws !== undefined) { tip.hidden = true; return; }
   if (s.dataset.bpi !== undefined){ tip.innerHTML = bpTip(BP.items[+s.dataset.bpi]); placeTip(e); return; }
   if (s.dataset.fx){
     const fe = FX[+s.dataset.fx], held = fxHolders(fe);

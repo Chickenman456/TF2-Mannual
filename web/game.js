@@ -5,7 +5,7 @@
   'use strict';
   const NOTF2 = 'That folder doesn\u2019t have TF2\u2019s game files in it. Pick your Team Fortress 2 folder (or the "tf" folder inside it).';
   // only what the preview reads: the VPKs, plus the loose item schema, English strings and choreo scenes
-  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt)$/i.test(f.webkitRelativePath || '');
+  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(f.webkitRelativePath || '');
 
   // ---- remembering a folder handle (only where the browser gives the page one) ----
   const idb = () => new Promise(res => { try { const r = indexedDB.open('tf2-catalog-game', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
@@ -50,6 +50,9 @@
       async path(p) {
         try { const r = await fetch('game/' + p.split('/').map(encodeURIComponent).join('/')); return r.ok ? await r.blob() : null; } catch (e) { return null; }
       },
+      async list(dir) {
+        try { const r = await fetch('api/list?dir=' + encodeURIComponent(dir)); return r.ok ? await r.json() : null; } catch (e) { return null; }
+      },
     };
   }
 
@@ -77,7 +80,15 @@
         else if (src.handle) { try { let h = src.handle; const parts = p.split('/'); for (let i = 0; i < parts.length - 1; i++) h = await h.getDirectoryHandle(parts[i]); f = await (await h.getFileHandle(parts[parts.length - 1])).getFile(); } catch (e) { f = null; } }
         if (!f) return null;
         const b = await f.arrayBuffer(); cput(sig + '|/' + p, b); return new Blob([b]);
-      }};
+      },
+      // a file read a slice at a time and not kept (the Workshop importer's zips: the page reads only their compiled files)
+      async blob(p) {
+        if (src.path) return src.path(p);
+        if (src.handle) { try { let h = src.handle; const parts = p.split('/'); for (let i = 0; i < parts.length - 1; i++) h = await h.getDirectoryHandle(parts[i]); return await (await h.getFileHandle(parts[parts.length - 1])).getFile(); } catch (e) { return null; } }
+        return null;
+      },
+      // a folder's file list (the Workshop importer's zips), kept with the saved copy
+      async list(dir) { const L = src.list ? await src.list(dir) : null; if (L) cput(sig + '|ls|' + dir, L); return L; }};
   }
   function savedSource(sig) {
     return {kind: 'list',
@@ -86,7 +97,8 @@
         return {arrayBuffer: async () => { throw new Error(MISSING); },
           slice: (a, b) => ({arrayBuffer: async () => { const v = await cget(sig + '|' + n + '|' + a + '|' + b); if (!v) throw new Error(MISSING); return v; }})};
       },
-      async path(p) { const b = await cget(sig + '|/' + p); return b ? new Blob([b]) : null; }};
+      async path(p) { const b = await cget(sig + '|/' + p); return b ? new Blob([b]) : null; },
+      async list(dir) { return (await cget(sig + '|ls|' + dir)) || null; }};
   }
   async function signature(src) { const f = await src.get('tf2_misc_dir.vpk'); return f ? 'v' + f.size + '-' + (f.lastModified || 0) : null; }
 

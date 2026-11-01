@@ -73,6 +73,12 @@ def jsave(path, obj):
     os.replace(tmp, path)
 
 
+
+def workshop_dir():
+    """tf/workshop/import_source, where TF2's Workshop importer saves each compiled item as a zip."""
+    d = os.path.join(APP.tf_dir, "workshop", "import_source") if APP.tf_dir else None
+    return d if d and os.path.isdir(d) else None
+
 class App:
     def __init__(self):
         self.lock = threading.Lock()
@@ -289,6 +295,27 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, jload(os.path.join(USER, "backpack.json"), {}))
             if path.startswith("/vpk/"):
                 return self.send_vpk(urllib.parse.unquote(path[len("/vpk/"):]))
+            if path == "/api/list":
+                # the Workshop importer's compiled items (tf/workshop/import_source/*.zip), for the Workshop window
+                d = workshop_dir()
+                if urllib.parse.parse_qs(url.query).get("dir", [""])[0] != "workshop/import_source" or not d:
+                    return self.send(200, [])
+                out = []
+                for n in os.listdir(d):
+                    fp = os.path.join(d, n)
+                    if n.lower().endswith(".zip") and os.path.isfile(fp):
+                        st = os.stat(fp)
+                        out.append({"name": n, "size": st.st_size, "t": int(st.st_mtime * 1000)})
+                return self.send(200, out)
+            if path.startswith("/game/workshop/import_source/"):
+                n, d = path[len("/game/workshop/import_source/"):], workshop_dir()
+                if not d or "/" in n or "\\" in n or not n.lower().endswith(".zip"):
+                    return self.send(404, {"error": "not found"})
+                m = next((x for x in os.listdir(d) if x.lower() == n.lower()), None)   # the page asks in lower case
+                if not m or not os.path.isfile(os.path.join(d, m)):
+                    return self.send(404, {"error": "not found"})
+                with open(os.path.join(d, m), "rb") as f:
+                    return self.send(200, f.read(), "application/zip")
             if path.startswith("/game/"):
                 # raw game files (textures, fonts) straight from the local install
                 rel = path[len("/game/"):]
