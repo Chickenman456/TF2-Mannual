@@ -1348,6 +1348,45 @@ async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return
 const SEQ={};
 async function seq(cl,name,boneSet){const c=clsKey(cl);const k=c+'|'+name.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet).then(r=>r&&r.clip)}
 async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0)}
+// ---------- an item's sources: its model written out as a QC, and the VMTs of its materials (the preview's Model & Materials window) ----------
+// Valve doesn't ship the QC files of its own items, so for those the QC is reconstructed from the compiled .mdl (studiohdr_t, MDL 44-49):
+// what studiomdl kept of it. Workshop items carry their real QC in the importer's zip.
+function cstr(b,o){if(o<0||o>=b.length)return '';let e=o;while(e<b.length&&b[e])e++;return td.decode(b.subarray(o,e))}
+function qcOf(b,path){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true),F=o=>dv.getFloat32(o,true);const q=x=>'"'+x+'"',n4=x=>String(+x.toFixed(4));
+ const L=['// '+path,'// Reconstructed from the compiled model (MDL version '+I(4)+'): Valve doesn’t ship the QC files of its items,','// so this is what the compiler kept of it. Mesh files are named as they were compiled.','','$modelname '+q(cstr(b,12))];
+ const bn=I(156),bi=I(160);const bone=i=>i>=0&&i<bn?cstr(b,bi+i*216+I(bi+i*216)):'';
+ for(let i=0;i<I(336);i++){const o=I(340)+i*8;L.push('$includemodel '+q(cstr(b,o+I(o+4))))}
+ const ncd=I(212);for(let i=0;i<ncd;i++)L.push('$cdmaterials '+q(cstr(b,I(I(216)+i*4))));
+ const sp=cstr(b,I(308));if(sp)L.push('$surfaceprop '+q(sp));
+ const nbp=I(232),refs=new Set();for(let i=0;i<nbp;i++){const o=I(236)+i*16,nm=I(o+4),mi=I(o+12);L.push('','$bodygroup '+q(cstr(b,o+I(o)))+'\n{');
+  for(let j=0;j<nm;j++){const mo=o+mi+j*148;const mn=cstr(b,mo);for(let k=0;k<I(mo+72);k++)refs.add(I(mo+I(mo+76)+k*116));L.push(mn&&I(mo+72)>0?'\tstudio '+q(mn):'\tblank')}L.push('}')}
+ const nt=I(204),T=[];for(let i=0;i<nt;i++){const o=I(208)+i*64;T.push(cstr(b,o+I(o)))}
+ const nr=I(220),nf=I(224),si=I(228);if(nf>1){const S=[];for(let f=0;f<nf;f++){const r=[];for(let k=0;k<nr;k++)r.push(dv.getInt16(si+(f*nr+k)*2,true));S.push(r)}
+  const cols=[...Array(nr).keys()].filter(k=>S.some(r=>r[k]!==S[0][k]));if(cols.length){L.push('','$texturegroup "skinfamilies"\n{');for(const r of S)L.push('\t{ '+cols.map(k=>q(T[r[k]]||'')).join(' ')+' }');L.push('}')}}
+ const na=I(240);if(na)L.push('');for(let i=0;i<na;i++){const o=I(244)+i*92;const m=k=>F(o+12+k*4);
+  const rot=Math.abs(m(0)-1)>1e-4||Math.abs(m(5)-1)>1e-4||Math.abs(m(10)-1)>1e-4;
+  L.push('$attachment '+q(cstr(b,o+I(o)))+' '+q(bone(I(o+8)))+' '+n4(m(3))+' '+n4(m(7))+' '+n4(m(11))+(rot?' // plus a rotation, not written out here':''))}
+ const ns=I(188);if(ns){L.push('','// '+ns+' sequence'+(ns>1?'s':'')+' (their animation files aren’t kept in the model):');for(let i=0;i<ns;i++){const o=I(192)+i*212;const act=cstr(b,o+I(o+8));L.push('// $sequence '+q(cstr(b,o+I(o+4)))+(act?' activity '+act:''))}}
+ const kv=I(316)>0?cstr(b,I(312)):'';if(kv.trim())L.push('','$keyvalues\n{\n'+kv.replace(/^\s+|\s+$/g,'').split('\n').map(x=>'\t'+x.trim()).join('\n')+'\n}');
+ L.push('','// '+bn+' bone'+(bn==1?'':'s')+': '+[...Array(bn).keys()].map(bone).join(', '));
+ return{text:L.join('\n'),tex:T,cds:[...Array(ncd).keys()].map(i=>cstr(b,I(I(216)+i*4))),refs:[...refs].sort((a,b)=>a-b),skins:{nr,nf,si,get:(f,k)=>dv.getInt16(si+(f*nr+k)*2,true)}}}
+async function source(n,cl,si){const e=entry(n);if(!e)throw new Error('This item isn’t in your TF2 files.');if(e.ws&&e.ws.load)await e.ws.load();
+ const cand=cl?[cl]:Object.keys(e.r.used_by_classes||{}).concat(['scout']);let mp=null;for(const c of cand){mp=mdlFor(e,c,si||0);if(mp)break}
+ const ams=bk=>{const am=bk&&bk.attached_models,o=[];if(am&&typeof am=='object')for(const k in am){const x=am[k]&&am[k].model&&String(am[k].model).replace(/\\/g,'/').toLowerCase();if(x&&has(x))o.push(x)}return o};
+ const models=[...new Set([mp,...ams(e.r.visuals),...ams(e.r.visuals_red),...ams(e.r.visuals_blu)].filter(Boolean))];
+ if(!models.length)throw new Error('No model for this item'+(cl?' on the '+cl:'')+'.');
+ const out=[],seen=new Set();
+ const addVmt=async(p,note)=>{if(!p||seen.has(p))return;seen.add(p);const b=await read(p);if(!b)return;const t=text(b);out.push({kind:'vmt',path:p,note,text:t});
+  try{const R=KV(t);const sh=Object.keys(R)[0];const inc=sh=='patch'&&R[sh]&&R[sh].include;if(inc)await addVmt(String(inc).replace(/\\/g,'/').toLowerCase(),'included by '+p.split('/').pop())}catch(err){}};
+ for(const p of models){const b=await read(p);if(!b)continue;
+  if(e.ws&&e.ws.qc){for(const x of await e.ws.qc(p))out.push(x)}
+  const Q=qcOf(b,p);if(!(e.ws&&e.ws.qc))out.push({kind:'qc',path:p.replace(/\.mdl$/,'.qc'),note:'reconstructed',text:Q.text});
+  const st=styleOf(e,si);const mo=(st||{}).material_override||(e.r.visuals||{}).material_override;
+  if(mo&&typeof mo=='string')await addVmt(await findVmt(mo.replace(/\.vmt$/i,''),[]),'material_override');
+  // the materials the meshes use (their skin references), in each skin family
+  const T=new Map();for(let f=0;f<Math.max(1,Q.skins.nf);f++)for(const k of Q.refs){const t=Q.skins.nr?Q.skins.get(f,k):k;if(!T.has(t))T.set(t,[]);if(!T.get(t).includes(f))T.get(t).push(f)}
+  for(const [t,fams] of [...T].sort((a,b)=>a[0]-b[0]))await addVmt(await findVmt(Q.tex[t]||'',Q.cds),(fams.length>1?'skins ':'skin ')+fams.join(', '))}
+ return out}
 // ---------- Workshop: items compiled with TF2's Workshop importer (tf/workshop/import_source/<name>.zip) ----------
 // each zip holds the compiled game files (game/models, game/materials) and manifest.txt, the import session with its ItemSchema
 // (the items_game entry the importer writes). Opening one lays its game files over the install (OV) and adds that entry.
@@ -1382,8 +1421,10 @@ function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t;if(WS[key])return WS[
  const rr=resolve(r,0);const k0=kindOf(rr);const name=String(IS.name||(sch&&sch.import_name)||it.name.replace(/\.zip$/i,'')).replace(/_/g,' ');
  const id=String(900000000+(++WSN));const e={id,r:rr,k:k0=='other'||k0=='wep'?'cos':k0,dn:name};ST.byId.set(id,e);
  const classes=[...new Set(Object.keys(rr.used_by_classes||{}).map(c=>WSCLS[c.toLowerCase()]).filter(Boolean))];
+ e.ws={qc:async mp=>{const base=mp.split('/').pop().replace(/\.mdl$/,'');const L=[...Z.keys()].filter(n=>n.startsWith('content/')&&/\.qci?$/.test(n));
+  const mine=L.filter(n=>n.split('/').pop().replace(/\.qci?$/,'')===base);const o=[];for(const n of (mine.length?mine:L)){const d=await zipGet(f,Z.get(n));if(d)o.push({kind:'qc',path:n.slice(8),note:'from '+it.name,text:text(d)})}return o}};
  let full=null;const load=()=>full||(full=(async()=>{for(const n of game)if(!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}return true})().catch(err=>{full=null;throw err}));
- return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
+ e.ws.load=load;return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
 async function connect(src){ST.src=src;ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
@@ -1403,7 +1444,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={workshop:{list:wsList,open:wsOpen},get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={workshop:{list:wsList,open:wsOpen},source,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

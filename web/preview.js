@@ -87,6 +87,7 @@
     if (o.attrs && o.attrs.length) rows.push(`<div class="spv-attrs big">${o.attrs.map(([t, c]) => `<div${c ? ` style="color:${c}"` : ''}>${E(t)}</div>`).join('')}</div>`);
     // the item's collection, the way its description lists it in game (grade colours, this item marked), and the case it comes from
     if (o.col) rows.push(`<div class="spv-col big">${o.col.cases.length ? `<div class="cs">Found in: ${E(o.col.cases.join(', '))}</div>` : ''}<div class="h">${E(o.col.name)}</div>${o.col.items.map(([n, c, cur]) => `<div${cur ? ' class="cur"' : ''}${c ? ` style="color:${c}"` : ''}>${E(n)}</div>`).join('')}</div>`);
+    if (live() && ZLIVE.source) rows.push(`<button type="button" class="spv-btn spv-wiki big" data-spv="src">Model &amp; Materials...</button>`);
     if (o.wiki) rows.push(`<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Item Wiki Page...</a>`);
     if (o.tradable != null) rows.push(lab('Tradable:', o.tradable ? 'Yes' : 'No', 'big'));
     ST.el.querySelector('.spv-rows').innerHTML = rows.join('');
@@ -445,12 +446,37 @@
     else if (k === 'full') fullscreen();
     else if (k === 'fsexit') exitFS();
     else if (k === 'wish') { o.wish.toggle(); wishLabel(); }
+    else if (k === 'src') srcView();
+  }
+  // ---- Model & Materials: the item's QC (reconstructed from the compiled model, or the Workshop item's own) and its VMTs ----
+  async function srcView() {
+    const old = ST.el.querySelector('.spv-src'); if (old) { old.remove(); return; }
+    const st = ST, E = ST.o.esc, box = document.createElement('div');
+    box.className = 'spv-src'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Model and materials');
+    box.innerHTML = `<div class="hd"><b>Model &amp; Materials</b><button type="button" class="x" data-srcx aria-label="Close">×</button></div><div class="bd"><p>Reading the item’s files…</p></div>`;
+    ST.el.querySelector('.spv-frame').appendChild(box);
+    box.addEventListener('click', e => {
+      e.stopPropagation();
+      if (e.target.closest('[data-srcx]')) { box.remove(); st.o.sfx('buttonclick'); return; }
+      const t = e.target.closest('[data-srci]'); if (t) { show(+t.dataset.srci); st.o.sfx('buttonclick'); return; }
+      if (e.target.closest('[data-srccopy]')) { const pre = box.querySelector('pre'); if (pre && navigator.clipboard) navigator.clipboard.writeText(pre.textContent).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy'; }, 1200); }).catch(() => {}); }
+    });
+    let F = [];
+    const show = i => { const f = F[i]; if (!f) return; box.querySelectorAll('[data-srci]').forEach(b => b.classList.toggle('on', +b.dataset.srci === i));
+      box.querySelector('.pth').textContent = f.path; box.querySelector('pre').textContent = f.text; box.querySelector('pre').scrollTop = 0; };
+    try {
+      F = await ZLIVE.source(st.nm, st.state === 'player' && st.cls ? CNAME[st.cls] : null, st.style || 0);
+      if (ST !== st || !box.isConnected) return;
+      box.querySelector('.bd').innerHTML = `<div class="tabs">${F.map((f, i) => `<button type="button" data-srci="${i}">${E(f.path.split('/').pop())}<i>${f.kind === 'qc' ? 'QC' : 'VMT'}${f.note ? ' · ' + E(f.note) : ''}</i></button>`).join('')}</div>
+        <div class="pth"></div><pre tabindex="0"></pre><button type="button" class="cp" data-srccopy>Copy</button>`;
+      show(0);
+    } catch (e) { if (box.isConnected) box.querySelector('.bd').innerHTML = `<p>${E(e && e.message || String(e))}</p>`; }
   }
   function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (b) b.textContent = ST.o.wish.on() ? 'On your Wishlist' : 'Add to Wishlist'; }
   function onKey(e) {
     if (!ST || e.key !== 'Escape') return;
     e.stopPropagation(); e.preventDefault();
-    const m = ST.el.querySelector('.spv-menu');
+    const m = ST.el.querySelector('.spv-menu, .spv-src');
     if (m) m.remove(); else if (FS) exitFS(); else close();
   }
 

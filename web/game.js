@@ -147,7 +147,20 @@
     /* Reopen a remembered folder without asking, when the browser still allows it. */
     async restore() {
       const v = await store('get'); const h = v && (v.tf || v), h2 = v && v.tf ? v.hl2 : null; if (!h || !h.queryPermission) return false;
-      try { if (await h.queryPermission({mode: 'read'}) !== 'granted') return false; await connect(ZLIVE.dirSource(h, h2), h.name, true); return true; }
+      try {
+        const p = await h.queryPermission({mode: 'read'});
+        if (p === 'granted') { await connect(ZLIVE.dirSource(h, h2), h.name, true); return true; }
+        // the browser wants to be asked again (it only may on a click): the next click anywhere on the page asks for the
+        // folder you linked last time, instead of picking it again. Chrome offers "Allow on every visit" there, which stops the asking.
+        if (p === 'prompt' && h.requestPermission) {
+          const once = async () => {
+            removeEventListener('pointerdown', once, true);
+            try { if (await h.requestPermission({mode: 'read'}) === 'granted') await connect(ZLIVE.dirSource(h, h2), h.name, true); } catch (e) {}
+          };
+          addEventListener('pointerdown', once, true);
+        }
+        return false;
+      }
       catch (e) { return false; }
     },
     /* Start from the saved copy of the last linked folder (the web page, after a reload or an update). */
@@ -157,6 +170,8 @@
       try { if (!(await ZLIVE.connect(savedSource(m.sig)))) return false; } catch (e) { return false; }
       NAME = m.name || 'tf'; SAVED = true; dispatchEvent(new Event('tf2files')); return true;
     },
+    /* false inside another page's frame (Claude's): browsers only let a page keep a folder when it's in its own tab */
+    get canKeep() { return 'showDirectoryPicker' in window && topLevel(); },
     /* true while the preview runs on the saved copy alone (items not opened before need the folder linked again) */
     get saved() { return SAVED && api.linked; },
     /* The app: read the linked install through the app's server. */
