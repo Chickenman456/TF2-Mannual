@@ -73,7 +73,7 @@ def _field(text, key):
 
 def fetch_item_flags(names, progress=lambda m: None):
     """{wiki title: {"t": tradable, "m": marketable, "a": availability}} read from item infoboxes."""
-    out, names = {}, list(dict.fromkeys(names))
+    out, names, who = {}, list(dict.fromkeys(names)), {}
     for i in range(0, len(names), 50):
         progress("Reading item details from the wiki (%d of %d)" % (min(i + 50, len(names)), len(names)))
         batch = names[i:i + 50]
@@ -103,7 +103,9 @@ def fetch_item_flags(names, progress=lambda m: None):
                 row["m"] = None  # infobox doesn't say
             # who made it and the Steam Workshop entry it came from: items contributed as one entry (or by the same people
             # in the same update, for the same class) make up the sets Valve no longer names in the item schema
-            creators = sorted(set(re.findall(r"7656119\d{10}", _field(text, "contributed-by") or "")))
+            # kept as numbers that mean something only inside this file, never the creators' Steam IDs
+            creators = sorted({who.setdefault(s, len(who) + 1)
+                               for s in re.findall(r"7656119\d{10}", _field(text, "contributed-by") or "")})
             if creators:
                 row["c"] = creators
             ws = list(dict.fromkeys(re.findall(r"filedetails/\?id=(\d+)", text)))

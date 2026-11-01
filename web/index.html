@@ -731,6 +731,14 @@ const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455
 const BUY_QUAL = ['vintage','genuine','strange','haunted','collectors','unusual'];  // qualities tracked from sync
 const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODEONLY = new Set(), CRAFT = new Set(), ACH = new Set();
 const CODEQ = {};
+// an unofficial set has no name of its own: call it by its class and the case (or collection) its items came in, else the month it came out
+function usetTitle(s, when){
+  const its = s.i.map(id => ITEMS[id]), cls = its[0].classes.length === 1 ? its[0].classes[0] : 'Multi-class';
+  const common = key => { const n = {}; for (const it of its) for (const v of new Set(it[key].map(x => typeof x === 'object' ? x.n : (COLS[x] || {}).n).filter(Boolean))) n[v] = (n[v] || 0) + 1;
+    return Object.entries(n).sort((a, b) => b[1] - a[1])[0]; };
+  const c = common('cases') || common('cols');
+  return cls + ' set \u00b7 ' + (c ? c[0] : when || 'unofficial');
+}
 let USETS = [], SETMAP = {};   // sets the item schema doesn't name, put together from the wiki (wikidata.unofficial_sets)
 function initExtra(x){
   for (const [q, ids] of Object.entries((x && x.q) || {})) QPOSS[q] = new Set(ids.map(i => +(ALIAS[i] || i)));
@@ -1154,7 +1162,7 @@ function render(){
       if (s.u && S.hideU) continue;
       const d = done(s), when = d ? new Date(d).toLocaleDateString(undefined, {year:'numeric', month:'short'}) : '';
       const kind = s.u ? 'Unofficial set: same creators, same class, released together' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
-      const title = s.u ? s.i.map(id => ITEMS[id].name).join(' \u00b7 ') : s.n;
+      const title = s.u ? usetTitle(s, when) : s.n;
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
     }
