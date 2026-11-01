@@ -124,7 +124,6 @@ assets/              Application assets
 
 ## Planned Features
 * Preview styles for Contracker.
-* View cosmetics compiled in your workshop folder.
 * View styles for canteen.
 * Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
 * Preview Taunt actions.
