@@ -188,6 +188,7 @@
     if (fresh) { try { await Store3D.show(f); } catch (e) { return; } }
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     Store3D.redress(cn);
+    if (Store3D.ctl && Store3D.ctl.preload) Store3D.ctl.preload(cn, KSLOTS[cn] || KSLOTS._);   // the number keys switch at once
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     if (ST.fx != null) applyFx();
     // on the saved copy of the TF2 files, an item never opened before isn't there: say how to get it

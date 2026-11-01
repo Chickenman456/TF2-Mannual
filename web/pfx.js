@@ -476,7 +476,7 @@
 
   // ---------- an effect on the merc ----------
   // where(): the Object3D the effect follows (an attachment, the item's root bone, or the merc), plus the merc for model points
-  let FX = null;
+  let FX = null; const BURST = [];
   function makeFx(def, where, scaleOf) {
     const q = new THREE.Quaternion(), wp = new THREE.Vector3(), ax = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
     const fx = { def, where, scaleOf, acc: 0, cp0: null, frame: -1 };
@@ -523,9 +523,23 @@
       for (let k = 0; k < 60; k++) { fx.frame++; fx.root.step(1 / 60); }
       FX = fx; return true;
     },
+    /* burst(system, where): a one-shot effect (a weapon's muzzle flash) next to the looping one, gone when its particles are */
+    async burst(system, where, scaleOf) {
+      const def = await find(system); if (!def) return false;
+      await preload(def);
+      const fx = makeFx(def, where, scaleOf || (() => 1));
+      for (const S of fx.root.all()) S.mat = (S.rend && S.def.material) ? await material(S.def.material) : null;
+      fx.age = 0; BURST.push(fx); return true;
+    },
     stop() { ZPFX._tok = (ZPFX._tok || 0) + 1; if (FX) { for (const S of FX.root.all()) dispose(S); FX = null; } },
     active: () => !!FX,
     tick(dt, sc, cam) {
+      for (const b of BURST.slice()) {
+        b.acc += Math.min(dt, .1); b.age += dt;
+        while (b.acc >= 1 / 60) { b.acc -= 1 / 60; b.frame++; b.root.step(1 / 60); }
+        if (b.age > .1 && !b.root.alive() || b.age > 4) { for (const S of b.root.all()) dispose(S); BURST.splice(BURST.indexOf(b), 1); continue; }
+        cam.updateMatrixWorld(); const bs = b.scaleOf(); for (const S of b.root.all()) draw(S, cam, sc, bs);
+      }
       if (!FX) return; const fx = FX;
       fx.acc += Math.min(dt, .1);
       while (fx.acc >= 1 / 60) { fx.acc -= 1 / 60; fx.frame++; fx.root.step(1 / 60); }
