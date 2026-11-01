@@ -294,7 +294,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  const pilotTick=t=>{const p=Math.sin(t*2*Math.PI/.1)*.02,p2=Math.sin(t*2*Math.PI/7)*-.005,a=87*Math.PI/180;PILOT.forEach(u=>{u.t0.value.set(p2,p);u.t2.value.set((Math.cos(a)*3*t)%1,(Math.sin(a)*3*t)%1)})};
  window.ZW={init:()=>init(),wload:f=>wload(f),wman:()=>wman(),warp:n=>getWarp(n),tex:(u,s)=>texLoad(u,s),mat:(P,map)=>tf2({name:'weapon',map},getWarp(P.warp||'weapon'),{P,exp:P.expTex?texLoad('models/'+P.expTex):null,normal:P.bump?texLoad('models/'+P.bump):false})};
  function wmat(P,tint){if(P.shader=='unlittwotexture')return pilotMat(P);const TX=(u,s)=>u&&u.isTexture?u:texLoad('models/'+u,s);return tf2({name:'weapon',map:P.map?TX(P.map,true):BLANK()},V.warp,{P:{...P,warp:P.warp},exp:P.expTex?TX(P.expTex):null,normal:P.bump?TX(P.bump):false,tint})}
- async function setWeapon(c,slot,name){const m=M[c];if(!m||!slot||slot=='pda2')return;if(slot=='action')return;
+ async function setWeapon(c,slot,name){const m=M[c];if(!m||!slot||slot=='pda2')return;if(slot=='action'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c)))return;
   let nk=wkey(name);
   setCosmetics(c);// worn weapon-slot items live with the cosmetics
   const lworn=n=>!!(n&&!wkey(n)&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.wornWep(n,c));
@@ -503,7 +503,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   d.tr.forEach(t=>{const nm=THREE.PropertyBinding.sanitizeNodeName(t.b);tr.push(new THREE.QuaternionKeyframeTrack(nm+'.quaternion',t.q.length==4?[0]:T,t.q));tr.push(new THREE.VectorKeyframeTrack(nm+'.position',t.p.length==3?[0]:T,t.p))});
   return new THREE.AnimationClip('selectionMenu_Idle',-1,tr)}));
  window.ZTEAM=c=>(window.ZSELT&&ZSELT.c==c&&ZSELT.t)||(window.ZPREV&&ZPREV.cls==c&&ZPREV.team)||(window.LOX&&LOX.ls(c).team)||'RED';
- window.ZREDRESS=c=>{const m=M[c];if(!m)return;if(m._tprop&&m._tprop.retint)m._tprop.retint(ZTEAM(c));m.csig=null;m.wteam=null;m.skin&&m.skin();weaponTeam(c);setCosmetics(c);if(window.ZPREV&&ZPREV.cls==c)setWeapon(c,ZPREV.wslot||firstSlot(c),ZPREV.wname)};
+ window.ZREDRESS=c=>{const m=M[c];if(!m)return;if(m._lbody){const t=ZTEAM(c);m._lbody.forEach(x=>{if(x.userData.lteam===t)return;x.userData.lteam=t;const MI=x.userData.mi||{};const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)x.material=wmat(P)})}if(m._tprop&&m._tprop.retint)m._tprop.retint(ZTEAM(c));m.csig=null;m.wteam=null;m.skin&&m.skin();weaponTeam(c);setCosmetics(c);if(window.ZPREV&&ZPREV.cls==c)setWeapon(c,ZPREV.wslot||firstSlot(c),ZPREV.wname)};
  window.Z3D={M,load,clipFor,setWeapon:(...a)=>setWeapon(...a),get V(){return V}};
  // catalog hooks: mount the merc in an element, re-dress it, zoom and turn it (the store preview's controls)
  // the store preview's taunt controls: replay from the start (with its sounds), pause / resume, and whether it is still going
@@ -554,10 +554,22 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
     let ln=p;if(!ln){try{ln=LOX.stockFor(c,sl)}catch(e){}}if(ln&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(ln,c))key='live:'+c+':'+((window.ZSTYLE&&ZSTYLE.get(ln))||0)+':'+ln;
     if(!key)continue;(/^live:/.test(key)?ZLIVE.load(key):Promise.all([wload(key),wman()])).catch(()=>{});
     if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._mv){m._mv=null;move(c)}}}})();
+// the preview's LOD button: the merc, his cosmetics and his weapon at LOD 0, 1 or 2, read from the install. The merc's own (LOD 0)
+// model is swapped for the class model's LOD from the install, worn with the same bodygroups.
+async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;const tok=m._lodTok=(m._lodTok||0)+1;
+ const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody)L.push(x)});return L})());
+ const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
+ if(n>0){const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=m.BG[k].visible?0:1;
+  try{const [src,man]=await ZLIVE.body(c,bg);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
+   const meshes=src.map(s=>{const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
+   drop();if(meshes.length){m._lbody=meshes;own.forEach(x=>x.visible=false)}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
+ else{drop();own.forEach(x=>x.visible=true)}
+ m.csig=null;m.wname=null;window.ZREDRESS(c)}
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
-window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -1117,18 +1129,26 @@ async function model(path,pre,opt){pre=pre||'m';const base=path.replace(/\.mdl$/
  const nsr=I(220),nsf=I(224),si=I(228);const skins=[];for(let f=0;f<nsf;f++){const r=[];for(let s=0;s<nsr;s++)r.push(M.getInt16(si+(f*nsr+s)*2,true));skins.push(r)}
  const nbp=I(232),bpi=I(236);
  const nlv0=VV.getInt32(16,true),nfix=VV.getInt32(48,true),fixs=VV.getInt32(52,true),vds=VV.getInt32(56,true);let map=null;
- if(nfix){map=[];for(let k=0;k<nfix;k++){const lod=VV.getInt32(fixs+12*k,true),s=VV.getInt32(fixs+12*k+4,true),n=VV.getInt32(fixs+12*k+8,true);if(lod>=0)for(let j=0;j<n;j++)map.push(s+j)}}
+ // the level of detail asked for (opt.lod: the preview's LOD button), as far as the model has them; its vertexes come from the fixups for that LOD
+ const LOD=Math.max(0,Math.min((opt&&opt.lod)|0,X.getInt32(20,true)-1,VV.getInt32(12,true)-1));
+ // the materials a lower LOD swaps in (the .vtx material replacement list: MaterialReplacementHeader_t {short id; int nameOffset})
+ if(LOD>0){const mro=X.getInt32(24,true);if(mro>0){const h=mro+LOD*8,nr=X.getInt32(h,true),ro=X.getInt32(h+4,true);for(let r=0;r<nr;r++){const e=h+ro+r*6,id=X.getInt16(e,true),nm=cstr(vtx,e+X.getInt32(e+2,true));if(id>=0&&id<texn.length&&nm)texn[id]=nm}}}
+ if(nfix){map=[];for(let k=0;k<nfix;k++){const lod=VV.getInt32(fixs+12*k,true),s=VV.getInt32(fixs+12*k+4,true),n=VV.getInt32(fixs+12*k+8,true);if(lod>=LOD)for(let j=0;j<n;j++)map.push(s+j)}}
  const vidx=i=>map?map[i]:i;
  const vbpo=X.getInt32(32,true);const prims={},flexRaw={};
+ // at LOD 1+ the vertexes are the fixed-up list for that LOD, where each mesh starts after all the meshes before it (mstudiomesh_t
+ // vertexdata.numLODVertexes[LOD], in bodypart / model / mesh order)
+ const lodBase=new Map();if(LOD>0){let acc=0;for(let bp=0;bp<nbp;bp++){const mbo=bpi+bp*16,nmod=I(mbo+4),modi=I(mbo+12);for(let mi=0;mi<nmod;mi++){const mo=mbo+modi+mi*148,nmesh=I(mo+72),meshi=I(mo+76);
+   for(let me=0;me<nmesh;me++){const meo=mo+meshi+me*116;lodBase.set(meo,acc);acc+=I(meo+52+LOD*4)}}}}
  for(let bp=0;bp<nbp;bp++){const mbo=bpi+bp*16;const nmod=I(mbo+4),modi=I(mbo+12);const xbo=vbpo+bp*8;const xmo=X.getInt32(xbo+4,true);
   const bpn=cstr(mdl,mbo+I(mbo)).toLowerCase();let sel=0;if(opt&&opt.only){if(!(bpn in opt.only))continue;sel=+opt.only[bpn]}else if(opt&&opt.bg){const v=opt.bg[bp]!=null?opt.bg[bp]:opt.bg[bpn];if(v!=null)sel=+v}
   for(let mi=sel;mi<Math.min(sel+1,nmod);mi++){// the chosen (default 0) bodygroup state
-   const mo=mbo+modi+mi*148;const nmesh=I(mo+72),meshi=I(mo+76),vertidx=I(mo+84);const xmod=xbo+xmo+mi*8;const lo=X.getInt32(xmod+4,true);const xl=xmod+lo;const mso=X.getInt32(xl+4,true);
-   for(let me=0;me<nmesh;me++){const meo=mo+meshi+me*116;const mat=I(meo),voff=I(meo+12);const xm=xl+mso+me*9;const nsg=X.getInt32(xm,true),sgo=X.getInt32(xm+4,true);const base_=vertidx/48+voff;
+   const mo=mbo+modi+mi*148;const nmesh=I(mo+72),meshi=I(mo+76),vertidx=I(mo+84);const xmod=xbo+xmo+mi*8;const lo=X.getInt32(xmod+4,true);const xl=xmod+lo+Math.min(LOD,Math.max(0,X.getInt32(xmod,true)-1))*12;const mso=X.getInt32(xl+4,true);
+   for(let me=0;me<nmesh;me++){const meo=mo+meshi+me*116;const mat=I(meo),voff=I(meo+12);const xm=xl+mso+me*9;const nsg=X.getInt32(xm,true),sgo=X.getInt32(xm+4,true);const base_=LOD>0?lodBase.get(meo):vertidx/48+voff;
     for(let g=0;g<nsg;g++){const xg=xm+sgo+g*25;const vo=X.getInt32(xg+4,true),ni=X.getInt32(xg+8,true),io=X.getInt32(xg+12,true);const L=prims[mat]||(prims[mat]=[]);
      for(let k=0;k<ni;k++){const vi=X.getUint16(xg+io+k*2,true);L.push(base_+X.getUint16(xg+vo+vi*9+4,true))}}
     // mesh flexes (mstudioflex_t -> mstudiovertanim_t / _wrinkle_t)
-    const nfl=I(meo+16),fli=I(meo+20);for(let f=0;f<nfl;f++){const fo=meo+fli+f*60;const n=I(fo+20),vi=fo+I(fo+24),typ=mdl[fo+32],st=typ==1?18:16;const V=[];
+    const nfl=LOD>0?0:I(meo+16),fli=I(meo+20);for(let f=0;f<nfl;f++){const fo=meo+fli+f*60;const n=I(fo+20),vi=fo+I(fo+24),typ=mdl[fo+32],st=typ==1?18:16;const V=[];
      for(let k=0;k<n;k++){const a=vi+k*st;V.push([base_+M.getUint16(a,true),mdl[a+3],f16(M.getUint16(a+4,true)),f16(M.getUint16(a+6,true)),f16(M.getUint16(a+8,true)),f16(M.getUint16(a+10,true)),f16(M.getUint16(a+12,true)),f16(M.getUint16(a+14,true))])}
      (flexRaw[mat]||(flexRaw[mat]=[])).push({d:I(fo),p:I(fo+28),t:[Fl(fo+4),Fl(fo+8),Fl(fo+12),Fl(fo+16)],V})}}}}
  const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);const root=new THREE.Group();root.name='wroot';
@@ -1191,18 +1211,18 @@ async function assemble(key,p,e,si,pre,opt){pre=pre||'m';const md=await model(p,
 // ---------- public ----------
 // keys: live:<Class>:<style>:<item name>
 const parseKey=key=>{const [,cl,si,...rest]=key.split(':');return{cl,si:+si||0,name:rest.join(':')}};
-async function load(key){if(ST.cache[key])return ST.cache[key];
- return ST.cache[key]=(async()=>{const {cl,si,name}=parseKey(key);const e=entry(name);if(!e)throw new Error('not in items_game: '+name);
+async function load(key){const lod=ST.lod|0,ck=lod?key+'#lod'+lod:key;if(ST.cache[ck])return ST.cache[ck];
+ return ST.cache[ck]=(async()=>{const {cl,si,name}=parseKey(key);const e=entry(name);if(!e)throw new Error('not in items_game: '+name);
   // an arm that replaces the owner's (the Short Circuit: wm_bodygroup_override) is worn with the cosmetics (loadXW), not held
   if(String(e.r.attach_to_hands_vm_only||'0')==='1')return[[],{[key]:{}}];
   const p=mdlFor(e,cl,si);if(!p){if(armOnly(e,cl))return[[],{[key]:{}}];throw new Error('no model for '+cl+': '+name)}
-  const A=await assemble(key,p,e,si,'m',si>=KSTREAK?{bg:{level:si-KSTREAK}}:undefined);
+  const A=await assemble(key,p,e,si,'m',Object.assign({lod},si>=KSTREAK?{bg:{level:si-KSTREAK}}:{}));
   // visuals.attached_models for both teams, visuals_red / visuals_blu ones per team (the Kritzkrieg's overhealer, the 2011 festive weapons' parts)
   const ams=b=>{const am=b&&b.attached_models,o=[];if(am&&typeof am=='object')for(const k in am){const mp=am[k]&&am[k].model&&String(am[k].model).replace(/\\/g,'/').toLowerCase();if(mp&&has(mp))o.push(mp)}return o};
   const both=ams(e.r.visuals),red=ams(e.r.visuals_red),blu=ams(e.r.visuals_blu);const L=[...both.map(p=>[p,null])];
   for(const p of red)if(!both.includes(p))L.push([p,blu.includes(p)?null:'RED']);for(const p of blu)if(!both.includes(p)&&!red.includes(p))L.push([p,'BLU']);
   {const xw=xwOf(e);if(xw&&await xwOnWeapon(xw))L.push([xw,null])}
-  let j=0;for(const [mp,tm] of L){try{const X=await assemble(key,mp,e,si,'am'+(j++));if(tm)X[0].forEach(x=>x.userData.zteam=tm);A[0]=A[0].concat(X[0]);Object.assign(A[1][key],X[1][key])}catch(err){console.warn('[ZLIVE] attached_model',mp,err)}}
+  let j=0;for(const [mp,tm] of L){try{const X=await assemble(key,mp,e,si,'am'+(j++),{lod});if(tm)X[0].forEach(x=>x.userData.zteam=tm);A[0]=A[0].concat(X[0]);Object.assign(A[1][key],X[1][key])}catch(err){console.warn('[ZLIVE] attached_model',mp,err)}}
   // a cosmetic's wm_bodygroup_override in a state with a mesh of its own (the Purity Fist: Heavy's hands bodygroup in state 2,
   // the left hand made for the augmented arm): that submodel of the class model, worn with the item
   {const wo=wmOv(e),c=clsKey(cl);if(wo&&wo.st>0){const BN=await pbNames(c);const part=BN&&BN[wo.i];if(part){try{const X=await assemble(key,'models/player/'+SHORT[c]+'.mdl',e,si,'bg',{only:{[part]:wo.st}});A[0]=A[0].concat(X[0]);Object.assign(A[1][key],X[1][key])}catch(err){console.warn('[ZLIVE] bodygroup',part,err)}}}}
@@ -1229,7 +1249,9 @@ function bg(n,cl,si){const e=entry(n);if(!e)return[];const v=e.r.visuals||{};con
   else pbNames(c).then(()=>{const M3=(window.Z3D&&Z3D.M)||{};const C=Object.keys(M3).find(x=>clsKey(x)===c);if(C&&M3[C]){M3[C].csig=null;if(window.ZREDRESS)ZREDRESS(C)}}).catch(()=>{})}
  return[...out]}
 function hasItem(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||(e.k!='cos'&&e.k!='action'&&!(e.k=='medal'&&hasModel(e.r))))return false;if(!cl)return true;return !!mdlFor(e,cl)}
-function hasWep(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||e.k!='wep')return false;if(isWatch(e))return false;return !cl||!!mdlFor(e,cl)||!!armOnly(e,cl)||passiveXW(e,cl)}
+// act_as_weapon: an action item held like a weapon, with an anim slot of its own (the Grappling Hook)
+const actWep=e=>e.k=='action'&&String(e.r.act_as_weapon||'0')==='1';
+function hasWep(n,cl){if(!ST.ready)return false;const e=entry(n);if(!e||(e.k!='wep'&&!actWep(e)))return false;if(isWatch(e))return false;return !cl||!!mdlFor(e,cl)||!!armOnly(e,cl)||passiveXW(e,cl)}
 function wepSlot(n,cl){const e=entry(n);if(!e)return null;const u=usedBy(e.r,clsKey(cl));return u&&u!=='1'?String(u).toLowerCase():String(e.r.item_slot||'').toLowerCase()}
 function animSlot(n,cl){const e=entry(n);if(!e)return null;let a=e.r.anim_slot;if(a&&typeof a=='object')a=a[clsKey(cl)];return a?String(a).toUpperCase():null}
 function flexPack(key){return ST.flex[key]||null}
@@ -1615,7 +1637,10 @@ function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t;if(WS[key])return WS[
   const mine=L.filter(n=>n.split('/').pop().replace(/\.qci?$/,'')===base);const o=[];for(const n of (mine.length?mine:L)){const d=await zipGet(f,Z.get(n));if(d)o.push({kind:'qc',path:n.slice(8),note:'from '+it.name,text:text(d)})}return o}};
  let full=null;const load=()=>full||(full=(async()=>{for(const n of game)if(!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}return true})().catch(err=>{full=null;throw err}));
  e.ws.load=load;return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
-async function connect(src){ST.src=src;ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
+// the class model itself at a level of detail (the preview's LOD button), its bodygroups as the merc wears them
+function body(cl,bg){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
+ return ST.cache[key]=assemble(key,'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:bg||{}})}
+async function connect(src){ST.src=src;ST.lod=0;ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
   try{localStorage.setItem('zlive','1')}catch(e){}return true}
@@ -1634,7 +1659,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

@@ -59,6 +59,7 @@
       <div class="spv-cycle pl" style="${box(48, 24, 126, 28)}"></div>
       <button type="button" class="spv-glyph pl" data-spv="options" style="${box(193, 27, 11, 11)};--g:url(${IMG}glyph_options.webp)" aria-label="Paint and style" title="Paint and style"></button>
       <button type="button" class="spv-glyph pl" data-spv="full" style="${box(209, 27, 11, 11)};--g:url(${IMG}store_fullscreen.webp)" aria-label="Full screen" title="Full screen"></button>
+      <button type="button" class="spv-lod pl" data-spv="lod" style="${box(180, 41, 40, 10)}" title="Level of detail: the merc and his items the way the game draws them from farther away (LOD 0, 1, 2)" hidden>LOD 0</button>
       <button type="button" class="spv-rot pl" data-rot="-1" style="${box(16, 100, 20, 20)}" aria-label="Turn left">&lt;</button>
       <button type="button" class="spv-rot pl" data-rot="1" style="${box(205, 100, 20, 20)}" aria-label="Turn right">&gt;</button>
       <button type="button" class="spv-tb pl" data-spv="tplay" style="${box(16, 187, 13, 13)}" hidden aria-label="Pause the taunt" title="Pause">${TICON.pause}</button>
@@ -145,7 +146,7 @@
     const o = ST.o, cn = CNAME[ST.cls];
     let wslot = null, wname = null, cos = [], taunt = null;
     if (o.kind === 't') taunt = o.name;
-    else if (o.kind === 'w') {
+    else if (o.kind === 'w' || (o.kind === 'a' && live() && ZLIVE.hasWep(ST.nm, cn))) {   // an action item held like a weapon (the Grappling Hook) too
       if (live() && ZLIVE.hasWep(ST.nm, cn)) { wname = ST.nm; wslot = ZLIVE.wepSlot(ST.nm, cn) || null; }
       else if (o.stock && stockSlot(cn)) { wname = o.name; wslot = stockSlot(cn); }   // the page's own stock weapon models
     }
@@ -163,7 +164,7 @@
     const o = ST.o, cn = CNAME[ST.cls], A = window.ZAVAIL;
     if (!A) return false;
     if (o.kind === 't') return !!A.t(o.name, cn);
-    if (o.kind === 'w') return (live() && ZLIVE.hasWep(ST.nm, cn)) || !!(o.stock && stockSlot(cn));
+    if (o.kind === 'w' || (o.kind === 'a' && live() && ZLIVE.hasWep(ST.nm, cn))) return (live() && ZLIVE.hasWep(ST.nm, cn)) || !!(o.stock && stockSlot(cn));
     if (WORN.has(o.kind)) return !!A.c(ST.nm, cn);
     return false;
   }
@@ -191,6 +192,7 @@
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     Store3D.redress(cn);
     if (Store3D.ctl && Store3D.ctl.preload) Store3D.ctl.preload(cn, KSLOTS[cn] || KSLOTS._);   // the number keys switch at once
+    lodLabel(); if (ST.lod && Store3D.lod) Store3D.lod(cn, ST.lod);
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     if (ST.fx != null) applyFx();
     // on the saved copy of the TF2 files, an item never opened before isn't there: say how to get it
@@ -436,7 +438,7 @@
     const tb = t.closest('[data-spt]');
     if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); if (ST.state === 'player') dress(); return; }
     const c = t.closest('[data-spc]');
-    if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = null; } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
+    if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = null; if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
     const a = t.closest('[data-spv]'); if (!a) return;
     const k = a.dataset.spv;
     if (k === 'close') { close(); return; }
@@ -452,6 +454,7 @@
     else if (k === 'fsexit') exitFS();
     else if (k === 'wish') { o.wish.toggle(); wishLabel(); }
     else if (k === 'src') srcView();
+    else if (k === 'lod') { ST.lod = ((ST.lod || 0) + 1) % 3; lodLabel(); const cn = CNAME[ST.cls]; if (cn && window.Store3D && Store3D.lod) Store3D.lod(cn, ST.lod); }
   }
   // ---- Model & Materials: the item's QC (reconstructed from the compiled model, or the Workshop item's own) and its VMTs ----
   async function srcView() {
@@ -480,6 +483,8 @@
   // ---- playing the merc from the keyboard, as in game: 1-4 its weapons, W runs in place (again to stop), Ctrl crouches (again to stand),
   // F fires, G taunts with the weapon in hand. Ctrl toggles here, so W never has to be pressed with Ctrl held (Ctrl+W closes the tab).
   const KSLOTS = {Spy: ['secondary', 'building', 'melee'], Engineer: ['primary', 'secondary', 'melee', 'pda'], _: ['primary', 'secondary', 'melee']};
+  // LOD 0 / 1 / 2: shown with the TF2 folder linked (the levels of detail come from its models)
+  function lodLabel() { const b = ST && ST.el.querySelector('[data-spv=lod]'); if (!b) return; b.hidden = !live(); b.textContent = 'LOD ' + (ST.lod || 0); }
   function ctlReset() { const cn = ST && CNAME[ST.cls]; if (cn && window.Store3D && Store3D.ctl) Store3D.ctl.reset(cn);  }
   // F released (or the window left): the gun stops
   function onCtlUp(e) { if (e.type === 'keyup' && String(e.key).toLowerCase() !== 'f') return; if (window.Store3D && Store3D.ctl && Store3D.ctl.fireUp) Store3D.ctl.fireUp(); }
@@ -569,7 +574,7 @@
   function close() {
     if (!ST) return;
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
-    ctlReset(); exitFS(); undress();
+    ctlReset(); if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); exitFS(); undress();
     const s = ST; ST = null;
     removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('keyup', onCtlUp); removeEventListener('blur', onCtlUp); removeEventListener('resize', layout);
     s.el.remove();
