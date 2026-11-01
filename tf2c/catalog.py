@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 36
+CATALOG_VERSION = 37
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -787,7 +787,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "cols": cols, "sets": sets, "cases": case_out, "alias": alias,
             "uset_fix": {"sets": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("sets", {})],
                          "not": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("not_sets", {})],
-                         "loose": [int(k) for k in (cur.get("unofficial_sets") or {}).get("not_in_sets", {})]},
+                         "loose": [int(k) for k in (cur.get("unofficial_sets") or {}).get("not_in_sets", {})],
+                         "belated": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("belated_sets", {})]},
             "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])],
             "notes": {str(k): v for k, v in one_day.items() if k in keep},
             "not_single": sorted(k for k in not_single if k in keep),

@@ -442,7 +442,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    // the prop entity goes when its scene ends (the Yeti leaves; the merc carries on)
    const on=!!L||t<=pc.duration+.05;if(R._on!==on){R._on=on;R.meshes.forEach(x=>x.visible=on)}}
  async function setCosmetics(c){const m=M[c];if(!m)return;let names=[];try{const S=LOX.ls(c);names=(S.P[S.pre].c||[]).slice(0,4).filter(Boolean)}catch(e){}if(window.ZPREV&&ZPREV.cls==c)names=(ZPREV.cos||[]).slice();
-  {let W=[];try{const S=LOX.ls(c);W=Object.values(S.P[S.pre].w||{})}catch(e){}if(window.ZPREV&&ZPREV.cls==c)W=[...new Set([ZPREV.wname,ZPREV.worn].filter(Boolean))];
+  {let W=[];try{const S=LOX.ls(c);W=Object.values(S.P[S.pre].w||{})}catch(e){}if(window.ZPREV&&ZPREV.cls==c)W=[...new Set([ZPREV.wname].concat(ZPREV.worn||[]).filter(Boolean))];
    W.forEach(n=>{const k=n&&wkey(n);if(k&&WEARW[BYNAME[k]])names.push('#w:'+BYNAME[k]);else if(!k&&n&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasXW(n,c))names.push('#x:'+n)})}
   const team=ZTEAM(c);const sig=names.map(n=>n+'@'+(paintName(n)||'')+'~'+(window.ZSTYLE?ZSTYLE.get(n)+'$'+ZSTYLE.spell(n):0)).join('|')+'#'+team+(window.ZLIVE&&ZLIVE.ready?'+L':'');if(m.csig===sig)return;m.csig=sig;const tok=m.ctok=(m.ctok||0)+1;
   const drop=r=>{if(r){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}};
@@ -559,7 +559,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   const wn=wname(m);const [G,F]=await Promise.all([ZLIVE.gesture(c,'ACT_MP_ATTACK_'+(cr?'CROUCH':'STAND')+'_'+sx,bones(m)).catch(()=>null),wn?ZLIVE.fireInfo(c,wn).catch(()=>null):null]);
   if(M[c]!==m||busy(m))return null;
   if(tok&&FT!==tok)return null;if(F&&F.nofire)return null;const cont=!!(F&&F.cont&&tok);
-  if(G){const g={g:pickW(G),t:0,loop:cont};m._gest=(m._gest||[]).filter(x=>!x.done&&!x.stop).concat(g);if(cont)tok.ga=g}
+  if(G){const g={g:pickW(G),t:0,loop:cont};m._gest=[g];if(cont)tok.ga=g}
   if(!F)return null;
   if(F.urls.length){const au=new Audio(F.urls[(Math.random()*F.urls.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(cont){au.loop=true;tok.au=au}if(v>0)au.play().catch(()=>{})}
   if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wn);if(o){const sc=()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1};ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),sc).catch(()=>{})}}
@@ -568,7 +568,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  let FT=null;
  const vol=()=>{try{return window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){return 1}};
  const sound=(L,loop)=>{if(!L||!L.length)return null;const au=new Audio(L[(Math.random()*L.length)|0]);const v=vol();au.volume=v*.6;au.loop=!!loop;if(v>0)au.play().catch(()=>{});return au};
- const gest=async(c,m,a)=>{const G=await ZLIVE.gesture(c,'ACT_MP_ATTACK_'+((m._mv||{}).crouch?'CROUCH':'STAND')+'_'+a,bones(m)).catch(()=>null);if(G&&M[c]===m&&!busy(m))m._gest=(m._gest||[]).filter(x=>!x.done&&!x.stop).concat({g:pickW(G),t:0})};
+ const gest=async(c,m,a)=>{const G=await ZLIVE.gesture(c,'ACT_MP_ATTACK_'+((m._mv||{}).crouch?'CROUCH':'STAND')+'_'+a,bones(m)).catch(()=>null);if(G&&M[c]===m&&!busy(m))m._gest=[{g:pickW(G),t:0}]};
  async function fireDown(c){fireUp();const tok={c};FT=tok;
   // the minigun spins up first (the Heavy's spool-up gesture into his deployed stance, the wind-up sound), then fires
   {const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F0=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(FT!==tok)return;
@@ -594,15 +594,16 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);const key='live:@scene:'+sp;m.play(key,true);
   // a worn cosmetic's taunt sound (cosmetic_taunt_sound: the Boston Boom-Bringer's and the Infernal Orchestrina's music) plays through the taunt
   ZLIVE.tauntSound((m.cmesh||[]).map(r=>r&&r.key?String(r.key).split(':').slice(3).join(':'):'').filter(Boolean)).then(L=>{if(!L||!L.length)return;let au=null;const t0=performance.now();
-   const iv=setInterval(()=>{const on=M[c]===m&&m.cn===key;if(!au){if(on){au=new Audio(L[(Math.random()*L.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(v>0)au.play().catch(()=>{})}else if(performance.now()-t0>8000)clearInterval(iv);return}
-    if(!on||au.ended){clearInterval(iv);try{au.pause()}catch(e){}}},100)}).catch(()=>{});return true}
+   // it plays to its end, as the game's does, unless another taunt starts or the merc goes
+   const iv=setInterval(()=>{const on=M[c]===m&&m.cn===key;if(!au){if(on){if(m._tsnd){try{m._tsnd.pause()}catch(e){}}au=m._tsnd=new Audio(L[(Math.random()*L.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(v>0)au.play().catch(()=>{})}else if(performance.now()-t0>8000)clearInterval(iv);return}
+    const gone=M[c]!==m||!m.o.visible||(m._tsnd!==au)||(/^(taunt|live:)/.test(m.cn||'')&&m.cn!==key);if(gone||au.ended){clearInterval(iv);try{au.pause()}catch(e){}}},100)}).catch(()=>{});return true}
  return{run:c=>{const v=st(c);if(!v)return false;v.run=!v.run;move(c);return v.run},crouch:c=>{const v=st(c);if(!v)return false;v.crouch=!v.crouch;move(c);return v.crouch},
   fire,fireDown,fireUp,taunt,refresh:c=>move(c),
   // every slot's weapon read and built ahead (models, materials, the stand_ animation), so switching with the number keys is instant
   preload:(c,slots)=>{if(!M[c])return;for(const sl of slots){const p=window.ZPREV&&ZPREV.cls==c&&ZPREV.wslot==sl?ZPREV.wname:null;const nk=wkey(p);let key=nk?BYNAME[nk]:(STOCK[c]||{})[sl];
     let ln=p;if(!ln){try{ln=LOX.stockFor(c,sl)}catch(e){}}if(ln&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(ln,c))key='live:'+c+':'+((window.ZSTYLE&&ZSTYLE.get(ln))||0)+':'+ln;
     if(!key)continue;(/^live:/.test(key)?ZLIVE.load(key):Promise.all([wload(key),wman()])).catch(()=>{});
-    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._mv){m._mv=null;move(c)}}}})();
+    if(window.ZLIVE&&ZLIVE.ready&&ln){ZLIVE.fireInfo(c,ln).catch(()=>{})}}},reset:c=>{fireUp();const m=M[c];if(m&&m._tsnd){try{m._tsnd.pause()}catch(e){}m._tsnd=null}if(m&&m._mv){m._mv=null;move(c)}}}})();
 // the preview's LOD button: the merc, his cosmetics and his weapon at LOD 0, 1 or 2, read from the install. The merc's own (LOD 0)
 // model is swapped for the class model's LOD from the install, worn with the same bodygroups.
 async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;

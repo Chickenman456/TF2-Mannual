@@ -255,4 +255,6 @@ def unofficial_sets(catalog, flags):
         L = [k for k in s["i"] if k not in drop]
         if len(L) >= 2 and frozenset(L) not in nots:
             kept.append({"i": L, "how": "c"})
-    return kept + [{"i": s, "how": "c"} for s in forced if all(k in items for k in s)]
+    # belated sets: a newer item made to go with older ones ("how": "b")
+    late = [{"i": sorted(s), "how": "b"} for s in fix.get("belated", []) if all(k in items for k in s)]
+    return kept + [{"i": s, "how": "c"} for s in forced if all(k in items for k in s)] + late

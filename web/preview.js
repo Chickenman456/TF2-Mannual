@@ -157,9 +157,11 @@
       if (WORN.has(x.kind)) { if (!cos.includes(x.nm)) cos.push(x.nm); }
       else if (x.kind === 'w' && !wname && live() && ZLIVE.hasWep(x.nm, cn)) { wname = x.nm; wslot = ZLIVE.wepSlot(x.nm, cn) || null; }
     }
-    // what the previewed weapon puts on the body (the Razorback, the Gunboats, a banner's backpack) stays on whatever is held
-    const worn = wname;
-    if (ST.kslot && wslot !== ST.kslot) { wslot = ST.kslot; wname = null; }
+    // what the previewed weapon puts on the body (the Razorback, the Gunboats, a banner's backpack) stays on whatever is held;
+    // a set's weapons all do, and the number keys take out the set's weapon for that slot when it has one
+    const setW = (o.set || []).filter(x => x.kind === 'w' && live() && ZLIVE.hasWep(x.nm, cn)).map(x => x.nm);
+    const worn = [...new Set([wname].concat(setW).filter(Boolean))];
+    if (ST.kslot && wslot !== ST.kslot) { const sw = setW.find(n => (ZLIVE.wepSlot(n, cn) || null) === ST.kslot); wslot = ST.kslot; wname = sw || null; }
     return {cls: cn, team: ST.team, cos, paint: ST.paint, wslot, wname, worn, taunt};
   }
   const stockSlot = cn => (window.Store3D && Store3D.stockSlot) ? Store3D.stockSlot(cn, ST.o.name) : null;

@@ -266,7 +266,7 @@
   ]
  },
  "unofficial_sets": {
-  "_about": "Corrections to the sets put together from the wiki (wikidata.unofficial_sets): 'sets' are sets as listed, 'not_sets' groups that aren't one, 'not_in_sets' items that belong to none.",
+  "_about": "Corrections to the sets put together from the wiki (wikidata.unofficial_sets): 'sets' are sets as listed, 'not_sets' groups that aren't one, 'not_in_sets' items that belong to none; 'belated_sets' a newer item made to go with older ones.",
   "sets": {
    "30990,30991,30767": "Wipe Out Wraps, Blizzard Britches, Airdog",
    "30123,30125,30132": "Harmburg, Rogue's Brogues, Blood Banker"
@@ -277,6 +277,12 @@
   },
   "not_in_sets": {
    "30097": "Das Übersternmann"
+  },
+  "belated_sets": {
+   "51,31616": "Pyro's Beanie + Pyro's Overalls",
+   "52,31650": "Batter's Helmet + Batter's Jersey",
+   "652,653,31258": "Big Elfin Deal, Bootie Time + Seasonal Employee",
+   "575,31388": "Infernal Impaler + Warlock's Warcloak"
   }
  }
 }

@@ -91,7 +91,7 @@ label.chk{display:flex;gap:6px;align-items:center;cursor:pointer;color:var(--ink
 label.vol{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--ink-2);font-size:13px}
 label.vol input{flex:1;max-width:240px;accent-color:var(--TFOrange)}
 label.vol span{min-width:86px}
-.setbar{padding:2px 14px 10px;color:var(--ink-2);font-size:13px}
+.setbar{display:flex;flex-wrap:wrap;gap:4px 18px;padding:2px 14px 10px;color:var(--ink-2);font-size:13px}
 label.vol input:disabled{opacity:.45}
 label.vol output{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
 label.chk input{accent-color:var(--TFOrange)}
@@ -724,7 +724,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false};
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false, hideB:false, hideO:false};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
@@ -736,8 +736,11 @@ function usetTitle(s, when){
   const its = s.i.map(id => ITEMS[id]), cls = its[0].classes.length === 1 ? its[0].classes[0] : 'Multi-class';
   const common = key => { const n = {}; for (const it of its) for (const v of new Set(it[key].map(x => typeof x === 'object' ? x.n : (COLS[x] || {}).n).filter(Boolean))) n[v] = (n[v] || 0) + 1;
     return Object.entries(n).sort((a, b) => b[1] - a[1])[0]; };
-  const c = common('cases') || common('cols');
-  return cls + ' set \u00b7 ' + (c ? c[0] : when || 'unofficial');
+  // a belated set (a newer item made to go with older ones) goes by the newest item's case, with an asterisk
+  const late = s.u === 'b', nw = late ? [its.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0]] : null;
+  const pick = key => { if (!late) return common(key); const v = nw[0][key].map(x => typeof x === 'object' ? x.n : (COLS[x] || {}).n).filter(Boolean)[0]; return v ? [v] : null; };
+  const c = pick('cases') || pick('cols');
+  return cls + ' set' + (late ? '*' : '') + ' \u00b7 ' + (c ? c[0] : when || 'unofficial');
 }
 let USETS = [], SETMAP = {};   // sets the item schema doesn't name, put together from the wiki (wikidata.unofficial_sets)
 function initExtra(x){
@@ -1156,12 +1159,14 @@ function render(){
     const all = [...(RAW.sets || []).map((s, k) => ({...s, ord: k})), ...USETS.map((s, k) => ({...s, id: 'u' + s.i[0], ord: 1e4 + k}))]
       .map(s => ({...s, i: s.i.filter(id => ITEMS[id])})).filter(s => s.i.length);
     all.sort((a,b) => (desc ? done(b)-done(a) : done(a)-done(b)) || (desc ? b.ord-a.ord : a.ord-b.ord));
-    html += `<div class="setbar"><label class="chk"><input type="checkbox" id="hideU"${S.hideU ? ' checked' : ''}> Hide unofficial sets (the ones the game doesn\u2019t name)</label></div>`;
+    html += `<div class="setbar"><label class="chk"><input type="checkbox" id="hideO"${S.hideO ? ' checked' : ''}> Hide official sets</label>`
+      + `<label class="chk"><input type="checkbox" id="hideU"${S.hideU ? ' checked' : ''}> Hide unofficial sets (the ones the game doesn\u2019t name)</label>`
+      + `<label class="chk"><input type="checkbox" id="hideB"${S.hideB ? ' checked' : ''}> Hide belated sets* (a newer item made to go with older ones)</label></div>`;
     SETMAP = {};
     for (const s of all){
-      if (s.u && S.hideU) continue;
+      if (s.u === 'b' ? S.hideB : s.u ? S.hideU : S.hideO) continue;
       const d = done(s), when = d ? new Date(d).toLocaleDateString(undefined, {year:'numeric', month:'short'}) : '';
-      const kind = s.u ? 'Unofficial set: same creators, same class, released together' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
+      const kind = s.u === 'b' ? 'Belated set: a newer item made to go with older ones' : s.u ? 'Unofficial set: same creators, same class, released together' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
       const title = s.u ? usetTitle(s, when) : s.n;
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
@@ -1523,7 +1528,7 @@ function syncMute(){ $('#sndOn').checked = !S.mute; $('#sndVol').value = isFinit
 $('#sndOn').addEventListener('change', () => { S.mute = !$('#sndOn').checked; save(); syncMute(); if (!S.mute) sfx('buttonclick'); });
 $('#sndVol').addEventListener('input', () => { S.vol = +$('#sndVol').value; $('#sndVolV').textContent = S.vol + '%'; save(); });
 $('#sndVol').addEventListener('change', () => sfx('buttonclick'));
-document.addEventListener('change', e => { if (e.target && e.target.id === 'hideU') { S.hideU = e.target.checked; save(); render(); } });
+document.addEventListener('change', e => { if (e.target && /^hide[UBO]$/.test(e.target.id)) { S[e.target.id] = e.target.checked; save(); render(); } });
 $('#gameVol').addEventListener('input', () => { S.gvol = +$('#gameVol').value; $('#gameVolV').textContent = S.gvol + '%'; save(); });
 // the settings dialog
 /* ---------------- Workshop: the items you've compiled with TF2's Workshop importer ----------------
