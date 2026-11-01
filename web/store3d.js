@@ -31,7 +31,7 @@ void main(){vUv=uv;
 #include <project_vertex>
 vViewPosition=-mvPosition.xyz;vNormalV=normalize(transformedNormal);vWPos=(modelMatrix*vec4(transformed,1.)).xyz;}`;
  const FS=`uniform mat3 uvXf;uniform float frames,frame,siOn,hasSiMask,siFresOn,envOn,aTest;uniform vec3 rimTint;uniform vec3 siTint,c2,envTint;uniform vec4 siFres;uniform sampler2D siMask;uniform samplerCube envMap;uniform float envMask;uniform float envSkin,envFres,envCon,envSat,hasEnvMask,aRef,useBA,opac;uniform sampler2D envMaskMap;
-uniform sampler2D map,normalMap,expMap,warp;uniform vec2 normalScale;uniform vec3 tint;uniform float tintA,tintOver;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
+uniform sampler2D map,normalMap,expMap,warp,pWarp;uniform float pWarpOn;uniform vec2 normalScale;uniform vec3 tint;uniform float tintA,tintOver;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
 varying vec2 vUv;varying vec3 vViewPosition;varying vec3 vNormalV;varying vec3 vWPos;
 #include <common>
 vec3 ambCube(vec3 n){vec3 n2=n*n;return n2.x*(n.x>=0.?amb[0]:amb[1])+n2.y*(n.y>=0.?amb[2]:amb[3])+n2.z*(n.z>=0.?amb[4]:amb[5]);}
@@ -49,7 +49,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  float f=clamp(1.-dot(N,V),0.,1.);float f2=f*f-.5;float fR=fres.y+(f2>=0.?fres.z:fres.x)*f2;float f4=f*f*f*f;
  vec3 R=2.*N*dot(N,V)-V;vec3 diff=ambCube(N),spec=vec3(0.),rim=vec3(0.);
  for(int i=0;i<2;i++){vec3 L=normalize(lDir[i]);float NL=dot(N,L);float hl=hlOn>.5?clamp(NL*.5+.5,0.,1.):clamp(NL,0.,1.);diff+=2.*texture2D(warp,vec2(hl,.5)).rgb*lCol[i];
-  float LR=clamp(dot(R,L),1e-6,1.);float nl=clamp(NL,0.,1.);spec+=pow(LR,sExp)*nl*lCol[i];rim+=pow(LR,rimExp)*nl*lCol[i];}
+  float LR=clamp(dot(R,L),1e-6,1.);float nl=clamp(NL,0.,1.);float sp=pow(LR,sExp);spec+=(pWarpOn>.5?sp*texture2D(pWarp,vec2(sp,fR)).rgb:vec3(sp))*nl*lCol[i];rim+=pow(LR,rimExp)*nl*lCol[i];}
  spec*=mask*fR*boost*specOn;
  if(rimOn>.5){float rm=rimMask*f4;rim*=rm*rimTint;spec=max(spec,rim);spec+=ambCube(V)*rimBoost*clamp(rm*N.y,0.,1.)*rimTint;}// rimTint: white in the game; tinted for the Voodoo souls' green rim
  vec3 dc=albedo*diff;
@@ -100,7 +100,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
   const u={map:{value:m.map},normalMap:{value:(o.normal===false?null:(o.normal||m.normalMap))||BLANK()},hasNormal:{value:(o.normal===false?null:(o.normal||m.normalMap))?1:0},normalScale:{value:new THREE.Vector2(1,1)},
    expMap:{value:o.exp||BLANK()},hasExp:{value:o.exp?1:0},expFactor:{value:P.expFactor||0},cExp:{value:P.exp||0},maskMode:{value:P.mask??0},albTint:{value:P.albTint||0},rimMaskOn:{value:P.rimMask||0},
    boost:{value:P.boost??1},rimBoost:{value:P.rimBoost??1},rimExp:{value:P.rimExp??4},rimOn:{value:P.rim===0?0:1},hlOn:{value:P.phong===0&&!P.halfL?0:1},specOn:{value:(P.spec===0||P.phong===0)?0:1},fres:{value:fr?new THREE.Vector3((fr[1]-fr[0])*2,fr[1],(fr[2]-fr[1])*2):new THREE.Vector3(1,.5,1)},
-   warp:{value:P.warp?getWarp(P.warp):warp},tint:{value:new THREE.Color(...(o.tint||P.tintBase||[1,1,1])).convertSRGBToLinear()},
+   warp:{value:P.warp?getWarp(P.warp):warp},pWarp:{value:P.pwarp||(P.warp?getWarp(P.warp):warp)},pWarpOn:{value:P.pwarp?1:0},tint:{value:new THREE.Color(...(o.tint||P.tintBase||[1,1,1])).convertSRGBToLinear()},
    uvXf:{value:new THREE.Matrix3()},frames:{value:1},frame:{value:0},siOn:{value:P.si?1:0},siTint:{value:new THREE.Vector3(...(P.siTint||[1,1,1]))},siMask:{value:P.siMask?(P.siMask.isTexture?P.siMask:texLoad('models/'+P.siMask)):BLANK()},hasSiMask:{value:P.siMask?1:0},
    siFresOn:{value:P.siFres?1:0},siFres:{value:FRES(P.siFres||[0,1,1])},envOn:{value:P.env?1:0},envTint:{value:new THREE.Vector3(...(P.env||[0,0,0]))},envMap:{value:P.env?(P.envCube||ECUBE()):null},envMask:{value:P.envMask||0},envSkin:{value:P.envSkin?1:0},envFres:{value:P.envFres||0},envCon:{value:P.envCon||0},envSat:{value:P.envSat??1},hasEnvMask:{value:P.envMaskTex?1:0},envMaskMap:{value:P.envMaskTex||BLANK()},
    aRef:{value:P.aRef||.5},useBA:{value:P.useBA==null?1:P.useBA},opac:{value:P.opac??1},
@@ -982,12 +982,15 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  if(k.$color2&&!P.itemTint&&!/"resultvar":"\$color2"/i.test(JSON.stringify(k.proxies||{}))){const c=vec(k.$color2,null);if(c&&c.length>=3&&(c[0]!=1||c[1]!=1||c[2]!=1))P.c2=c.slice(0,3)}
  // $selfillum (the mask: $selfillummask, else base alpha; cleared like InitSkin_DX9 when the base has no alpha and neither the mask nor the fresnel is set)
  if(num(k.$selfillum,0)){const fr=num(k.$selfillumfresnel,0);const mk=k.$selfillummask?await tex(k.$selfillummask,false).catch(()=>null):null;
-  if(mk||fr||(P.map&&P.map.userData.alpha)){P.si=1;P.siTint=vec(k.$selfillumtint,[1,1,1]);if(mk)P.siMask=mk;if(fr)P.siFres=vec(k.$selfillumfresnelminmaxexp,[0,1,1])}}
+  // the shaders have no combo of $blendtintbybasealpha with $selfillum (both read the base alpha): a glowing item is tinted as a whole (Ivan the Inedible)
+  if(mk||fr||(P.map&&P.map.userData.alpha)){P.si=1;P.tintA=0;P.siTint=vec(k.$selfillumtint,[1,1,1]);if(mk)P.siMask=mk;if(fr)P.siFres=vec(k.$selfillumfresnelminmaxexp,[0,1,1])}}
  {const X=xform(k.$basetexturetransform);if(X)P.xf=X}
  proxies(k,P);
  const lw=k.$lightwarptexture;if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
   if(KNOWNWARP.has(n))P.warp=n;else{const t=await tex(lw,false,256);if(t&&window.ZWARPSET){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;ZWARPSET('live_'+n,t);P.warp='live_'+n}else P.warp='weapon'}}
  else P.warp='weapon';
+ // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
+ if(k.$phongwarptexture){const t=await tex(k.$phongwarptexture,false,256).catch(()=>null);if(t){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;P.pwarp=t}}
  // $envmap (+ $envmaptint, masks): the cubemap read from the install, like the game samples it for these props
  // WantsSkinShader: phong with a lightwarp, a base-alpha phong mask or a bump map is drawn by the skin shader (its envmap mask is the base
  // alpha unless $normalmapalphaenvmapmask); everything else by vertexlit_and_unlit_generic ($envmapmask texture, 1 - base alpha for

@@ -773,8 +773,8 @@ function availOf(id){
   if ((RAW.unused || {})[id]) return 'unused';   // in the game files, never given out
   if (it.expired) return 'expired';
   if (it.rare) return 'rare';
-  const cq = CODEQ[id];   // the quality whose copies came from promo codes
-  if (cq && (S.quality ? cq === S.quality : !(RAW.force_limited || {})[id])) return (RAW.code_unreleased || {})[id] ? 'unused' : 'code';   // a code whose product never came out
+  const cq = CODEQ[id];   // the quality whose copies came from promo codes (a Limited one, like the Sam & Max items, is listed under Promo code too)
+  if (cq && (S.quality ? cq === S.quality : (S.avail === 'code' || !(RAW.force_limited || {})[id]))) return (RAW.code_unreleased || {})[id] ? 'unused' : 'code';   // a code whose product never came out
   if (it.unob) return CODEONLY.has(id) ? 'code' : 'unob';
   return LIMITED.has(id) ? 'limited' : 'ob';
 }
