@@ -313,7 +313,9 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    else if(as){const nm='stand_'+as,bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});ZLIVE.seq(c,nm,bs).then(cl=>{if(!cl)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=cl.tracks.every(t=>t.times.length<=2)}
      if(m._wbase&&m._wbase.key===key){m._wbase.anim=nm;const a=zIdle(m);if(m.st0.idle!==a&&!/^(taunt|live:)/.test(m.cn||'')){m.st0.idle=a;m.play(a)}}}).catch(e=>console.warn('[ZLIVE] anim',nm,e))}}
   m._wbase={slot,key,bk:bkey,stock:isStock,anim:an0,c,lname};const anim=zIdle(m);
-  if(m.st0.idle!==anim){m.st0.idle=anim;if(!m._tforce)m.play(anim)}
+  // running, crouched or a spun-up minigun keep their stance through a redress (a team change): KCTL picks it for the new weapon
+  if(m._mv&&(m._mv.run||m._mv.crouch)||m._spin){if(!m._tforce)setTimeout(()=>KCTL.refresh(c),0)}
+  else if(m.st0.idle!==anim){m.st0.idle=anim;if(!m._tforce)m.play(anim)}
   const fest=/(^|\s)festivized\s/i.test(String(name||''))&&FEST[key];const wk=key+(fest?'#fest':'');
   if(m.wname===wk)return;m.wname=wk;
   const wdrop=()=>{if(m.wmx){m.wmx.stopAllAction();m.wmx=null}if(m.wmesh){m.wmesh.forEach(x=>x.parent&&x.parent.remove(x));(m.wextra||[]).forEach(b=>b.parent&&b.parent.remove(b));m.wmesh=null}};
@@ -623,7 +625,13 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   if(!GL){play(G0);sound(F.reload.urls);return}
   let d=G0?play(G0):0;for(let i=0;i<F.reload.clip;i++){await wait(d);if(!ok())return;d=play(GL);sound(F.reload.urls)}await wait(d);if(ok()&&GE)play(GE)}
  async function taunt(c){fireUp(true);const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
-  const sp=await ZLIVE.weaponTaunt(c,wn);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);const key='live:@scene:'+sp;
+  // full Halloween costume sets (CTFPlayer::ModifyOrAppendCriteria, held weapon without special_taunt): the Tin Soldier, the Highland
+  // Hound and the FrankenHeavy taunt their own way; the Brundle Bundle's set bonus special_dsp 134 is the Engineer's fly voice
+  const worn=new Set((m.cmesh||[]).map(r=>{const n=r&&r.key?String(r.key).split(':').slice(3).join(':'):'';const e=n&&ZLIVE.entry(n);return e?String(e.r.name||'').toLowerCase():''}));
+  const full=L=>L.every(x=>worn.has(x.toLowerCase())),crit={};
+  if(!(await ZLIVE.specialTaunt(wn).catch(()=>false))){if(c=='Soldier'&&full(['Idiot Box','Steel Pipes','Shoestring Budget']))crit.IsRobotCostume='1';else if(c=='Demoman'&&full(['Hair of the Dog','Scottish Snarl','Pickled Paws']))crit.IsDemowolf='1';else if(c=='Heavy'&&full(['Can Opener','Soviet Stitch-Up','Steel-Toed Stompers']))crit.IsFrankenHeavy='1'}
+  m._dsp=c=='Engineer'&&full(['Buzz Killer','Frontier Flyboy','Legend of Bugfoot'])?134:0;
+  const sp=await ZLIVE.weaponTaunt(c,wn,crit);if(!sp||M[c]!==m||busy(m))return false;m._mv={run:false,crouch:false};m.st0.idle=zIdle(m);const key='live:@scene:'+sp;
   // the Rainblower (a flamethrower in TF_FLAMETHROWER_MODE_RAINBOW, set_weapon_mode 3) is swapped for the bubble wand while it taunts
   // (CTFFlameThrower::GetWorldModelIndex)
   {const wnd=await ZLIVE.tauntWeaponModel(wn).catch(()=>null);if(M[c]!==m||busy(m))return false;if(wnd){(m._ltp||(m._ltp={}))[key]=wnd;m._wtHide=key}else if(m._ltp&&m._ltp[key]&&m._wtHide===key){delete m._ltp[key];m._wtHide=null}}
@@ -761,6 +769,19 @@ function visemes(R,v,t){const h=R.h,g=R.g,V=h.vfe,P=v.ph;const dt0=.08,len=P.len
 // taunt sounds ship packed into per-class banks (appended to models/face/<class|common>.bin.wasm, offsets in scenes.json) and are cut into blob URLs on demand
 const BANK={},URL_={};const bank=b=>BANK[b]||(BANK[b]=buf(b));
 async function prep(k,SND){if(URL_[k])return;const e=SND&&SND[k];if(!e)return;const buf=await bank(e[0]);if(!buf)return;URL_[k]=URL.createObjectURL(new Blob([new Uint8Array(buf,e[1],e[2])],{type:'audio/mpeg'}))}
+// DSP preset 134 (scripts/dsp_presets.txt, "ENGINEER FLY"): AMP gain 8 with distortion mix .8, AMP .65, a saw-wave chorus (5 Hz, depth 1,
+// mix .9) and a pitch shift of 2.4 over 20 ms slices with 20 ms crossfades. Worked out here on the decoded line, in the same order;
+// the distortion and chorus shapes are approximations of the engine's processors
+const DSPP={};function dspPrep(k,n){const kk=k+'#dsp'+n;if(URL_[kk]||DSPP[kk])return DSPP[kk]||Promise.resolve();if(n!==134||!URL_[k])return Promise.resolve();
+ return DSPP[kk]=(async()=>{try{const ab=await (await fetch(URL_[k])).arrayBuffer();const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;const ctx=new AC(1,1,44100);const B=await ctx.decodeAudioData(ab);
+  const sr=B.sampleRate,N=B.length,x=new Float32Array(N);for(let ch=0;ch<B.numberOfChannels;ch++){const d=B.getChannelData(ch);for(let i=0;i<N;i++)x[i]+=d[i]/B.numberOfChannels}
+  const a=new Float32Array(N);for(let i=0;i<N;i++){const g=x[i]*8;a[i]=(.2*g+.8*Math.tanh(g))*.65}
+  const c=new Float32Array(N),D=Math.round(sr*.005);for(let i=0;i<N;i++){const ph=(i*5/sr)%1,d=1+ph*D,j=i-d,j0=Math.floor(j),f=j-j0;const s=j0>=0&&j0+1<N?a[j0]*(1-f)+a[j0+1]*f:0;c[i]=.1*a[i]+.9*s}
+  const y=new Float32Array(N),G=Math.round(sr*.02),H=G;const w=new Float32Array(2*G);for(let i=0;i<2*G;i++)w[i]=.5-.5*Math.cos(Math.PI*i/G);
+  for(let o=0;o<N;o+=H){const src=o;for(let i=0;i<2*G&&o+i<N;i++){const j=src+i*2.4,j0=Math.floor(j),f=j-j0;if(j0+1>=N)break;y[o+i]+=(c[j0]*(1-f)+c[j0+1]*f)*w[i]}}
+  let mx=0;for(let i=0;i<N;i++)mx=Math.max(mx,Math.abs(y[i]));const sc=mx>.99?.99/mx:1;
+  const buf=new ArrayBuffer(44+N*2),v=new DataView(buf),ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};ws(0,'RIFF');v.setUint32(4,36+N*2,true);ws(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,N*2,true);
+  for(let i=0;i<N;i++)v.setInt16(44+i*2,Math.max(-32768,Math.min(32767,Math.round(y[i]*sc*32767))),true);URL_[kk]=URL.createObjectURL(new Blob([buf],{type:'audio/wav'}))}catch(e){console.warn('[ZFACE] dsp',e)}})()}
 function audio(k){const a=new Audio(URL_[k]||'');a.preload='auto';return a}
 // the page's Settings > Sound volume (0 when its sounds are switched off)
 const zv=()=>{try{return window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){return 1}};
@@ -774,7 +795,8 @@ async function start(c,m,clip,action){killAll();const tok=TOK;const k=c=='Demoma
  if(tok!==TOK)return;stopScene(R,false);const sc=S[k]&&S[k][clip];if(!sc||m.cn!==clip)return;
  const seqs=sc.ev.filter(e=>e.t=='seq');const dur=action.getClip().duration;
  let seq=seqs.find(e=>(e.n||'').toLowerCase()==clip)||seqs[0];let off=0,scale=1;if(seq){off=seq.s;const sd=seq.e-seq.s;if(Math.abs(sd-dur)/dur>.04&&!(seqs.length>1&&seq.n.toLowerCase()==clip))scale=sd/dur}
- const need=[];sc.ev.forEach(e=>{if(e.t=='speak')e.w.forEach(w=>need.push(w.k))});if(sc.mu)need.push(sc.mu.k);await Promise.all(need.map(x=>prep(x,J.snd)));if(tok!==TOK||m.cn!==clip||!action.isRunning())return;
+ const need=[];sc.ev.forEach(e=>{if(e.t=='speak')e.w.forEach(w=>need.push(w.k))});if(sc.mu)need.push(sc.mu.k);await Promise.all(need.map(x=>prep(x,J.snd)));
+ if(m._dsp)await Promise.all(sc.ev.filter(e=>e.t=='speak').flatMap(e=>e.w.map(w=>dspPrep(w.k,m._dsp))));if(tok!==TOK||m.cn!==clip||!action.isRunning())return;
  const end=Math.max(...sc.ev.map(e=>e.e));
  const Sx={clip,sc:Object.assign({dur:end},sc),action,off,scale,started:new Set(),voices:[],music:null};
  if(sc.mu){const a=audio(sc.mu.k);a.volume=Math.min(1,sc.mu.v*.42)*zv();a.loop=true;a.play().catch(()=>{});Sx.music=a}
@@ -784,7 +806,7 @@ function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.
  const sc=R.scene;let st=0;if(sc){st=sc.off+sc.action.time*sc.scale;
   // a held taunt's loop jumped back: what starts inside the loop plays again
   if(sc.lst!=null&&st<sc.lst-.05)[...sc.started].forEach(i=>{if(sc.sc.ev[i].s>=st)sc.started.delete(i)});sc.lst=st;
-  sc.sc.ev.forEach((e,i)=>{if(e.t!='speak'||sc.started.has(i)||st<e.s)return;sc.started.add(i);if(st>e.e)return;const w=e.w[(Math.random()*e.w.length)|0];const a=audio(w.k);a.volume=Math.min(1,(e.v||1)*.75)*zv();
+  sc.sc.ev.forEach((e,i)=>{if(e.t!='speak'||sc.started.has(i)||st<e.s)return;sc.started.add(i);if(st>e.e)return;const w=e.w[(Math.random()*e.w.length)|0];const a=audio(m._dsp&&URL_[w.k+'#dsp'+m._dsp]?w.k+'#dsp'+m._dsp:w.k);a.volume=Math.min(1,(e.v||1)*.75)*zv();
    // Voices From Below (halloween_voice_modulation, C_TFPlayer::ClientAdjustVOPitch): pitch *= 0.8 - Source pitch is playback rate,
    // so the line plays slower and deeper; on here while a Voodoo-Cursed Soul is worn. Lip sync follows the audio clock, so it stays matched.
    const vfb=!!m.zskin;if(vfb){a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false;a.playbackRate=.8}
@@ -1498,7 +1520,9 @@ async function seqClip(c,names,clipName,boneSet,P){for(const p of await animMdls
 // one sequence of a model as a THREE clip on its bone names (root bones turned into the merc's frame, as the player's own are)
 async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)return null;const ani=await aniOf(b);let A=decodeAnim(b,ai,ani);
    // a delta / all-zeros placeholder: the motion lives in its layer (an autolayer, or a "layer_" sequence tried next)
-   if(A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;A=L}
+   // the layer runs on the sequence's own clock (an autolayer's cycle is the sequence's), not its own frame rate: the Pyro's taunt02
+   // layer has 86 frames at 46 fps but plays over the sequence's 106 frames at 30
+   if(A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L}
    const F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}if(!F.length)return null;
    const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
    const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];const q=new THREE.Quaternion(),v=new THREE.Vector3();
@@ -1687,11 +1711,12 @@ async function tauntSound(names){for(const n of names){const e=entry(n);if(!e)co
   for(const k in B){const x=B[k];if(!x||typeof x!='object'||String(x.attribute_class||'').toLowerCase()!='cosmetic_taunt_sound'||!x.value)continue;const s=String(x.value);const W=/\.(wav|mp3)$/i.test(s)?[s]:await waves(s);const o=[];for(const f of W){const u=await audioURL(f);if(u)o.push(u)}if(o.length)return o}}}return null}
 async function tauntWeaponModel(wname){const e=entry(wname);if(!e)return null;const ic=String(e.r.item_class||'').toLowerCase();if(!ic.startsWith('tf_weapon_flamethrower'))return null;
  for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='set_weapon_mode'&&+x.value==3)return 'models/player/items/pyro/mtp_bubble_wand.mdl'}}return null}
-async function weaponTaunt(cl,wname){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();
+async function specialTaunt(wname){const e=entry(wname);if(!e)return false;for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const x=B[n];if(x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()=='special_taunt'&&+x.value)return true}}return false}
+async function weaponTaunt(cl,wname,extra){const c=clsKey(cl);const e=entry(wname);if(!e)return null;const R=await rrules();
  const ic=String(e.r.item_class||'').toLowerCase();// a weapon that teleports its owner home (the Eureka Effect: alt_fire_teleport_to_spawn) taunts with TLK_TAUNT_EUREKA_EFFECT, as CTFPlayer::Taunt does
  const has=a=>['attributes','static_attrs'].some(k=>{const B=e.r[k];return B&&typeof B=='object'&&Object.values(B).some(x=>x&&typeof x=='object'&&String(x.attribute_class||'').toLowerCase()==a&&+x.value)});
  const concept=has('alt_fire_teleport_to_spawn')?'TLK_TAUNT_EUREKA_EFFECT':'TLK_PLAYER_TAUNT';
- const ctx={concept,playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
+ const ctx={...Object.fromEntries(Object.entries(extra||{}).map(([k,v])=>[k.toLowerCase(),v])),concept,playerclass:{demoman:'Demoman',heavy:'Heavy'}[c]||c[0].toUpperCase()+c.slice(1),
   playerweapon:(WTRANS[ic]&&WTRANS[ic][c])||ic,item_name:e.r.name,item_type_name:e.r.item_type_name};
  let best=null,bs=-1;for(const r of R.rules){let sc=0,ok=true,taunt=false;for(const n of r.crit){const C=R.crit[n];if(!C){ok=false;break}if(C.key=='concept'&&String(C.val).toUpperCase()==concept)taunt=true;
    if(ccmp(ctx[C.key],C.val))sc+=C.w;else if(C.req){ok=false;break}}
@@ -1809,7 +1834,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

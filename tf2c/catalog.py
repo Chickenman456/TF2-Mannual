@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 37
+CATALOG_VERSION = 38
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -781,6 +781,9 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
                 txt = L(ds).replace("%s1", ("%g" % round(v, 2)))
                 if txt and not txt.startswith("#"):
                     bonus.append(txt.replace("\\n", " ").strip())
+            note = (cur.get("set_bonus_notes") or {}).get(sk)
+            if note:
+                bonus.append(note)
             sets.append({"id": sk, "n": L(sv.get("name") or sk), "i": members, "b": 1 if bonus else 0, "bt": "; ".join(bonus)})
 
     return {"built": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "imgs": list(imgs), "items": items,

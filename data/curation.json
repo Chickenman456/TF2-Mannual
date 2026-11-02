@@ -270,11 +270,13 @@
   "sets": {
    "30990,30991,30767": "Wipe Out Wraps, Blizzard Britches, Airdog",
    "30123,30125,30132": "Harmburg, Rogue's Brogues, Blood Banker",
-   "738,739,741,745,746": "Balloonicorn, Lollichop, Rainblower, Infernal Orchestrina, Burning Bongos (Pyroland)"
+   "738,739,741,745,746": "Balloonicorn, Lollichop, Rainblower, Infernal Orchestrina, Burning Bongos (Pyroland)",
+   "31398,31409": "Six-Eyed Specs, Spyder"
   },
   "not_sets": {
    "31597,31598": "Black Tie Affair, Aristocravat",
-   "31614,31615": "Unknown Warrior, Tropical Torcher"
+   "31614,31615": "Unknown Warrior, Tropical Torcher",
+   "30007,30009": "Base Metal Billycock, Megapixel Beard"
   },
   "not_in_sets": {
    "30097": "Das Übersternmann"
@@ -285,5 +287,13 @@
    "575,31388": "Infernal Impaler + Warlock's Warcloak",
    "648,652,653,31258": "Wrap Assassin, Big Elfin Deal, Bootie Time + Seasonal Employee"
   }
+ },
+ "set_bonus_notes": {
+  "_about": "Set bonuses the item schema gives no description for, or that live in the game's code (CTFPlayer::ModifyOrAppendCriteria): shown with the set.",
+  "engineer_halloween_2011": "The Engineer's voice turns into a fly's (set bonus: special DSP 134)",
+  "heavy_halloween_2011": "A special FrankenHeavy taunt, during Halloween or a full moon",
+  "soldier_halloween_2011": "A special robot taunt, during Halloween or a full moon",
+  "demo_halloween_2011": "A special werewolf howl taunt, during Halloween or a full moon",
+  "heavy_fairy": "Special Grand Duchess voice lines, during Halloween, a full moon or Valentine's Day"
  }
 }
