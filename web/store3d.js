@@ -1115,12 +1115,12 @@ function dxt(src,o0,w,h,fmt){const out=new Uint8Array(w*h*4);const bw=Math.max(1
   const idx=src[ca+4]|src[ca+5]<<8|src[ca+6]<<16|src[ca+7]<<24;
   for(let k=0;k<16;k++){const x=bx*4+(k&3),y=by*4+(k>>2);if(x>=w||y>=h)continue;const ci=(idx>>>(2*k))&3,d=(y*w+x)*4;out[d]=C[ci*4];out[d+1]=C[ci*4+1];out[d+2]=C[ci*4+2];out[d+3]=fmt==13||fmt==20?C[ci*4+3]:A[k]}
   o+=bs}return out}
-function vtf(b,maxDim,face,frame){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);if(dv.getUint32(0,true)!==0x00465456)throw new Error('not a VTF');
+function vtf(b,maxDim,face,frame,lev){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);if(dv.getUint32(0,true)!==0x00465456)throw new Error('not a VTF');
  const v1=dv.getUint32(8,true),hs=dv.getUint32(12,true),W=dv.getUint16(16,true),H=dv.getUint16(18,true),flags=dv.getUint32(20,true),frames=dv.getUint16(24,true)||1;
  const fmt=dv.getInt32(52,true),mips=b[56],lfmt=dv.getInt32(57,true),lw=b[61],lh=b[62];const depth=v1>=2?(dv.getUint16(63,true)||1):1;const faces=(flags&0x4000)?(v1<5?7:6):1;
  let off=hs+(lfmt>=0&&lw?mipBytes(lfmt,lw,lh):0);
  if(v1>=3){const nr=dv.getUint32(68,true);for(let i=0;i<nr;i++){const tag=b[80+i*8]|b[81+i*8]<<8|b[82+i*8]<<16;if(tag===0x30)off=dv.getUint32(84+i*8,true)}}
- let L=0;while(L<mips-1&&Math.max(W>>L,H>>L)>(maxDim||1024))L++;
+ let L=0;while(L<mips-1&&Math.max(W>>L,H>>L)>(maxDim||1024))L++;if(lev!=null)L=Math.max(L,Math.min(mips-1,lev));
  // mips are stored smallest first; each holds frames x faces x slices
  let o=off;for(let m=mips-1;m>L;m--)o+=mipBytes(fmt,Math.max(1,W>>m),Math.max(1,H>>m))*frames*faces*depth;
  const w=Math.max(1,W>>L),h=Math.max(1,H>>L);if(face)o+=face*mipBytes(fmt,w,h);if(frame)o+=frame*faces*depth*mipBytes(fmt,w,h);let px;
@@ -1144,11 +1144,21 @@ function vtf(b,maxDim,face,frame){const dv=new DataView(b.buffer,b.byteOffset,b.
    case 21:case 18:{const c=s[p]|s[p+1]<<8;px[d+2]=(c&31)*255/31|0;px[d+1]=((c>>5)&31)*255/31|0;px[d]=((c>>10)&31)*255/31|0;px[d+3]=fmt==21?(c>>15)*255:255;p+=2;break}
    case 24:{const h=k=>{const x=s[p+k]|s[p+k+1]<<8;const e=(x>>10)&31,m=x&1023;const v=e===0?m/16777216:(1+m/1024)*Math.pow(2,e-15);return Math.min(255,Math.max(0,v)*255+.5)|0};px[d]=h(0);px[d+1]=h(2);px[d+2]=h(4);px[d+3]=255;p+=8;break}
    default:throw new Error('VTF format '+fmt)}}}
- return{w,h,px,flags,faces,frames}}
+ return{w,h,px,flags,faces,frames,mips,L}}
 async function tex(path,srgb,maxDim){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T=vtf(b,maxDim);
   const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;
   t.wrapS=(T.flags&4)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.wrapT=(T.flags&8)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.anisotropy=8;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.vtf=p;t.userData.alpha=!!(T.flags&0x3000);return t})()}
+// the VTF's own mip chain uploaded as is (particle sprites): regenerated mips average the transparent texels' colour (often black) into
+// the edges, a dark rim the game's authored mips don't have; a VTF without mips is sampled without them
+async function texMips(path,srgb){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|mips|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
+ return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T=vtf(b);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.magFilter=THREE.LinearFilter;
+  if(T.mips>1&&!(T.flags&0x100)){const M=[{data:T.px,width:T.w,height:T.h}];for(let l=T.L+1;l<T.mips;l++){const U=vtf(b,0,0,0,l);M.push({data:U.px,width:U.w,height:U.h});if(U.w===1&&U.h===1)break}
+   // WebGL1 needs the chain down to 1x1
+   while(M[M.length-1].width>1||M[M.length-1].height>1){const P=M[M.length-1],w=Math.max(1,P.width>>1),h=Math.max(1,P.height>>1),d=new Uint8Array(w*h*4);for(let y=0;y<h;y++)for(let x=0;x<w;x++)for(let c=0;c<4;c++)d[(y*w+x)*4+c]=P.data[(Math.min(P.height-1,y*2)*P.width+Math.min(P.width-1,x*2))*4+c];M.push({data:d,width:w,height:h})}
+   t.mipmaps=M;t.generateMipmaps=false;t.minFilter=THREE.LinearMipmapLinearFilter}
+  else{t.generateMipmaps=false;t.minFilter=THREE.LinearFilter}
+  t.wrapS=(T.flags&4)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.wrapT=(T.flags&8)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.vtf=p;return t})()}
 // AnimatedTexture: every frame of the VTF stacked top to bottom in one texture (the shader picks the frame: (fract(v)+frame)/frames)
 async function texStrip(path,srgb,maxDim){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|strip|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T0=vtf(b,maxDim||512);const n=Math.min(T0.frames||1,32);if(n<2)return null;
@@ -1835,7 +1845,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex};
+window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

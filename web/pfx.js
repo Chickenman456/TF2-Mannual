@@ -126,7 +126,7 @@
       const num = (k, d) => { const x = parseFloat(String(kv[k] == null ? '' : kv[k]).replace(/[\[\]{}"]/g, '')); return isNaN(x) ? d : x; };
       const bt = kv.$basetexture; if (!bt) return null;
       const tp = String(bt).toLowerCase().replace(/\\/g, '/').replace(/\.vtf$/, '');
-      const [tex, raw] = await Promise.all([L()._tex(tp, false).catch(() => null), L()._read('materials/' + tp + '.vtf').catch(() => null)]);
+      const [tex, raw] = await Promise.all([(L()._texm ? L()._texm(tp, false) : L()._tex(tp, false)).catch(() => null), L()._read('materials/' + tp + '.vtf').catch(() => null)]);
       if (!tex) return null;
       tex.encoding = THREE.LinearEncoding; tex.needsUpdate = true;
       return { tex, sheet: raw ? sheetOf(raw) : null, add: num('$additive', 0) > 0, self: num('$addself', 0), aob: num('$addoverblend', 0) > 0, ob: num('$overbrightfactor', 1), blend: num('$blendframes', 1) > 0,
