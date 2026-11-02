@@ -76,20 +76,26 @@
     const out = []; for (let n = dv.getInt32(i, true), _ = (i += 4); n--;) { const t = S[dv.getUint16(i, true)]; i += 2; const nm = cs(); i += 16; if (t === 'DmeParticleSystemDefinition') out.push(nm); }
     return out;
   }
-  async function index() {
-    if (INDEX) return INDEX;
+  let FRESH = false;
+  async function index(force) {
+    if (INDEX && !force) return INDEX;
     const files = await fileList(), st = L()._st, E = st.vpk.tf2_misc.E;
     const sig = 'zpfx1|' + files.length + '|' + files.reduce((a, f) => a + ((E.get(f) || {}).len || 0), 0);
-    try { const c = JSON.parse(localStorage.getItem('zpfx-index') || 'null'); if (c && c.sig === sig) return INDEX = c.map; } catch (e) {}
-    const names = await Promise.all(files.map(async f => { try { const b = await L()._read(f); return b ? headerNames(b) : []; } catch (e) { return []; } }));
+    if (!force) try { const c = JSON.parse(localStorage.getItem('zpfx-index') || 'null'); if (c && c.sig === sig) return INDEX = c.map; } catch (e) {}
+    // a file that couldn't be read leaves its systems out: such an index isn't kept, so the next visit reads it again
+    let bad = 0;
+    const names = await Promise.all(files.map(async f => { try { const b = await L()._read(f); if (!b) { bad++; return []; } return headerNames(b); } catch (e) { bad++; return []; } }));
     const map = {}; files.forEach((f, k) => { for (const n of names[k]) if (!(n in map)) map[n] = f; });   // the first file in load order wins, as in the game
     INDEX = map;
-    try { localStorage.setItem('zpfx-index', JSON.stringify({sig, map})); } catch (e) {}
+    if (!bad) try { localStorage.setItem('zpfx-index', JSON.stringify({sig, map})); } catch (e) {} else try { localStorage.removeItem('zpfx-index'); } catch (e) {}
+    FRESH = true;
     return map;
   }
   async function find(name) {
     if (DEFS.has(name)) return DEFS.get(name);
-    const ix = await index(); const f = ix[name];
+    let ix = await index(); let f = ix[name];
+    // not in a kept index (made before a TF2 update added it, or while a file couldn't be read): read the files' names again, once
+    if (!f && !FRESH) { ix = await index(true); f = ix[name]; }
     if (f) await readFile(f);
     return DEFS.get(name) || null;
   }
@@ -205,13 +211,23 @@
 
   // ---------- initializers ----------
   const INIT = {
+    // C_INIT_RemapCPtoVector: a control point's position, each axis remapped (clamped) from the input range to the output range, into the
+    // particle's colour (field 6) or position (field 0). The Helix's colour cycles this way, from a particle it moves around for the purpose
+    'Remap Control Point to Vector': (S, p, o) => {
+      const c = cpAt(S, P(o, 'input control point number', 0)).p, a = P(o, 'input minimum', [0, 0, 0]), b = P(o, 'input maximum', [1, 1, 1]), m = P(o, 'output minimum', [0, 0, 0]), M = P(o, 'output maximum', [1, 1, 1]);
+      const v = [c.x, c.y, c.z].map((x, i) => m[i] + (M[i] - m[i]) * clamp(b[i] === a[i] ? 0 : (x - a[i]) / (b[i] - a[i]), 0, 1)), f = P(o, 'output field', 0);
+      if (f === 6) { p.c0 = v.slice(); p.c = v.slice(); }
+      else if (f === 0) { if (P(o, 'offset position', 0)) { p.x += v[0]; p.y += v[1]; p.z += v[2]; } else { p.x = v[0]; p.y = v[1]; p.z = v[2]; } }
+    },
     'Lifetime Random': (S, p, o) => { p.life = R(P(o, 'lifetime_min', 1), P(o, 'lifetime_max', 1), P(o, 'lifetime_random_exponent', 1)); },
     'Radius Random': (S, p, o) => { p.r0 = p.r = R(P(o, 'radius_min', 1), P(o, 'radius_max', 1), P(o, 'radius_random_exponent', 1)); },
     'Color Random': (S, p, o) => { const a = P(o, 'color1', [255, 255, 255, 255]), b = P(o, 'color2', a), k = Math.random(); p.c0 = [0, 1, 2].map(i => (a[i] + (b[i] - a[i]) * k) / 255); p.c = p.c0.slice(); },
     'Alpha Random': (S, p, o) => { p.a0 = p.a = R(P(o, 'alpha_min', 255), P(o, 'alpha_max', 255), P(o, 'alpha_random_exponent', 1)) / 255; },
     'Position Within Sphere Random': (S, p, o) => {
       const c = cpAt(S, P(o, 'control_point_number', 0)); const bi = P(o, 'distance_bias', [1, 1, 1]), ab = P(o, 'distance_bias_absolute_value', [0, 0, 0]);
-      let d = randDir(); d = v3(d.x * bi[0], d.y * bi[1], d.z * bi[2]); if (ab[0]) d.x = Math.abs(d.x); if (ab[1]) d.y = Math.abs(d.y); if (ab[2]) d.z = Math.abs(d.z);
+      // the direction is biased per axis and then made unit length again (a [1, 1, 0] bias is a flat ring at the full distance)
+      let d = randDir(); if (ab[0]) d.x = Math.abs(d.x); if (ab[1]) d.y = Math.abs(d.y); if (ab[2]) d.z = Math.abs(d.z); d = v3(d.x * bi[0], d.y * bi[1], d.z * bi[2]);
+      { const l = Math.hypot(d.x, d.y, d.z); d = l > 1e-6 ? v3(d.x / l, d.y / l, d.z / l) : v3(0, 0, 1); }
       if (P(o, 'bias in local system', 0)) d = toWorld(c, [d.x, d.y, d.z]);
       const r = R(P(o, 'distance_min', 0), P(o, 'distance_max', 0));
       if (P(o, 'create in model', 0)) { const q = S.fx.modelPoint(); p.x = q.x; p.y = q.y; p.z = q.z; } else { p.x = c.p.x + d.x * r; p.y = c.p.y + d.y * r; p.z = c.p.z + d.z * r; }
@@ -297,7 +313,7 @@
     'Rotation Spin Roll': (S, p, o, dt) => { let r = P(o, 'spin_rate_degrees', 0); const st = P(o, 'spin_stop_time', 0); if (st > 0) r += (P(o, 'spin_rate_min', 0) - r) * clamp(p.age / st, 0, 1); p.rot += r * D2R * dt; },
     'Rotation Spin Yaw': (S, p, o, dt) => { let r = P(o, 'yaw_rate_degrees', P(o, 'spin_rate_degrees', 0)); p.yaw += r * D2R * dt; },
     'Rotation Basic': (S, p, o, dt) => { p.rot += p.rs * dt; },
-    'Movement Max Velocity': (S, p, o) => { const m = P(o, 'Maximum velocity', 0), s = Math.hypot(p.vx, p.vy, p.vz); if (m > 0 && s > m) { const k = m / s; p.vx *= k; p.vy *= k; p.vz *= k; } },
+    'Movement Max Velocity': (S, p, o) => { const m = P(o, 'Maximum velocity', P(o, 'Maximum Velocity', 0)), s = Math.hypot(p.vx, p.vy, p.vz); if (m > 0 && s > m) { const k = m / s; p.vx *= k; p.vy *= k; p.vz *= k; } },
     'Oscillate Vector': (S, p, o, dt) => {
       const f = P(o, 'oscillation field', 0); if (!p._ov) { const a = P(o, 'oscillation rate min', [0, 0, 0]), b = P(o, 'oscillation rate max', a), fa = P(o, 'oscillation frequency min', [1, 1, 1]), fb = P(o, 'oscillation frequency max', fa); p._ov = [0, 1, 2].map(i => [R(a[i], b[i]), R(fa[i], fb[i])]); }
       const tt = P(o, 'start/end proportional', 1) ? p.age / p.life : p.age, t0 = P(o, 'start time min', 0), t1 = P(o, 'end time max', 1); if (tt < t0 || tt > t1) return;
@@ -342,7 +358,10 @@
     },
     'Set child control points from particle positions': (S, o) => { const a = P(o, 'First control point to set', 0), n = P(o, '# of control points to set', 1), f = P(o, 'first particle to copy', 0); for (let k = 0; k < n; k++) { const p = S.ps[f + k]; if (p) S.cpOut[a + k] = v3(p.x, p.y, p.z); } },
     'Set Control Point Positions': (S, o) => {
-      const base = cpAt(S, P(o, 'Control Point to offset positions from', 0)), world = P(o, 'Set positions in world space', 0);
+      // offsets from a point this operator itself moves are taken from where the game put it this frame (the item's attachment), not
+      // from last frame's result, or the point would walk away a little more every frame (unusual_helix_parent offsets control point 0 from itself)
+      const bn = P(o, 'Control Point to offset positions from', 0), mine = ['First', 'Second', 'Third', 'Fourth'].some(w => P(o, w + ' Control Point Number', -1) === bn);
+      const base = mine ? S.cpBase(bn) : cpAt(S, bn), world = P(o, 'Set positions in world space', 0);
       for (const [n, l] of [['First Control Point Number', 'First Control Point Location'], ['Second Control Point Number', 'Second Control Point Location'], ['Third Control Point Number', 'Third Control Point Location'], ['Fourth Control Point Number', 'Fourth Control Point Location']]) {
         const k = P(o, n, -1), v = P(o, l, null); if (k < 0 || !v) continue; const w = world ? v3(v[0], v[1], v[2]) : toWorld(base, v); S.cpSet[k] = v3(base.p.x * (world ? 0 : 1) + w.x, base.p.y * (world ? 0 : 1) + w.y, base.p.z * (world ? 0 : 1) + w.z);
       }
@@ -371,7 +390,10 @@
       this.mb = (def.operators || []).find(o => o && o.functionName === 'Movement Basic');
       this.kids = (def.children || []).filter(c => c && c.child).map(c => new Sys(fx, c.child, this, (c.delay || 0)));
       this.ops = (def.operators || []).filter(o => o && (OPS[o.functionName] || SYSOPS[o.functionName]));
-      this.inits = (def.initializers || []).filter(o => o && INIT[o.functionName]);
+      // a position offset applies to wherever the particle was created, whichever of the two the file lists first (the Helix's spawners list the
+      // offset that puts them on their circle before the zero-radius sphere that creates them)
+      const POS = /^Position (Within|From Parent|on Model)|^Position Along/;
+      this.inits = (def.initializers || []).filter(o => o && INIT[o.functionName]).map((o, i) => [o, i]).sort((x, y) => ((x[0].functionName === 'Position Modify Offset Random') - (y[0].functionName === 'Position Modify Offset Random')) * (this.hasPos ??= (def.initializers || []).some(q => q && POS.test(q.functionName)) ? 1 : 0) || x[1] - y[1]).map(x => x[0]);
       this.forces = (def.forces || []).filter(o => o && FORCE[o.functionName]);
       this.cons = (def.constraints || []).filter(o => o && CONS[o.functionName]);
       this.init0 = (def.initial_particles | 0);
@@ -461,16 +483,28 @@
       const sorted = S.ps.slice().sort((a, b) => a.id - b.id), N = sorted.length;
       const th = (S.mat.tex && S.mat.tex.image && S.mat.tex.image.height) || 256, ts = Math.max(1e-4, P(S.rend, 'texel_size', 1)), scroll = P(S.rend, 'texture_scroll_rate', 0);
       const cr = (a, b, c, d, u) => .5 * ((2 * b) + (c - a) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (3 * b - a - 3 * c + d) * u * u * u);
-      const at = (i, u) => { const a = sorted[Math.max(0, i - 1)], b = sorted[i], c = sorted[Math.min(N - 1, i + 1)], d = sorted[Math.min(N - 1, i + 2)];
+      // the neighbours past either end are extrapolated (2b - c), as tf2-workbench's rope (getgrenade) does
+      const nb = (i) => i >= 0 && i < N ? sorted[i] : null;
+      const at = (i, u) => { const b = sorted[i], c = sorted[Math.min(N - 1, i + 1)], a = nb(i - 1) || { x: 2 * b.x - c.x, y: 2 * b.y - c.y, z: 2 * b.z - c.z }, d = nb(i + 2) || { x: 2 * c.x - b.x, y: 2 * c.y - b.y, z: 2 * c.z - b.z };
         return { x: cr(a.x, b.x, c.x, d.x, u), y: cr(a.y, b.y, c.y, d.y, u), z: cr(a.z, b.z, c.z, d.z, u), r: b.r + (c.r - b.r) * u, a: b.a + (c.a - b.a) * u, c: [0, 1, 2].map(k => b.c[k] + (c.c[k] - b.c[k]) * u) }; };
-      let len = 0, prev = N ? at(0, 0) : null; const off = -scroll * S.t;
-      for (let i = 0; i + 1 < N && n < S.dr.N; i++) for (let s = 0; s < sub && n < S.dr.N; s++) {
-        const p = s ? prev : at(i, 0), q = at(i, (s + 1) / sub); const A = W(p, TMP.a), E = W(q, TMP.b);
-        const seg = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z), l0 = len, l1 = len + seg; len = l1; prev = q;
-        TMP.c.copy(E).sub(A); if (TMP.c.lengthSq() < 1e-12) continue; TMP.d.copy(A).sub(cam.position); const sd = TMP.d.cross(TMP.c).normalize();
-        const r0 = p.r * scale, r1 = q.r * scale, v0 = (l0 / ts + off) / th, v1 = (l1 / ts + off) / th;
-        put([A.x + sd.x * r0, A.y + sd.y * r0, A.z + sd.z * r0, E.x + sd.x * r1, E.y + sd.y * r1, E.z + sd.z * r1, E.x - sd.x * r1, E.y - sd.y * r1, E.z - sd.z * r1, A.x - sd.x * r0, A.y - sd.y * r0, A.z - sd.z * r0],
-          [[v1, 1, v0, 0], [v1, 1, v0, 0], 0], p.c, (p.a + q.a) / 2);
+      if (N >= 2) {
+        // one joined strip: every point of the curve gets its own sideways direction (across the curve's tangent there and the view), so
+        // neighbouring spans share their edges instead of overlapping. The width is the radius (CBeamSegDraw: +/- width / 2), and the
+        // texture runs along it at one repeat every texel_size * height units, scrolling texture_scroll_rate units a second
+        const pts = []; for (let i = 0; i + 1 < N; i++) for (let s = 0; s < sub; s++) pts.push(at(i, s / sub)); pts.push(at(N - 2, 1));
+        const Wp = pts.map(q => W(q, new THREE.Vector3())), M = pts.length, side = [], vv = []; let len = 0;
+        for (let i = 0; i < M; i++) {
+          if (i) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z);
+          vv.push((len + scroll * S.t) / (ts * th));
+          TMP.c.copy(Wp[Math.min(M - 1, i + 1)]).sub(Wp[Math.max(0, i - 1)]); TMP.d.copy(Wp[i]).sub(cam.position);
+          const sd = new THREE.Vector3().crossVectors(TMP.d, TMP.c); side.push(sd.lengthSq() < 1e-12 ? null : sd.normalize());
+        }
+        for (let i = 0; i < M; i++) if (!side[i]) side[i] = side[i - 1] || side.find(Boolean) || new THREE.Vector3(1, 0, 0);
+        for (let i = 0; i + 1 < M && n < S.dr.N; i++) {
+          const A = Wp[i], E = Wp[i + 1], s0 = side[i], s1 = side[i + 1], r0 = pts[i].r * .5 * scale, r1 = pts[i + 1].r * .5 * scale, v0 = vv[i], v1 = vv[i + 1];
+          put([A.x + s0.x * r0, A.y + s0.y * r0, A.z + s0.z * r0, E.x + s1.x * r1, E.y + s1.y * r1, E.z + s1.z * r1, E.x - s1.x * r1, E.y - s1.y * r1, E.z - s1.z * r1, A.x - s0.x * r0, A.y - s0.y * r0, A.z - s0.z * r0],
+            [[v1, 1, v0, 0], [v1, 1, v0, 0], 0], pts[i].c, (pts[i].a + pts[i + 1].a) / 2);
+        }
       }
     } else for (const p of ps) {
       if (n >= S.dr.N) break; if (p.a <= 0.002 || p.r <= 0) continue;
@@ -567,7 +601,7 @@
     unkeep(key) { const fx = KEEP.get(key); KEEP.delete(key); if (fx) for (const S of fx.root.all()) dispose(S); },
     kept: () => [...KEEP.keys()],
     stop() { ZPFX._tok = (ZPFX._tok || 0) + 1; if (FX) { for (const S of FX.root.all()) dispose(S); FX = null; } },
-    active: () => !!FX, bursts: () => ZPFX._nb || 0,
+    cur: () => FX, active: () => !!FX, bursts: () => ZPFX._nb || 0,
     tick(dt, sc, cam) {
       for (const b of BURST.slice()) {
         b.acc += Math.min(dt, .1); b.age += dt;

@@ -586,11 +586,6 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
         <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
       </div>
-      <div class="tabs" role="group" aria-label="Special lists">
-        <button class="btn" type="button" data-view="craft" title="Cosmetics you can get by crafting">Craft Hats</button>
-        <button class="btn" type="button" data-view="achieve" title="Items unlocked by achievements, in TF2 or other games">Achievement Items</button>
-        <button class="btn" type="button" data-view="effects" title="Every unusual effect, and which of your items have it">Unusual Effects</button>
-      </div>
       <div class="tabs" role="group" aria-label="Yours">
         <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
         <button class="btn" type="button" data-view="wishlist"><span class="gi tabg" style="--g:url(ui/gi_star.webp)"></span> Wishlist <span id="wcount"></span></button>
@@ -610,7 +605,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
       <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
     <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
-      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option></select></div>
+      <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option><option value="craft" title="Cosmetics you can get by crafting">Craft hats</option><option value="achieve" title="Items unlocked by achievements, in TF2 or other games">Achievement items</option></select></div>
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, turn into baby bottles there, or get assists in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
@@ -634,6 +629,10 @@ button.vg:focus-visible{outline:none}
         <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
         <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools, and the expired ones (the 2013 spells, transmogrifiers, Cursed Objects)"><input type="checkbox" data-type="l"> Tools</label>
         <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
+        <label class="chk" title="Collected when any item you own has the effect"><input type="checkbox" data-type="fxcosmetic"> Unusual effects: cosmetic</label>
+        <label class="chk" title="Collected when any taunt you own has the effect"><input type="checkbox" data-type="fxtaunt"> Unusual effects: taunt</label>
+        <label class="chk" title="Collected when any weapon you own has the effect"><input type="checkbox" data-type="fxweapon"> Unusual effects: weapon</label>
+        <label class="chk" title="Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items"><input type="checkbox" data-type="fxspecial"> Unusual effects: special</label>
       </div>
       <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
         <label class="chk"><input type="checkbox" id="noresk"> Hide reskins</label>
@@ -765,6 +764,9 @@ function migrate(x){
   if (x.sort === 'year') x.sort = 'grade';
   if (x.nowp !== undefined && x.types && x.types.p === undefined){ x.types = {...x.types, p: !!(x.types && x.types.w) && !x.nowp}; delete x.nowp; }  // war paints used to ride along with weapons
   if (x.view === 'collection') x.view = 'case';
+  // Craft Hats and Achievement Items moved to Availability, and Unusual Effects to the item types
+  if (x.view === 'craft' || x.view === 'achieve'){ x.avail = x.view; x.view = 'class'; }
+  if (x.view === 'effects'){ x.view = 'class'; x.types = {fxcosmetic: true, fxtaunt: true, fxweapon: true, fxspecial: true}; }
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
@@ -800,9 +802,9 @@ function owns(id){
   const k = mk(id);
   if (S.manualMissing.includes(k)) return 0;
   let n = synced(id, qOf(id));
-  // the Achievement tab: a reward that came out as a different item in earlier years counts too
+  // Achievement items: a reward that came out as a different item in earlier years counts too
   // (the Ghostly Gibus achievement used to give the Ghastly, Ghastlier or Ghastlierest Gibus)
-  if (S.view === 'achieve') for (const v of ACHALT[id] || []) n += synced(v, qOf(id));
+  if (S.avail === 'achieve') for (const v of ACHALT[id] || []) n += synced(v, qOf(id));
   // everyone has the stock weapons: the plain copy is owned; a quality (Strange, Unusual...) still needs a real one
   return n || (S.manualOwned.includes(k) || (ITEMS[id].cat === 's' && !qOf(id)) ? 1 : 0);
 }
@@ -821,11 +823,16 @@ function availOf(id){
 const AVTAG = {unob:['UNOBTAINABLE','unob'], code:['CODE','unob code'], expired:['EXPIRED','unob exp'], limited:['LIMITED','unob lim'], unused:['UNRELEASED','unob unu'], rare:['1 OF 1','unob rare']};
 
 /* ---------------- filtering & sorting ---------------- */
-const anyType = () => Object.values(S.types).some(Boolean);   // nothing ticked = no type filter
+const anyType = () => Object.entries(S.types).some(([k, v]) => v && !k.startsWith('fx'));   // nothing ticked = no type filter
+const FX_KINDS = ['cosmetic', 'taunt', 'weapon', 'special'];
+const anyFx = () => FX_KINDS.some(k => S.types['fx' + k]);
+// unusual effects have no class, grade, quality or availability, so a filter on those leaves them out
+const fxShown = () => anyFx() && !['backpack', 'wishlist'].includes(S.view) && S.cls === '' && S.avail === 'any' && !S.quality && !S.grade && !S.itype && !S.region && !S.wslot && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
+const availIs = id => S.avail === 'craft' ? CRAFT.has(id) : S.avail === 'achieve' ? ACH.has(id) : availOf(id) === S.avail;
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
 // with Pyroland on Only these, its three groups list every type
 // expired items (the 2013 spells, transmogrifiers, Cursed Objects) sort with the tools
-const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat === 'x' ? 'l' : it.cat] : it.cat !== 'm';
+const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat === 'x' ? 'l' : it.cat] : !anyFx() && it.cat !== 'm';
 function inScope(id, anyT){
   const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
   if (S.solo && it.classes.length !== 1) return false;
@@ -850,9 +857,7 @@ function counted(id, anyT){
   if (!inScope(id, anyT)) return false;
   const q = $('#q').value.trim().toLowerCase();
   if (q && !ITEMS[id].name.toLowerCase().includes(q)) return false;
-  if (S.avail !== 'any' && availOf(id) !== S.avail) return false;
-  if (S.view === 'craft' && !CRAFT.has(id)) return false;
-  if (S.view === 'achieve' && !ACH.has(id)) return false;
+  if (S.avail !== 'any' && !availIs(id)) return false;
   return true;
 }
 function visible(id){
@@ -870,7 +875,7 @@ const SORTS = {
   copies:(a,b) => (owns(b.id) - owns(a.id)) || a.name.localeCompare(b.name),
   region:(a,b) => (!a.region - !b.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
 };
-function sortIds(ids){ const f = SORTS[(S.view === 'class' || S.view === 'craft') && S.sort === 'class' ? 'grade' : S.sort] || SORTS.grade; return ids.map(i => ITEMS[i]).sort(f).map(i => i.id); }
+function sortIds(ids){ const f = SORTS[S.view === 'class' && S.sort === 'class' ? 'grade' : S.sort] || SORTS.grade; return ids.map(i => ITEMS[i]).sort(f).map(i => i.id); }
 
 /* ---------------- rendering ---------------- */
 let ICONMAP = {};
@@ -982,7 +987,7 @@ function bpPass(r){
   if ((S.hol === 'hide' && it.holiday) || (S.hol === 'only' && !it.holiday)) return false;
   if ((S.pyro === 'hide' && it.pyro) || (S.pyro === 'only' && !it.pyro)) return false;
   if (S.cls !== '' && it.ckey !== +S.cls && !(+S.cls < 9 && it.mask >> +S.cls & 1)) return false;
-  if (S.avail !== 'any' && availOf(it.id) !== S.avail) return false;
+  if (S.avail !== 'any' && !availIs(it.id)) return false;
   return true;
 }
 function bpList(){
@@ -1118,7 +1123,7 @@ function groupBy(keyFn, only){ const g = new Map(); for (const id of ALL_IDS){ i
 function render(){
   const desc = S.order === 'desc';
   let html = '';
-  if (S.view === 'achieve'){
+  if (S.view === 'class' && S.avail === 'achieve' && S.pyro !== 'only'){
     // by where the achievement is earned: TF2's class milestones, TF2's other achievements, then each other game
     const groupOf = it => { const r = (ACHINFO[it.id] || [])[0] || [440, '', '', 'e']; return r[3] === 'm' ? 'm' : (r[0] === 440 ? 'e' : String(r[0])); };
     const g = groupBy(groupOf, ACH);
@@ -1128,13 +1133,13 @@ function render(){
       const sub = k === 'm' ? 'Unlocked by completing a class\'s achievements' : k === 'e' ? 'Event, map and game mode achievements' : 'Unlocked by an achievement in ' + (GAMES[k] || 'another game');
       html += section('ach' + k, null, title, sub, g.get(k), '');
     }
-  } else if (S.pyro === 'only' && (S.view === 'class' || S.view === 'craft' || S.view === 'year')){
+  } else if (S.pyro === 'only' && (S.view === 'class' || S.view === 'year')){
     // Pyroland: the items that let you see it or only show in it, the grenades that turn into baby bottles there, and the pets the kill feed credits with assists in it
-    const g = groupBy(it => it.pyro, S.view === 'craft' ? CRAFT : null);
+    const g = groupBy(it => it.pyro);
     const P = [[1, 'Pyroland', 'Let you see Pyroland'], [2, 'Pyroland grenades', 'Grenades that turn into baby bottles in Pyroland'], [3, 'Pyroland assists', 'Credited with assists in the kill feed in Pyroland']];
     for (const [k, t, sub] of P) if (g.has(k)) html += section('pyro' + k, null, t, sub, g.get(k), '', '<span class="pyv pyvl" aria-hidden="true"></span>');
-  } else if (S.view === 'class' || S.view === 'craft'){
-    const g = groupBy(it => it.ckey, S.view === 'craft' ? CRAFT : null);
+  } else if (S.view === 'class'){
+    const g = groupBy(it => it.ckey);
     const names = [...CLASSES, 'Multi-class', 'All-class'];
     const subs = i => i < 9 ? 'Items only the '+CLASSES[i]+' can use' : (i===9 ? 'Shared by two to eight classes' : 'Every class can use these');
     for (let i = 0; i <= 10; i++) if (g.has(i)) html += section('cl'+i, null, names[i], subs(i), g.get(i), '', i < 9 ? `<span class="portrait" style="--c:${i}" aria-hidden="true"></span>` : '');
@@ -1173,16 +1178,20 @@ function render(){
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
     }
-  } else if (S.view === 'effects'){
-    fxIndex(); const all = Object.values(FX);
-    if (S.lastSync && !S.fxSynced) html += `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>`;
-    for (const kind of ['cosmetic', 'taunt', 'weapon', 'special']) html += fxSection(kind, all.filter(e => e.kind === kind));
   } else if (S.view === 'backpack'){
     html = backpackView();
   } else {
     const ids = S.wishlist.filter(id => ITEMS[id]);
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
+  }
+  if (fxShown()){
+    // unusual effects, ticked under Item types: a section for each kind, after the items
+    fxIndex(); const all = Object.values(FX);
+    let fh = '';
+    for (const kind of FX_KINDS) if (S.types['fx' + kind]) fh += fxSection(kind, all.filter(e => e.kind === kind));
+    if (fh && S.lastSync && !S.fxSynced) fh = `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>` + fh;
+    html += fh;
   }
   $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>Try turning on more item types, or change the filters.</p></div>';
   if (S.quality){ document.body.dataset.quality = S.quality; document.body.style.setProperty('--qcol', QUAL[S.quality].c); }
@@ -1191,12 +1200,13 @@ function render(){
 }
 function meter(){
   let ids, got;
-  if (S.view === 'effects'){ fxIndex(); ids = Object.values(FX); got = ids.filter(fxCount).length; }
-  else { ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(id => counted(id)); got = ids.filter(owns).length; }
-  const pct = ids.length ? got*100/ids.length : 0;
+  ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(id => counted(id)); got = ids.filter(owns).length;
+  let fxT = 0, fxG = 0;
+  if (fxShown()){ fxIndex(); const q = $('#q').value.trim().toLowerCase(); const L = Object.values(FX).filter(e => S.types['fx' + e.kind] && (!q || e.key.includes(q))); fxT = L.length; fxG = L.filter(fxCount).length; }
+  const tot = ids.length + fxT, pct = tot ? (got + fxG)*100/tot : 0;
   $('#pct').textContent = pct.toFixed(pct<10?1:0)+'%';
   $('#pfill').style.width = pct+'%';
-  $('#ptxt').textContent = S.view === 'effects' ? got.toLocaleString()+' / '+ids.length.toLocaleString() : countLabel(got, ids.length, ids);
+  $('#ptxt').textContent = fxT ? (got + fxG).toLocaleString()+' / '+tot.toLocaleString() : countLabel(got, ids.length, ids);
   $('#wcount').textContent = S.wishlist.length ? '('+S.wishlist.length+')' : '';
 }
 function syncControls(){
@@ -1221,28 +1231,27 @@ function syncControls(){
   $('#wopts').hidden = !S.types.w;
   $('#qual').value = S.quality || '';
   $('#qual').style.color = S.quality ? QUAL[S.quality].c : '';
-  $('#sort option[value="class"]').hidden = S.view === 'class' || S.view === 'craft';
-  if ((S.view === 'class' || S.view === 'craft') && S.sort === 'class') $('#sort').value = 'grade';
+  $('#sort option[value="class"]').hidden = S.view === 'class';
+  if (S.view === 'class' && S.sort === 'class') $('#sort').value = 'grade';
   const qn = S.quality && QPOSS[S.quality] ? QPOSS[S.quality].size : 0;
   $('#qnote').textContent = S.quality ? `Every item that exists in ${QUAL[S.quality].n} quality (${qn.toLocaleString()} known, from the TF2 Wiki). Sync to tick off the ones you have.` : '';
-  $('#orderFld').hidden = S.view === 'class' || S.view === 'craft' || S.view === 'achieve' || S.view === 'wishlist' || S.view === 'backpack';
+  $('#orderFld').hidden = S.view === 'class' || S.view === 'wishlist' || S.view === 'backpack';
   fadeFilters();
 }
 
 /* Filters that can't change what this view shows fade out (Grade on Achievement Items, where nothing has a grade), and so do
    the choices that match nothing here. They still work, so a choice made in another view can be changed back. */
 function fadeFilters(){
-  const v = S.view, fx = v === 'effects', bp = v === 'backpack';
+  const v = S.view, fx = false, bp = v === 'backpack';
   let U;
   if (fx) U = [];
   else if (bp) U = [...new Set(((BP && BP.items) || []).map(r => +(ALIAS[r[1]] || r[1])))].filter(id => ITEMS[id]);
-  else U = (v === 'craft' ? [...CRAFT] : v === 'achieve' ? [...ACH] : v === 'wishlist' ? S.wishlist : ALL_IDS).filter(id => ITEMS[id]);
+  else U = (v === 'wishlist' ? S.wishlist : ALL_IDS).filter(id => ITEMS[id]);
   const T = U.filter(id => typeOk(ITEMS[id]));
   // the types that have something under the other filters (no War paints box when no war paint is a code item, or Vintage)
   const U2 = (bp || fx) ? U : U.filter(id => counted(id, true));
   const has = (L, f) => L.some(id => f(ITEMS[id]));
-  const here = fx ? 'unusual effects' : bp ? 'your backpack' : v === 'achieve' ? 'the achievement items' : v === 'craft' ? 'the craft hats'
-    : v === 'wishlist' ? 'your wishlist' : 'the items in these types';
+  const here = bp ? 'your backpack' : v === 'wishlist' ? 'your wishlist' : 'the items in these types';
   const why = `Doesn’t apply to ${here}`;
   const na = (el, off, t) => { if (!el) return; if (el.dataset.t0 == null) el.dataset.t0 = el.title || ''; el.classList.toggle('fna', !!off); el.title = off ? (t || why) : el.dataset.t0; };
   const fld = id => $('#' + id).closest('.fld');
@@ -1261,8 +1270,10 @@ function fadeFilters(){
   na(fld('qual'), !anyQ);
   // availability
   const av = new Set(T.map(availOf));
-  for (const o of $('#avail').options) if (o.value !== 'any') opt('avail', o.value, av.has(o.value));
-  na(fld('avail'), av.size < 2 && S.avail === 'any');
+  na(document.querySelector('[data-type="fxcosmetic"]').closest('.tgrid'), false);
+  for (const i of document.querySelectorAll('input[data-type^="fx"]')) na(i.closest('.chk'), bp || v === 'wishlist', `Unusual effects aren't listed in ${here}`);
+  for (const o of $('#avail').options) if (o.value !== 'any') opt('avail', o.value, o.value === 'craft' ? T.some(id => CRAFT.has(id)) : o.value === 'achieve' ? T.some(id => ACH.has(id)) : av.has(o.value));
+  na(fld('avail'), av.size < 2 && S.avail === 'any' && !T.some(id => CRAFT.has(id) || ACH.has(id)));
   na(fld('hol'), !has(T, it => it.holiday));
   na(fld('pyro'), !has(T, it => it.pyro));
   // equip region and weapon slot: the regions / slots these items have
@@ -1282,7 +1293,7 @@ function fadeFilters(){
   na($('#clsbar').closest('.fld'), fx); na($('.tgrid[aria-label="Item types"]'), fx);
   for (const b of document.querySelectorAll('#clsbar [data-cls]')) { const c = b.dataset.cls; if (c === '') continue; const n = +c;
     na(b, !fx && !has(T, it => it.ckey === n || (n < 9 && it.mask >> n & 1)), `No ${b.title || b.textContent.trim()} items in ${here}`); }
-  for (const i of document.querySelectorAll('input[data-type]')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => (it.cat === 'x' ? 'l' : it.cat) === i.dataset.type)),
+  for (const i of document.querySelectorAll('input[data-type]:not([data-type^="fx"])')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => (it.cat === 'x' ? 'l' : it.cat) === i.dataset.type)),
     S.pyro === 'only' ? 'Pyroland: Only these lists every type' : `No ${i.closest('.chk').textContent.trim()} match the other filters`);
   na($('#noresk').closest('.chk'), !has(T, it => it.reskin)); na($('#nobk').closest('.chk'), !has(T, it => it.botkiller)); na($('#nofest').closest('.chk'), !has(T, it => it.newfest));
   na($('#solo').closest('.chk'), !has(T, it => it.classes.length !== 1));
@@ -1427,7 +1438,7 @@ function activeFilters(){
   if (S.quality) f.push(QUAL[S.quality].n + ' quality');
   if (S.cls !== '') f.push(+S.cls < 9 ? CLASSES[+S.cls] : (+S.cls === 9 ? 'Multi-class' : 'All-class'));
   if (S.show === 'own') f.push('Owned'); if (S.show === 'miss') f.push('Missing'); if (S.show === 'dupe') f.push('Duplicates');
-  if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable', unused:'Unreleased'}[S.avail]);
+  if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable', unused:'Unreleased', craft:'Craft hats', achieve:'Achievement items'}[S.avail]);
   if (S.grade) f.push(S.grade === 'any' ? 'Any grade' : (+S.grade ? RAR[+S.grade].n : 'No grade'));
   if (S.itype) f.push(S.itype); if (S.region) f.push(S.region); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
   if (S.hol === 'hide') f.push('No Halloween items'); if (S.hol === 'only') f.push('Halloween only');
@@ -1442,7 +1453,7 @@ function filterSummary(){
   $('#filters').hidden = !open;
   $('#filtBtn').setAttribute('aria-expanded', String(open));
   $('#fcount').textContent = f.length ? String(f.length) : '';
-  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]);
+  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]).concat(FX_KINDS.filter(k => S.types['fx' + k]).map(k => k[0].toUpperCase() + k.slice(1) + ' unusual effects'));
   $('#fsum').hidden = open;
   $('#fsum').innerHTML = `<span>Collecting</span><span class="ft">${esc(types.join(', ') || 'everything')}</span>` +
     f.map(x => `<span class="ft">${esc(x)}</span>`).join('') +

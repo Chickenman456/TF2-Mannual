@@ -322,7 +322,9 @@
     for (let n = 0; n < 100 && !(window.Z3D && Z3D.M[cn]); n++) { await new Promise(r => setTimeout(r, 100)); if (tok !== fxTok || !ST) return; }
     const M = () => window.Z3D && Z3D.M[cn];
     const head = m => { let h = null; m.o.traverse(x => { if (!h && x.isBone && x.name === 'bip_head') h = x; }); return h || m.o; };
-    let where, systems = [info.system];
+    // a team-coloured effect follows the merc's team (CEconEntity::UpdateParticleSystems swaps _teamcolor_red / _teamcolor_blue)
+    const sys0 = ST.team === 'BLU' ? String(info.system).replace(/_teamcolor_red/i, '_teamcolor_blue') : String(info.system).replace(/_teamcolor_blue/i, '_teamcolor_red');
+    let where, systems = [sys0];
     // a cosmetic's effect: on the previewed item (not just the first one worn), at its named attachment or its "unusual" one, else at its
     // head bone (bip_head, prp_helmet, prp_hat: the order of TF's particle_effect_use_head_origin), else its root bone, else the merc's head
     if (kind === 'cosmetic') where = () => { const m = M(); if (!m) return null; const C = m.cmesh || [];
@@ -332,14 +334,14 @@
       return {obj: o || (r && info.root && r.root) || head(m), merc: m.o}; };
     else if (kind === 'taunt') where = () => { const m = M(); return m ? {obj: m.o, merc: m.o, yup: true} : null; };
     else {
-      const sfx = wepSuffix(); systems = [info.system + '_' + sfx, info.system + '_base', info.system];
+      const sfx = wepSuffix(); systems = [sys0 + '_' + sfx, sys0 + '_base', sys0];
       where = () => { const m = M(); if (!m) return null; const w = (m.wmesh || [])[0]; let o = w && w.userData._uatt;
         if (w && !o) { const a = (w.userData.att || []).find(x => x.name === (info.attachment || 'unusual_0')) || (w.userData.att || [])[0]; const b = a && w.skeleton && w.skeleton.bones.find(x => x.name === a.bone);
           if (b) { o = new THREE.Object3D(); const q = a.m; new THREE.Matrix4().set(q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7], q[8], q[9], q[10], q[11], 0, 0, 0, 1).decompose(o.position, o.quaternion, o.scale); b.add(o); w.userData._uatt = o; } }
         return {obj: o || (w && w.skeleton && w.skeleton.bones[0]) || m.o, merc: m.o}; };
     }
     const scale = () => { const m = M(); if (!m) return 1; const v = new THREE.Vector3(); m.o.getWorldScale(v); return v.y || 1; };
-    const key = cn + '|' + ST.fx + '|' + ST.nm; if (ZPFX.active() && ZPFX.key === key) return;   // already running on this merc
+    const key = cn + '|' + ST.fx + '|' + ST.nm + '|' + sys0; if (ZPFX.active() && ZPFX.key === key) return;   // already running on this merc
     fxNote('Loading the effect from your TF2 files\u2026');
     let ok = false;
     for (const s of systems) { try { ok = await ZPFX.play(s, where, scale); } catch (e) { console.warn('[pfx]', e); ok = false; } if (tok !== fxTok) return; if (ok) break; }
