@@ -69,8 +69,9 @@
       <button type="button" class="spv-arrow" data-spv="right" style="${box(195, 208, 15, 15)}" aria-label="More classes">&gt;</button>
       <button type="button" class="spv-close" data-spv="close" style="${box(461, 6, 14, 14)};--g:url(${IMG}close_button.webp)" aria-label="Close"></button>
       <button type="button" class="spv-btn spv-back" data-spv="close" style="${box(10, 255, 90, 22)}">&lt;&lt; Back</button>
-      ${o.market ? `<a class="spv-btn" href="${E(o.market)}" target="_blank" rel="noopener" style="${box(110, 255, 120, 22)}">Steam Market</a>` : ''}
-      ${o.wish ? `<button type="button" class="spv-btn spv-cart" data-spv="wish" style="${box(358, 256, 110, 20)}"></button>` : ''}
+      ${o.wish ? `<button type="button" class="spv-star" data-spv="wish" style="${box(441, 7, 13, 13)};--g:url(ui/gi_star.webp)"></button>` : ''}
+      ${o.buy ? `<a class="spv-btn spv-cart" href="${E(o.buy)}" target="_blank" rel="noopener" title="Buy it from the Mann Co. Store on Steam" style="${box(358, 256, 110, 20)}">Buy on Steam</a>` : ''}
+      ${o.market ? `<a class="spv-btn spv-mkt" href="${E(o.market)}" target="_blank" rel="noopener" style="${box(o.buy ? 238 : 358, 256, 110, 20)}">Steam Market</a>` : ''}
     </div>`;
   }
 
@@ -534,7 +535,8 @@
     else if (k === 'g') { e.preventDefault(); Store3D.ctl.taunt(cn); }
     else if (k === 'r' && Store3D.ctl.reload) { e.preventDefault(); Store3D.ctl.reload(cn); }
   }
-  function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (b) b.textContent = ST.o.wish.on() ? 'On your Wishlist' : 'Add to Wishlist'; }
+  // the wishlist star by the close button: lit while the item is on your wishlist
+  function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (!b) return; const on = ST.o.wish.on(); b.classList.toggle('on', on); b.title = on ? 'On your wishlist (click to remove)' : 'Add to your wishlist'; b.setAttribute('aria-label', b.title); }
   function onKey(e) {
     if (!ST || e.key !== 'Escape') return;
     e.stopPropagation(); e.preventDefault();
