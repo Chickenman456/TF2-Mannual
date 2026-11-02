@@ -511,6 +511,7 @@
     if (k === 'w') { e.preventDefault(); Store3D.ctl.run(cn); }
     else if (k === 'f') { e.preventDefault(); Store3D.ctl.fireDown(cn); }
     else if (k === 'g') { e.preventDefault(); Store3D.ctl.taunt(cn); }
+    else if (k === 'r' && Store3D.ctl.reload) { e.preventDefault(); Store3D.ctl.reload(cn); }
   }
   function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (b) b.textContent = ST.o.wish.on() ? 'On your Wishlist' : 'Add to Wishlist'; }
   function onKey(e) {
