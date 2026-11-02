@@ -323,7 +323,13 @@
     const M = () => window.Z3D && Z3D.M[cn];
     const head = m => { let h = null; m.o.traverse(x => { if (!h && x.isBone && x.name === 'bip_head') h = x; }); return h || m.o; };
     let where, systems = [info.system];
-    if (kind === 'cosmetic') where = () => { const m = M(); if (!m) return null; const r = (m.cmesh || [])[0]; return {obj: (r && info.attachment && r.att && r.att[info.attachment]) || (r && r.root) || head(m), merc: m.o}; };
+    // a cosmetic's effect: on the previewed item (not just the first one worn), at its named attachment or its "unusual" one, else at its
+    // head bone (bip_head, prp_helmet, prp_hat: the order of TF's particle_effect_use_head_origin), else its root bone, else the merc's head
+    if (kind === 'cosmetic') where = () => { const m = M(); if (!m) return null; const C = m.cmesh || [];
+      const r = C.find(x => x && x.key && String(x.key).split(':').slice(3).join(':') === ST.nm) || C[0];
+      let o = r && ((info.attachment && r.att && r.att[info.attachment]) || (r.att && r.att.unusual));
+      if (!o && r && r.bone) for (const n of ['bip_head', 'prp_helmet', 'prp_hat', 'head']) { o = r.bone(n); if (o) break; }
+      return {obj: o || (r && info.root && r.root) || head(m), merc: m.o}; };
     else if (kind === 'taunt') where = () => { const m = M(); return m ? {obj: m.o, merc: m.o, yup: true} : null; };
     else {
       const sfx = wepSuffix(); systems = [info.system + '_' + sfx, info.system + '_base', info.system];

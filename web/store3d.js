@@ -367,7 +367,8 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   let root=null;{const s0=src[0];const rb=s0&&s0.skeleton&&s0.skeleton.bones.find(b=>!b.parent||!b.parent.isBone);if(rb)root=bm[rb.name]||null}
   // a team change re-skins it in place (the taunt props, which aren't redressed with the cosmetics)
   const retint=t=>meshes.forEach(wm=>{const MI=(man[key]||{})[wm.userData.srcMat];if(!MI)return;const P=(t=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P,null)});
-  return {meshes,extra,att,root,holder,retint,key}}
+  const bone=n=>{n=String(n).toLowerCase();for(const k in bm)if(k.toLowerCase()===n)return bm[k];return null};
+  return {meshes,extra,att,root,holder,retint,key,bone}}
   // a taunt that makes the player invisible hides the merc and everything worn (the taunt prop stays)
   // feet kept planted while the merc stands or crouches still, the way the game's autoplay IK locks keep them (the idle's sway and the
   // firing gestures move the body, the legs bend to keep the feet where they were): two-bone IK on hip, knee and foot
