@@ -138,7 +138,7 @@
       return { tex, sheet: raw ? sheetOf(raw) : null, add: num('$additive', 0) > 0, self: num('$addself', 0), aob: num('$addoverblend', 0) > 0, ob: num('$overbrightfactor', 1), blend: num('$blendframes', 1) > 0,
         // SpriteCard's size limits, as ratios of the radius to the distance from the eye: $minsize, $maxsize and the fade between
         // $startfadesize and $endfadesize (spritecard.cpp SHADER_INIT_PARAMS defaults: 0, 20, 10, 20)
-        mins: num('$minsize', 0), maxs: num('$maxsize', 20), fs0: num('$startfadesize', 10), fs1: num('$endfadesize', 20) };
+        cull0: num('$nocull', 1) > 0, mins: num('$minsize', 0), maxs: num('$maxsize', 20), fs0: num('$startfadesize', 10), fs1: num('$endfadesize', 20) };
     } catch (e) { console.warn('[pfx] material', path, e); return null; } })();
     MATS.set(path, p); return p;
   }
@@ -523,12 +523,15 @@
         const r = p.r * scale, c = Math.cos(p.rot), s = Math.sin(p.rot), ax = c * r, az = s * r, bx = -s * r, bz = c * r;
         put([C.x - ax - bx, C.y, C.z - az - bz, C.x + ax - bx, C.y, C.z + az - bz, C.x + ax + bx, C.y, C.z + az + bz, C.x - ax + bx, C.y, C.z - az + bz], uv, p.c, p.a);
       } else if (fn === 'render_animated_sprites' && P(S.rend, 'orientation_type', 0) === 3) {
-        // "per particle normal": a flat card whose normal is the particle's, which nothing here sets, so the default (0, 0, 1) of the
-        // control point's frame: the card lies in the point's forward / left plane and turns with it, rolled by the particle's rotation.
-        // Soulful Slice's axe is two such cards either side of the head, in the head bone's frame, so it reads as an axe through it
-        const c = S.cp(P(S.rend, 'orientation control point', -1) >= 0 ? P(S.rend, 'orientation control point', 0) : 0), r = p.r * scale, cs = Math.cos(p.rot), sn = Math.sin(p.rot);
-        const F = TMP.b.set(c.f.x, c.f.z, -c.f.y).normalize(), L = TMP.c.set(c.l.x, c.l.z, -c.l.y).normalize();
-        const ax = (F.x * cs + L.x * sn) * r, ay = (F.y * cs + L.y * sn) * r, az = (F.z * cs + L.z * sn) * r, bx = (L.x * cs - F.x * sn) * r, by = (L.y * cs - F.y * sn) * r, bz = (L.z * cs - F.z * sn) * r;
+        // "per particle normal": a flat card in the control point's frame, turned about the point's up axis by the particle's yaw and
+        // then rolled by its rotation. Its material is single-sided ($nocull 0), so from behind it doesn't show: Soulful Slice's axe is
+        // two cards back to back (yaw 130 and -50, mirrored textures), of which you see the one facing you
+        const c = S.cp(P(S.rend, 'orientation control point', -1) >= 0 ? P(S.rend, 'orientation control point', 0) : 0), r = p.r * scale;
+        const v = (a) => new THREE.Vector3(a.x, a.z, -a.y).normalize(), F0 = v(c.f), L = v(c.l), N0 = v(c.u), cy = Math.cos(p.yaw), sy = -Math.sin(p.yaw);
+        const F = F0.clone().multiplyScalar(cy).addScaledVector(N0, sy), N = N0.clone().multiplyScalar(cy).addScaledVector(F0, -sy);
+        if (!S.mat.cull0 && TMP.d.copy(cam.position).sub(C).dot(N) < 0) continue;
+        const cs = Math.cos(p.rot), sn = Math.sin(p.rot);
+        const ax = -(F.x * cs + L.x * sn) * r, ay = -(F.y * cs + L.y * sn) * r, az = -(F.z * cs + L.z * sn) * r, bx = (L.x * cs - F.x * sn) * r, by = (L.y * cs - F.y * sn) * r, bz = (L.z * cs - F.z * sn) * r;
         put([C.x - ax - bx, C.y - ay - by, C.z - az - bz, C.x + ax - bx, C.y + ay - by, C.z + az - bz, C.x + ax + bx, C.y + ay + by, C.z + az + bz, C.x - ax + bx, C.y - ay + by, C.z - az + bz], uv, p.c, p.a);
       } else {
         let rot = p.rot;

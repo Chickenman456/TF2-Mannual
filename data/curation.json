@@ -67,7 +67,8 @@
   "489": "2012-08-15",
   "1163": "2012-08-15",
   "1070": "2014-10-29",
-  "1132": "2014-10-29"
+  "1132": "2014-10-29",
+  "839": "2012-08-10"
  },
  "reskins": {
   "741": "Rainblower (Flame Thrower with Pyrovision)",
@@ -106,7 +107,8 @@
   "8938": "o",
   "1192": "c",
   "1193": "c",
-  "1194": "c"
+  "1194": "c",
+  "839": "a"
  },
  "not_single_quality": {
   "_note": "Items the wiki lists as coming in only one quality, but that also exist as Unique.",
@@ -163,7 +165,8 @@
   "100": "genuine",
   "105": "genuine",
   "120": "genuine",
-  "1175": "genuine"
+  "1175": "genuine",
+  "839": "unique"
  },
  "not_limited": {
   "_note": "Items the wiki lists as expired promos that can in fact still be obtained.",
@@ -246,7 +249,8 @@
   "9298": "the Yogscast Jingle Jam charity drive",
   "9299": "the Yogscast Jingle Jam charity drive",
   "9721": "the Yogscast Jingle Jam charity drive",
-  "9722": "the Yogscast Jingle Jam charity drive"
+  "9722": "the Yogscast Jingle Jam charity drive",
+  "839": "the Steam Translation Server, given at random to translators for their applied strings (the TF2 Wiki)"
  },
  "code_unreleased": {
   "_note": "Code items whose product never came out, so no codes were given: shown as Unreleased in that quality.",
@@ -305,5 +309,9 @@
   "soldier_halloween_2011": "A special robot taunt, during Halloween or a full moon",
   "demo_halloween_2011": "A special werewolf howl taunt, during Halloween or a full moon",
   "heavy_fairy": "Special Grand Duchess voice lines, during Halloween, a full moon or Valentine's Day"
+ },
+ "own_name": {
+  "_note": "Items that share their in-game name with another item but are their own: defindex: the game's localization key for their own name.",
+  "839": "#TF_Bundle_STSBundle"
  }
 }

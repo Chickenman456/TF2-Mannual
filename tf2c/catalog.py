@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 41
+CATALOG_VERSION = 42
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -247,6 +247,9 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     code_items = notes("code_items")
     code_from = notes("code_from")
     code_unreleased = notes("code_unreleased")
+    # curated: an item that shares its in-game name with another but is its own item, named by another of the game's
+    # own strings (the Steam Translation Server's copy of the Mann Co. Store Package: "#TF_Bundle_STSBundle")
+    own_name = notes("own_name")
     unused = notes("unused")
     unob_notes = notes("unobtainable")
     not_limited = notes("not_limited")
@@ -343,6 +346,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
 
     def display_name(k):
         r = R[k]
+        if k in own_name and L(own_name[k], "") and not L(own_name[k], "").startswith("#"):
+            return L(own_name[k], "")
         base = L(r.get("item_name"), r.get("name", str(k)))
         if base.startswith("#"):
             base = r.get("name", str(k))
