@@ -115,20 +115,15 @@ assets/              Application assets
 * particle effects are horribly inaccurate at the time being.
 * Destruction PDA doesn't display correctly.
 * Construction PDA is duplicated for some reason.
-* Some unusuals render at the incorrect bone.
-* Some taunts are missing their props (Circuit Breaker, Meet the Medic, Punchline, Pool Party)
 * Cases don't display their contents.
-* Taunts are missing their particles or sounds.
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
 * Shred Alert doesn't play.
-* Code section missing Steam Translation Bundle.
 
 ## Planned Features
 * Preview styles for Contracker.
 * View styles for canteen.
 * Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
 * Preview Taunt actions.
-* Web version
 * Preview noise maker sounds.
 
 ## Legal
