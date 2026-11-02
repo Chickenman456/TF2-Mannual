@@ -208,7 +208,9 @@ def apply(catalog, data):
     # "Craft hats": cosmetics you can get by crafting (the wiki's "craft" availability)
     cosmetic = {it[0] for it in catalog["items"] if it[3] == "c"}
     craft = sorted(k for k, r in flags.items() if k in cosmetic and "craft" in (r.get("a") or "").split("|"))
-    return {"q": qual, "nomarket": nomarket, "only": only, "limited": sorted(limited), "code": sorted(code), "craft": craft,
+    # sold in the Mann Co. Store right now (the wiki's "purchase"; "purchase-limited" and "...-purchase-expired" are over)
+    buy = sorted(k for k, r in flags.items() if "purchase" in (r.get("a") or "").split("|") and k not in limited)
+    return {"q": qual, "nomarket": nomarket, "only": only, "limited": sorted(limited), "code": sorted(code), "craft": craft, "buy": buy,
             "usets": unofficial_sets(catalog, flags)}
 
 

@@ -418,6 +418,10 @@ body.nofade .slot.miss .ico,body.nofade .slot.miss .fxi{filter:none}
 .spv-cart{background:#4C6B22;text-transform:none;font-size:calc(var(--u)*10.5)}
 .spv-cart:hover,.spv-cart:focus-visible{background:#56752C}
 .spv-cart:active{background:#426118}
+.spv-mkt{font-size:calc(var(--u)*10.5)}
+.spv-star{position:absolute;border:0;padding:0;margin:0;cursor:pointer;z-index:5;background:#766B5E;opacity:.78;-webkit-mask:var(--g) center/100% 100% no-repeat;mask:var(--g) center/100% 100% no-repeat}
+.spv-star:hover,.spv-star:focus-visible{background:#F6F7D5;opacity:1}
+.spv-star.on{background:#E4AE39;opacity:1}
 .spv-team button,.spv-ic,.spv-rot,.spv-arrow,.spv-glyph,.spv-close{position:absolute;border:0;padding:0;margin:0;background:none;cursor:pointer}
 .spv-team{z-index:5}
 .spv-team img{width:100%;height:100%;display:block;opacity:.3}
@@ -728,7 +732,7 @@ const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
 const BUY_QUAL = ['vintage','genuine','strange','haunted','collectors','unusual'];  // qualities tracked from sync
-const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODEONLY = new Set(), CRAFT = new Set(), ACH = new Set();
+const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODEONLY = new Set(), CRAFT = new Set(), ACH = new Set(), BUY = new Set();
 const CODEQ = {};
 // an unofficial set has no name of its own: call it by its class and the case (or collection) its items came in, else the month it came out
 function usetTitle(s, when){
@@ -751,6 +755,7 @@ function initExtra(x){
   LIMITED = new Set(((x && x.limited) || []).map(k => +(ALIAS[k] || k)));
   CODEONLY = new Set(((x && x.code) || []).map(k => +(ALIAS[k] || k)));
   CRAFT = new Set(((x && x.craft) || []).map(k => +(ALIAS[k] || k)));
+  BUY = new Set(((x && x.buy) || []).map(k => +(ALIAS[k] || k)));
   USETS = ((x && x.usets) || []).map(s => ({n: s.n, i: s.i.map(k => +(ALIAS[k] || k)), u: s.how || 'c'}));
   for (const [k, q] of Object.entries(RAW.code_items || {})) CODEQ[+k] = q;
   ACH = new Set(Object.keys(RAW.achievement || {}).map(Number));
@@ -1914,6 +1919,8 @@ function openPreview(id, opt){
       : o ? ['In your backpack' + (o > 1 ? ' \u00d7' + o : ''), '#5E9631'] : ['Not owned', '#C8503C'], attrs,
     tradable: it.cat === 'm' ? false : it.cat === 's' ? !!qOf(id) : !it.untradable,   // the stock copy can't be traded; a Strange or Unusual one can
     wiki: 'https://wiki.teamfortress.com/scripts/itemredirect.php?id=' + id + '&lang=en_US',
+    // sold in the Mann Co. Store: Steam's item store page for it, where it's bought straight away
+    buy: BUY.has(+id) ? 'https://store.steampowered.com/itemstore/440/detail/' + id + '/' : null,
     market: marketable(it) ? 'https://steamcommunity.com/market/search?appid=440&q=' + encodeURIComponent('"' + (qOf(id) ? QUAL[qOf(id)].n + ' ' : '') + it.name + '"') : null,
     wish: {on: () => S.wishlist.includes(id), toggle: () => { const add = !S.wishlist.includes(id); S.wishlist = add ? [...S.wishlist, id] : S.wishlist.filter(x => x !== id); sfx(add ? 'item_store_add_to_cart' : 'buttonclickrelease', add ? .5 : 1); save(); render(); }},
     close: () => sfx('panel_close')});
