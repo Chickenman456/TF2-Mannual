@@ -113,8 +113,6 @@ assets/              Application assets
 * Character animations can be bugged, and weapon particles are equally funky.
 * Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
 * particle effects are horribly inaccurate at the time being.
-* Destruction PDA doesn't display correctly.
-* Construction PDA is duplicated for some reason.
 * Cases don't display their contents.
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
 * Shred Alert doesn't play.
@@ -122,9 +120,8 @@ assets/              Application assets
 ## Planned Features
 * Preview styles for Contracker.
 * View styles for canteen.
-* Button to directly purchase from the Mann Co Shop (for items that can still be purchased from there).
 * Preview Taunt actions.
-* Preview noise maker sounds.
+* Deadlock-style voiceline browser.
 
 ## Legal
 
