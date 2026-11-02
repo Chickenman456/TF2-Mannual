@@ -495,7 +495,7 @@
   }
   // ---- playing the merc from the keyboard, as in game: 1-4 its weapons, W runs in place (again to stop), Ctrl crouches (again to stand),
   // F fires, G taunts with the weapon in hand. Ctrl toggles here, so W never has to be pressed with Ctrl held (Ctrl+W closes the tab).
-  const KSLOTS = {Spy: ['secondary', 'building', 'melee'], Engineer: ['primary', 'secondary', 'melee', 'pda'], _: ['primary', 'secondary', 'melee']};
+  const KSLOTS = {Spy: ['secondary', 'building', 'melee'], Engineer: ['primary', 'secondary', 'melee', 'pda', 'pda2'], _: ['primary', 'secondary', 'melee']};
   // LOD 0 / 1 / 2: shown with the TF2 folder linked (the levels of detail come from its models)
   function lodLabel() { const b = ST && ST.el.querySelector('[data-spv=lod]'); if (!b) return; b.hidden = !live(); b.textContent = 'LOD ' + (ST.lod || 0); }
   function ctlReset() { const cn = ST && CNAME[ST.cls]; if (cn && window.Store3D && Store3D.ctl) Store3D.ctl.reset(cn);  }

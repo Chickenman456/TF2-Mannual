@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 38
+CATALOG_VERSION = 39
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -418,6 +418,10 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
                 return None
             nm = display_name(k)
             if nm.startswith(("Upgradeable ", "TF_", "#")):
+                return None
+            # an Upgradeable copy of a stock weapon added later (737, the Construction PDA's): its own item_name reads like the stock one's,
+            # but it is the same item (the alias below counts it as owning the stock weapon)
+            if str(r.get("name", "")).startswith("Upgradeable "):
                 return None
             if r.get("show_in_armory") == "0" and not untradable(k) and "paintkit" not in pf:
                 return None

@@ -297,7 +297,9 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  const pilotTick=t=>{const p=Math.sin(t*2*Math.PI/.1)*.02,p2=Math.sin(t*2*Math.PI/7)*-.005,a=87*Math.PI/180;PILOT.forEach(u=>{u.t0.value.set(p2,p);u.t2.value.set((Math.cos(a)*3*t)%1,(Math.sin(a)*3*t)%1)})};
  window.ZW={init:()=>init(),wload:f=>wload(f),wman:()=>wman(),warp:n=>getWarp(n),tex:(u,s)=>texLoad(u,s),mat:(P,map)=>tf2({name:'weapon',map},getWarp(P.warp||'weapon'),{P,exp:P.expTex?texLoad('models/'+P.expTex):null,normal:P.bump?texLoad('models/'+P.bump):false})};
  function wmat(P,tint){if(P.shader=='unlittwotexture')return pilotMat(P);const TX=(u,s)=>u&&u.isTexture?u:texLoad('models/'+u,s);return tf2({name:'weapon',map:P.map?TX(P.map,true):BLANK()},V.warp,{P:{...P,warp:P.warp},exp:P.expTex?TX(P.expTex):null,normal:P.bump?TX(P.bump):false,tint})}
- async function setWeapon(c,slot,name){const m=M[c];if(!m||!slot||slot=='pda2')return;if(slot=='action'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c)))return;
+ async function setWeapon(c,slot,name){const m=M[c];// the Destruction PDA (pda2) only when it's read from the install: the page bakes no stock model for that slot
+  if(slot=='pda2'&&!name&&c=='Engineer')name='#26';   // the stock Destruction PDA (defindex 26)
+  if(!m||!slot||(slot=='pda2'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c))))return;if(slot=='action'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c)))return;
   let nk=wkey(name);
   setCosmetics(c);// worn weapon-slot items live with the cosmetics
   const lworn=n=>!!(n&&!wkey(n)&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.wornWep(n,c));
