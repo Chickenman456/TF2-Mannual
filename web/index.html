@@ -183,6 +183,7 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .ph{width:calc(var(--is)*.8);height:calc(var(--is)*.8);border-radius:50%;background:#1B1817;display:grid;place-items:center;font-family:var(--head);font-size:11px;color:var(--TanDark);text-align:center;padding:6px;text-transform:uppercase;line-height:1.05;flex:none;overflow:hidden;overflow-wrap:anywhere}
 .nm{font-size:11.5px;line-height:1.15;text-align:center;color:var(--TanLight);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-inline:4px}
 .slot.miss .ico{filter:grayscale(1) brightness(.45)}
+body.nofade .slot.miss .ico,body.nofade .slot.miss .fxi{filter:none}
 .slot.miss .nm{color:var(--TanDark)}
 .q{position:absolute;bottom:6px;right:9px;font-family:var(--head);font-size:13px;color:var(--TanLight)}
 .tick{position:absolute;top:6px;left:9px;color:var(--CreditsGreen);font-weight:700;font-size:15px;line-height:1;text-shadow:0 1px 0 #000}
@@ -644,6 +645,7 @@ button.vg:focus-visible{outline:none}
       <div class="tgrid">
         <label class="chk" title="Only show items a single class can use"><input type="checkbox" id="solo"> Hide multi-class items</label>
         <label class="chk"><input type="checkbox" id="hidedone"> Hide completed sections</label>
+        <label class="chk" title="Show the icons of items you don't own in full colour"><input type="checkbox" id="nofade"> Don't fade items you don't own</label>
       </div>
     </div>
    </div>
@@ -721,7 +723,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 }
 
 /* ---------------- state ---------------- */
-const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone'];
+const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone','nofade'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
          quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false, hideB:false, hideO:false};
@@ -1204,7 +1206,7 @@ function syncControls(){
   $('#sort').value = S.sort; $('#order').value = S.order;
   document.querySelectorAll('[data-cls]').forEach(b => b.classList.toggle('on', b.dataset.cls === String(S.cls)));
   $('#avail').value = S.avail;
-  $('#hidedone').checked = S.hidedone; $('#hol').value = S.hol; $('#pyro').value = S.pyro; $('#pinbar').checked = !S.nofollow;
+  $('#hidedone').checked = S.hidedone; $('#nofade').checked = !!S.nofade; document.body.classList.toggle('nofade', !!S.nofade); $('#hol').value = S.hol; $('#pyro').value = S.pyro; $('#pinbar').checked = !S.nofollow;
   for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).checked = !!S[k];
   $('#grade').value = S.grade || '';
   // the Item type filter's choices: the game's type name for every item (Hat, Rocket Launcher, Special Taunt...)
@@ -1389,6 +1391,7 @@ $('#sort').addEventListener('change', () => { S.sort = $('#sort').value; save();
 $('#order').addEventListener('change', () => { S.order = $('#order').value; save(); render(); });
 
 $('#hidedone').addEventListener('change', () => { S.hidedone = $('#hidedone').checked; save(); render(); });
+$('#nofade').addEventListener('change', () => { S.nofade = $('#nofade').checked; document.body.classList.toggle('nofade', S.nofade); save(); });
 $('#pinbar').addEventListener('change', () => { S.nofollow = !$('#pinbar').checked; save(); if (S.nofollow) document.querySelector('.top').classList.remove('follow', 'away'); $('#jump').hidden = !S.nofollow || scrollY < 100; });
 document.addEventListener('click', e => {
   const j = e.target.closest('[data-jump]'); if (!j) return;
