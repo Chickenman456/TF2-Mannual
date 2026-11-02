@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 40
+CATALOG_VERSION = 41
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -116,7 +116,7 @@ SPECIAL_EFFECTS = {"4": "other_particles", "20": "cosmetic_unusual_effects"}
 
 
 def effects(ig, loc, data_dir):
-    """Unusual effects: [id, name, kind, sheet cell or -1]. Names come from the game; the released
+    """Unusual effects: [id, name, kind, sheet cell or -1, date added, update added]. Names come from the game; the released
     list and preview images are bundled in data/effects.json. Effects added after that list (higher
     ids) are included too, just without a preview."""
     try:
@@ -124,6 +124,11 @@ def effects(ig, loc, data_dir):
     except (OSError, ValueError):
         known = {}
     released = set(known.get("released", []))
+    # when each came into the game (data/effects.json "added": [date, update, [names]]); an effect newer than the list has none
+    added = {}
+    for date, upd, names in known.get("added", []):
+        for n in names:
+            added.setdefault(n.lower(), (date, upd))
     cell = {i: n for n, i in enumerate(known.get("cells", []))}
     top = max(released) if released else 0
     parts = ig.get("attribute_controlled_attached_particles", {})
@@ -132,7 +137,7 @@ def effects(ig, loc, data_dir):
         name = loc.get("attrib_particle%s" % k)
         if name and k in (parts.get(group) or {}):
             seen.add(("special", name))
-            out.append([int(k), name, "special", cell.get(int(k), -1)])
+            out.append([int(k), name, "special", cell.get(int(k), -1), *added.get(name.lower(), ("", ""))])
     for group, kind in EFFECT_GROUPS:
         for k, v in (parts.get(group) or {}).items():
             if not k.isdigit() or k in SPECIAL_EFFECTS:
@@ -142,7 +147,7 @@ def effects(ig, loc, data_dir):
             if not name or (released and i not in released and i < top) or (kind, name) in seen:
                 continue
             seen.add((kind, name))
-            out.append([i, name, kind, cell.get(i, -1)])
+            out.append([i, name, kind, cell.get(i, -1), *added.get(name.lower(), ("", ""))])
     return sorted(out, key=lambda e: e[0])
 
 
@@ -795,7 +800,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "uset_fix": {"sets": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("sets", {})],
                          "not": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("not_sets", {})],
                          "loose": [int(k) for k in (cur.get("unofficial_sets") or {}).get("not_in_sets", {})],
-                         "belated": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("belated_sets", {})]},
+                         "belated": [[int(x) for x in k.split(",")] for k in (cur.get("unofficial_sets") or {}).get("belated_sets", {})],
+                         "names": {",".join(str(x) for x in sorted(int(y) for y in k.split(","))): v for k, v in (cur.get("unofficial_sets") or {}).get("names", {}).items()}},
             "sounds": [list(p) for p, _ in sorted(sounds.items(), key=lambda x: x[1])],
             "notes": {str(k): v for k, v in one_day.items() if k in keep},
             "not_single": sorted(k for k in not_single if k in keep),

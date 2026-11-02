@@ -258,4 +258,11 @@ def unofficial_sets(catalog, flags):
     # belated sets: a newer item made to go with older ones ("how": "b")
     every = {it[0] for it in catalog["items"]}   # the curated ones may hold weapons too
     late = [{"i": sorted(s), "how": "b"} for s in fix.get("belated", []) if all(k in every for k in s)]
-    return kept + [{"i": s, "how": "c"} for s in forced if all(k in every for k in s)] + late
+    res = kept + [{"i": s, "how": "c"} for s in forced if all(k in every for k in s)] + late
+    # a set from a promotion goes by the promotion's name (curation "names")
+    names = fix.get("names") or {}
+    for s in res:
+        n = names.get(",".join(str(k) for k in sorted(s["i"])))
+        if n:
+            s["n"] = n
+    return res

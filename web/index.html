@@ -613,7 +613,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
     <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
     <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
-      <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option></select></div>
+      <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option><option value="date">Date added</option></select></div>
     <div class="fld" id="orderFld"><label class="lbl" for="order">Sections</label><select id="order" class="in"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
     <p class="sub wide" id="qnote"></p>
     <div class="fld wide"><span class="lbl">Class</span><div class="clsbar" id="clsbar" aria-label="Class filter"></div></div>
@@ -629,10 +629,7 @@ button.vg:focus-visible{outline:none}
         <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
         <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools, and the expired ones (the 2013 spells, transmogrifiers, Cursed Objects)"><input type="checkbox" data-type="l"> Tools</label>
         <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
-        <label class="chk" title="Collected when any item you own has the effect"><input type="checkbox" data-type="fxcosmetic"> Unusual effects: cosmetic</label>
-        <label class="chk" title="Collected when any taunt you own has the effect"><input type="checkbox" data-type="fxtaunt"> Unusual effects: taunt</label>
-        <label class="chk" title="Collected when any weapon you own has the effect"><input type="checkbox" data-type="fxweapon"> Unusual effects: weapon</label>
-        <label class="chk" title="Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items"><input type="checkbox" data-type="fxspecial"> Unusual effects: special</label>
+        <label class="chk" title="Every unusual effect, in sections for cosmetic, taunt, weapon and special effects; collected when any item you own has it"><input type="checkbox" data-type="fx"> Unusual effects</label>
       </div>
       <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
         <label class="chk"><input type="checkbox" id="noresk"> Hide reskins</label>
@@ -715,7 +712,7 @@ for (const c of RAW.cols){
   for (const i of c.i){ const it = ITEMS[i]; if (!it) continue; it.cols.push(c.id); for (const cs of (CASE_BY_COL[c.id]||[])) it.cases.push(cs); }
 }
 ALL_IDS = Object.keys(ITEMS).map(Number); regionOptions();
-for (const [id, name, kind, cell] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase()};
+for (const [id, name, kind, cell, date, upd] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase(), date: date || '', upd: upd || ''};
 EQUIP = RAW.equip || {}; GAMES = RAW.games || {}; ACHINFO = RAW.achievement || {}; ACHALT = RAW.ach_alt || {};
 (RAW.ach_icons || []).forEach((k, i) => { ACHICON[k] = i; }); ACHROWS = Math.max(1, Math.ceil((RAW.ach_icons || []).length / 16));
 for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k] = VARIANTS[k] || []).push(+v); }
@@ -734,6 +731,9 @@ const QPOSS = {}; let NOMARKET = new Set(), ONLY = {}, LIMITED = new Set(), CODE
 const CODEQ = {};
 // an unofficial set has no name of its own: call it by its class and the case (or collection) its items came in, else the month it came out
 function usetTitle(s, when){
+  const its0 = s.i.map(id => ITEMS[id]);
+  // a set from a promotion goes by its name, with its class when the promotion made more than one
+  if (s.n) return s.n + (USETS.filter(x => x.n === s.n).length > 1 ? ' \u00b7 ' + (its0[0].classes.length === 1 ? its0[0].classes[0] : 'Multi-class') : '') + (s.u === 'b' ? '*' : '');
   const its = s.i.map(id => ITEMS[id]), cls = its[0].classes.length === 1 ? its[0].classes[0] : 'Multi-class';
   const common = key => { const n = {}; for (const it of its) for (const v of new Set(it[key].map(x => typeof x === 'object' ? x.n : (COLS[x] || {}).n).filter(Boolean))) n[v] = (n[v] || 0) + 1;
     return Object.entries(n).sort((a, b) => b[1] - a[1])[0]; };
@@ -766,7 +766,8 @@ function migrate(x){
   if (x.view === 'collection') x.view = 'case';
   // Craft Hats and Achievement Items moved to Availability, and Unusual Effects to the item types
   if (x.view === 'craft' || x.view === 'achieve'){ x.avail = x.view; x.view = 'class'; }
-  if (x.view === 'effects'){ x.view = 'class'; x.types = {fxcosmetic: true, fxtaunt: true, fxweapon: true, fxspecial: true}; }
+  if (x.view === 'effects'){ x.view = 'class'; x.types = {fx: true}; }
+  if (x.types && ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial'].some(k => k in x.types)){ x.types = {...x.types, fx: ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial'].some(k => x.types[k])}; for (const k of ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial']) delete x.types[k]; }
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
   if (!['all','hide','only'].includes(x.hol)) x.hol = 'all';
@@ -825,7 +826,7 @@ const AVTAG = {unob:['UNOBTAINABLE','unob'], code:['CODE','unob code'], expired:
 /* ---------------- filtering & sorting ---------------- */
 const anyType = () => Object.entries(S.types).some(([k, v]) => v && !k.startsWith('fx'));   // nothing ticked = no type filter
 const FX_KINDS = ['cosmetic', 'taunt', 'weapon', 'special'];
-const anyFx = () => FX_KINDS.some(k => S.types['fx' + k]);
+const anyFx = () => !!S.types.fx;
 // unusual effects have no class, grade, quality or availability, so a filter on those leaves them out
 const fxShown = () => anyFx() && !['backpack', 'wishlist'].includes(S.view) && S.cls === '' && S.avail === 'any' && !S.quality && !S.grade && !S.itype && !S.region && !S.wslot && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
 const availIs = id => S.avail === 'craft' ? CRAFT.has(id) : S.avail === 'achieve' ? ACH.has(id) : availOf(id) === S.avail;
@@ -872,6 +873,7 @@ const SORTS = {
   class: (a,b) => (a.ckey - b.ckey) || a.name.localeCompare(b.name),
   year:  (a,b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name),
   name:  (a,b) => a.name.localeCompare(b.name),
+  date:  (a,b) => (S.order === 'asc' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || '')) || a.name.localeCompare(b.name),
   copies:(a,b) => (owns(b.id) - owns(a.id)) || a.name.localeCompare(b.name),
   region:(a,b) => (!a.region - !b.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
 };
@@ -934,16 +936,18 @@ function fxSlot(e){
   return `<div class="slot fxs ${n ? 'own' : 'miss'}" data-fx="${e.id}" tabindex="0">${icon}<div class="nm">${esc(e.name)}</div>
     ${n ? '<span class="tick" aria-label="Collected">' + gi('check') + '</span>' : ''}${n > 1 ? `<span class="q">×${n}</span>` : ''}</div>`;
 }
-function fxSection(kind, list){
+function fxSection(kind, list, key, title, sub){
   const q = $('#q').value.trim().toLowerCase();
   const got = list.filter(fxCount).length, total = list.length, pct = Math.round(got * 100 / (total || 1));
   let vis = list.filter(e => (!q || e.key.includes(q)) && (S.show !== 'own' || fxCount(e)) && (S.show !== 'miss' || !fxCount(e)) && (S.show !== 'dupe' || fxCount(e) > 1));
   if (S.hidedone && got === total) return '';
   if (!vis.length) return '';
-  vis = vis.slice().sort(S.sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : S.sort === 'copies' ? (a, b) => fxCount(b) - fxCount(a) || a.id - b.id : (a, b) => (S.order === 'asc' ? a.id - b.id : b.id - a.id));
-  const key = 'fx' + kind;
+  // by name, by copies, or by when they came into the game (newest first, or oldest with Sections: Oldest first)
+  const when = (a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.id - b.id;
+  vis = vis.slice().sort(S.sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : S.sort === 'copies' ? (a, b) => fxCount(b) - fxCount(a) || when(a, b) : (a, b) => (S.order === 'asc' ? when(a, b) : when(b, a)));
+  key = key || 'fx' + kind;
   return `<section class="sec ${closed[key] ? 'closed' : ''}" data-key="${key}">
-    <div class="sh"><div class="grow"><h2>${esc(FX_KIND[kind])}</h2><div class="sub">${kind === 'special' ? 'Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items' : 'Collected when any item you own has the effect'}</div></div>
+    <div class="sh"><div class="grow"><h2>${esc(title || FX_KIND[kind].replace('effects', 'unusual effects'))}</h2><div class="sub">${sub ? esc(sub) : kind === 'special' ? 'Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items' : 'Collected when any item you own has the effect'}</div></div>
       <div class="track mini ${got === total ? 'full' : ''}"><div class="fill" style="width:${pct}%"></div></div>
       <span class="cnt ${got === total ? 'full' : ''}">${got}/${total}</span></div>
     <div class="grid">${vis.map(fxSlot).join('')}</div></section>`;
@@ -1145,8 +1149,14 @@ function render(){
     for (let i = 0; i <= 10; i++) if (g.has(i)) html += section('cl'+i, null, names[i], subs(i), g.get(i), '', i < 9 ? `<span class="portrait" style="--c:${i}" aria-hidden="true"></span>` : '');
   } else if (S.view === 'year'){
     const g = groupBy(it => it.year);
-    const ys = [...g.keys()].sort((a,b) => desc ? b-a : a-b);
-    for (const y of ys) html += section('y'+y, null, String(y), y <= 2010 ? 'Release years before 2011 are from TF2 update history' : 'Released in '+y, g.get(y));
+    // unusual effects go in the year their update came out, after that year's items
+    const fy = new Map(); if (fxShown()){ fxIndex(); for (const e of Object.values(FX)) if (e.date){ const y = +e.date.slice(0, 4); if (!fy.has(y)) fy.set(y, []); fy.get(y).push(e); } }
+    const ys = [...new Set([...g.keys(), ...fy.keys()])].sort((a,b) => desc ? b-a : a-b);
+    for (const y of ys){
+      if (g.has(y)) html += section('y'+y, null, String(y), y <= 2010 ? 'Release years before 2011 are from TF2 update history' : 'Released in '+y, g.get(y));
+      const L = fy.get(y) || [];
+      for (const kind of FX_KINDS){ const K = L.filter(e => e.kind === kind); if (K.length) html += fxSection(kind, K, 'fx' + kind + y, y + ' \u00b7 ' + FX_KIND[kind].replace('effects', 'unusual effects'), 'Added in ' + [...new Set(K.slice().sort((a, b) => a.date.localeCompare(b.date)).map(e => e.upd))].join(', ')); }
+    }
   } else if (S.view === 'case'){
     // A case or crate unlocks one collection, so they share a section. Collections
     // with no case (operations, contracts) and crates with no collection follow.
@@ -1173,7 +1183,7 @@ function render(){
     for (const s of all){
       if (s.u === 'b' ? S.hideB : s.u ? S.hideU : S.hideO) continue;
       const d = done(s), when = d ? new Date(d).toLocaleDateString(undefined, {year:'numeric', month:'short'}) : '';
-      const kind = s.u === 'b' ? 'Belated set: a newer item made to go with older ones' : s.u ? 'Unofficial set: made to go together, but not named in the game' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
+      const kind = s.n ? 'Promotional set: from the same promotion, not named in the game' : s.u === 'b' ? 'Belated set: a newer item made to go with older ones' : s.u ? 'Unofficial set: made to go together, but not named in the game' : s.bt ? 'Set bonus: ' + s.bt : 'Item set';
       const title = s.u ? usetTitle(s, when) : s.n;
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
@@ -1186,10 +1196,10 @@ function render(){
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
   if (fxShown()){
-    // unusual effects, ticked under Item types: a section for each kind, after the items
-    fxIndex(); const all = Object.values(FX);
+    // unusual effects, ticked under Item types: a section for each kind after the items (in By Year, the dated ones are in their years)
+    fxIndex(); const all = Object.values(FX).filter(e => S.view !== 'year' || !e.date);
     let fh = '';
-    for (const kind of FX_KINDS) if (S.types['fx' + kind]) fh += fxSection(kind, all.filter(e => e.kind === kind));
+    for (const kind of FX_KINDS) fh += fxSection(kind, all.filter(e => e.kind === kind));
     if (fh && S.lastSync && !S.fxSynced) fh = `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>` + fh;
     html += fh;
   }
@@ -1202,7 +1212,7 @@ function meter(){
   let ids, got;
   ids = (S.view === 'wishlist' ? S.wishlist.filter(id => ITEMS[id]) : ALL_IDS).filter(id => counted(id)); got = ids.filter(owns).length;
   let fxT = 0, fxG = 0;
-  if (fxShown()){ fxIndex(); const q = $('#q').value.trim().toLowerCase(); const L = Object.values(FX).filter(e => S.types['fx' + e.kind] && (!q || e.key.includes(q))); fxT = L.length; fxG = L.filter(fxCount).length; }
+  if (fxShown()){ fxIndex(); const q = $('#q').value.trim().toLowerCase(); const L = Object.values(FX).filter(e => !q || e.key.includes(q)); fxT = L.length; fxG = L.filter(fxCount).length; }
   const tot = ids.length + fxT, pct = tot ? (got + fxG)*100/tot : 0;
   $('#pct').textContent = pct.toFixed(pct<10?1:0)+'%';
   $('#pfill').style.width = pct+'%';
@@ -1270,7 +1280,6 @@ function fadeFilters(){
   na(fld('qual'), !anyQ);
   // availability
   const av = new Set(T.map(availOf));
-  na(document.querySelector('[data-type="fxcosmetic"]').closest('.tgrid'), false);
   for (const i of document.querySelectorAll('input[data-type^="fx"]')) na(i.closest('.chk'), bp || v === 'wishlist', `Unusual effects aren't listed in ${here}`);
   for (const o of $('#avail').options) if (o.value !== 'any') opt('avail', o.value, o.value === 'craft' ? T.some(id => CRAFT.has(id)) : o.value === 'achieve' ? T.some(id => ACH.has(id)) : av.has(o.value));
   na(fld('avail'), av.size < 2 && S.avail === 'any' && !T.some(id => CRAFT.has(id) || ACH.has(id)));
@@ -1453,7 +1462,7 @@ function filterSummary(){
   $('#filters').hidden = !open;
   $('#filtBtn').setAttribute('aria-expanded', String(open));
   $('#fcount').textContent = f.length ? String(f.length) : '';
-  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]).concat(FX_KINDS.filter(k => S.types['fx' + k]).map(k => k[0].toUpperCase() + k.slice(1) + ' unusual effects'));
+  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]).concat(S.types.fx ? ['Unusual effects'] : []);
   $('#fsum').hidden = open;
   $('#fsum').innerHTML = `<span>Collecting</span><span class="ft">${esc(types.join(', ') || 'everything')}</span>` +
     f.map(x => `<span class="ft">${esc(x)}</span>`).join('') +
@@ -1634,6 +1643,7 @@ document.addEventListener('mousemove', e => {
     const fe = FX[+s.dataset.fx], held = fxHolders(fe);
     tip.innerHTML = `<div class="t" style="color:#8650AC">${esc(fe.name)}</div>
       <div class="lv">${esc(FX_KIND[fe.kind].replace('effects', 'unusual effect'))}${fe.id > 0 ? ' · #' + fe.id : ''}</div>
+      ${fe.upd ? `<div class="d">Added in the ${esc(fe.upd)}, ${esc(new Date(fe.date + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'}))}</div>` : ''}
       ${held.length ? `<div class="lvl">Your items with this effect:</div>${held.slice(0, 14).map(([n, c]) => `<div class="d">${esc(n)}${c > 1 ? ' ×' + c : ''}</div>`).join('')}${held.length > 14 ? `<div class="lvl">and ${held.length - 14} more</div>` : ''}` : ''}
       <div class="s" style="color:${held.length ? 'var(--CreditsGreen)' : 'var(--AttribNegative)'}">${held.length ? 'COLLECTED' : 'NOT COLLECTED'}</div>`;
     placeTip(e); return;

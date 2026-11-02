@@ -267,7 +267,7 @@
   ]
  },
  "unofficial_sets": {
-  "_about": "Corrections to the sets put together from the wiki (wikidata.unofficial_sets): 'sets' are sets as listed, 'not_sets' groups that aren't one, 'not_in_sets' items that belong to none; 'belated_sets' a newer item made to go with older ones.",
+  "_about": "Corrections to the sets put together from the wiki (wikidata.unofficial_sets): 'sets' are sets as listed, 'not_sets' groups that aren't one, 'not_in_sets' items that belong to none; 'belated_sets' a newer item made to go with older ones. 'names': the name a set goes by when it came from a promotion (the TF2 Wiki's item pages).",
   "sets": {
    "30990,30991,30767": "Wipe Out Wraps, Blizzard Britches, Airdog",
    "30123,30125,30132": "Harmburg, Rogue's Brogues, Blood Banker",
@@ -287,6 +287,15 @@
    "52,31650": "Batter's Helmet + Batter's Jersey",
    "575,31388": "Infernal Impaler + Warlock's Warcloak",
    "648,652,653,31258": "Wrap Assassin, Big Elfin Deal, Bootie Time + Seasonal Employee"
+  },
+  "names": {
+   "857,858,859": "Adult Swim: The Venture Bros.",
+   "949,950,951": "Adult Swim: Metalocalypse",
+   "989,990,991": "Adult Swim: Aqua Teen Hunger Force",
+   "30062,30063": "Total War: ROME II",
+   "30061,30064": "Total War: ROME II",
+   "30059,30060": "Total War: ROME II",
+   "1008,1009,1010": "The Cave"
   }
  },
  "set_bonus_notes": {

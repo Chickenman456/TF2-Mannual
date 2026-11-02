@@ -345,8 +345,8 @@
           // delta rotation: new axes x old axes^T, applied to each particle's offset from the old position
           const A = [C.f, C.l, C.u], B = [q.f, q.l, q.u], m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
           for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m[i][j] = A[0][['x', 'y', 'z'][i]] * B[0][['x', 'y', 'z'][j]] + A[1][['x', 'y', 'z'][i]] * B[1][['x', 'y', 'z'][j]] + A[2][['x', 'y', 'z'][i]] * B[2][['x', 'y', 'z'][j]];
-          for (const p of S.ps) { const x = p.x - q.p.x, y = p.y - q.p.y, z = p.z - q.p.z; p.x = C.p.x + m[0][0] * x + m[0][1] * y + m[0][2] * z; p.y = C.p.y + m[1][0] * x + m[1][1] * y + m[1][2] * z; p.z = C.p.z + m[2][0] * x + m[2][1] * y + m[2][2] * z; }
-        } else { const dx = C.p.x - q.p.x, dy = C.p.y - q.p.y, dz = C.p.z - q.p.z; if (dx || dy || dz) for (const p of S.ps) { p.x += dx; p.y += dy; p.z += dz; } }
+          for (const p of S.ps) { if (p.fresh) continue; const x = p.x - q.p.x, y = p.y - q.p.y, z = p.z - q.p.z; p.x = C.p.x + m[0][0] * x + m[0][1] * y + m[0][2] * z; p.y = C.p.y + m[1][0] * x + m[1][1] * y + m[1][2] * z; p.z = C.p.z + m[2][0] * x + m[2][1] * y + m[2][2] * z; }
+        } else { const dx = C.p.x - q.p.x, dy = C.p.y - q.p.y, dz = C.p.z - q.p.z; if (dx || dy || dz) for (const p of S.ps) { if (p.fresh) continue; p.x += dx; p.y += dy; p.z += dz; } }
       }
       l[k] = { p: v3(C.p.x, C.p.y, C.p.z), f: { ...C.f }, l: { ...C.l }, u: { ...C.u } };
     },
@@ -415,7 +415,7 @@
       p.c = p.c0.slice(); p.a = p.a0;
       const c0 = this.cp(0).p; p.x = c0.x; p.y = c0.y; p.z = c0.z;
       for (const o of this.inits) { INIT[o.functionName](this, p, o); if (p.dead) return; }
-      this.ps.push(p);
+      p.fresh = true; this.ps.push(p);
     }
     emit(dt) {
       const t = this.t;
@@ -447,6 +447,9 @@
         p.a = clamp(p.a0 * p.af + p.ao, 0, 1);
       }
       for (const o of this.ops) { const fn = SYSOPS[o.functionName]; if (fn) fn(this, o, dt); }
+      // a particle made this step is already where its control point is now: Lock to Control Point moves it from the next step on
+      // (Source moves each particle by how its point has moved since the particle was made)
+      for (const p of this.ps) p.fresh = false;
       this.ps = this.ps.filter(p => !p.dead);
       for (const k of this.kids) k.step(dt);
     }
@@ -519,6 +522,14 @@
         // flat on the world's ground plane, turned by the particle's roll
         const r = p.r * scale, c = Math.cos(p.rot), s = Math.sin(p.rot), ax = c * r, az = s * r, bx = -s * r, bz = c * r;
         put([C.x - ax - bx, C.y, C.z - az - bz, C.x + ax - bx, C.y, C.z + az - bz, C.x + ax + bx, C.y, C.z + az + bz, C.x - ax + bx, C.y, C.z - az + bz], uv, p.c, p.a);
+      } else if (fn === 'render_animated_sprites' && P(S.rend, 'orientation_type', 0) === 3) {
+        // "per particle normal": a flat card whose normal is the particle's, which nothing here sets, so the default (0, 0, 1) of the
+        // control point's frame: the card lies in the point's forward / left plane and turns with it, rolled by the particle's rotation.
+        // Soulful Slice's axe is two such cards either side of the head, in the head bone's frame, so it reads as an axe through it
+        const c = S.cp(P(S.rend, 'orientation control point', -1) >= 0 ? P(S.rend, 'orientation control point', 0) : 0), r = p.r * scale, cs = Math.cos(p.rot), sn = Math.sin(p.rot);
+        const F = TMP.b.set(c.f.x, c.f.z, -c.f.y).normalize(), L = TMP.c.set(c.l.x, c.l.z, -c.l.y).normalize();
+        const ax = (F.x * cs + L.x * sn) * r, ay = (F.y * cs + L.y * sn) * r, az = (F.z * cs + L.z * sn) * r, bx = (L.x * cs - F.x * sn) * r, by = (L.y * cs - F.y * sn) * r, bz = (L.z * cs - F.z * sn) * r;
+        put([C.x - ax - bx, C.y - ay - by, C.z - az - bz, C.x + ax - bx, C.y + ay - by, C.z + az - bz, C.x + ax + bx, C.y + ay + by, C.z + az + bz, C.x - ax + bx, C.y - ay + by, C.z - az + bz], uv, p.c, p.a);
       } else {
         let rot = p.rot;
         if (fn === 'render_screen_velocity_rotate') { TMP.c.set(p.vx, p.vz, -p.vy).transformDirection(cam.matrixWorldInverse); rot = Math.atan2(TMP.c.y, TMP.c.x) + P(S.rend, 'forward_angle', -90) * D2R; }
