@@ -201,6 +201,9 @@
   const randDir = () => { for (;;) { const x = Math.random() * 2 - 1, y = Math.random() * 2 - 1, z = Math.random() * 2 - 1, l = x * x + y * y + z * z; if (l > 1e-4 && l <= 1) { const s = 1 / Math.sqrt(l); return v3(x * s, y * s, z * s); } } };
   // a control point: position and axes (forward, left, up) in Source world space
   const cpAt = (S, n) => S.cp(n | 0);
+  // a speed "in the local coordinate system" takes its Y along the control point's right (-left): Dead Mann's Drink pours [0, -100, 0]
+  // out of the bottle, downwards, where its attachment's left points up
+  const speedWorld = (c, v) => v3(c.f.x * v[0] - c.l.x * v[1] + c.u.x * v[2], c.f.y * v[0] - c.l.y * v[1] + c.u.y * v[2], c.f.z * v[0] - c.l.z * v[1] + c.u.z * v[2]);
   const toWorld = (c, v) => v3(c.f.x * v[0] + c.l.x * v[1] + c.u.x * v[2], c.f.y * v[0] + c.l.y * v[1] + c.u.y * v[2], c.f.z * v[0] + c.l.z * v[1] + c.u.z * v[2]);
   // particle attribute fields (PARTICLE_ATTRIBUTE_*): scalar get/set for remaps and oscillators
   const FIELD = {
@@ -233,7 +236,7 @@
       if (P(o, 'create in model', 0)) { const q = S.fx.modelPoint(); p.x = q.x; p.y = q.y; p.z = q.z; } else { p.x = c.p.x + d.x * r; p.y = c.p.y + d.y * r; p.z = c.p.z + d.z * r; }
       const sp = R(P(o, 'speed_min', 0), P(o, 'speed_max', 0), P(o, 'speed_random_exponent', 1));
       const lo = P(o, 'speed_in_local_coordinate_system_min', [0, 0, 0]), hi = P(o, 'speed_in_local_coordinate_system_max', [0, 0, 0]);
-      const lv = toWorld(c, [R(lo[0], hi[0]), R(lo[1], hi[1]), R(lo[2], hi[2])]);
+      const lv = speedWorld(c, [R(lo[0], hi[0]), R(lo[1], hi[1]), R(lo[2], hi[2])]);
       const n = Math.hypot(d.x, d.y, d.z) || 1;
       p.vx += d.x / n * sp + lv.x; p.vy += d.y / n * sp + lv.y; p.vz += d.z / n * sp + lv.z;
     },
@@ -259,7 +262,7 @@
     'lifetime from sequence': (S, p, o) => { const q = S.seqOf(p); if (q) p.life = q.f.length / Math.max(1, P(o, 'Frames Per Second', 30)); },
     'Velocity Random': (S, p, o) => {
       const c = cpAt(S, P(o, 'control_point_number', 0)), lo = P(o, 'speed_in_local_coordinate_system_min', [0, 0, 0]), hi = P(o, 'speed_in_local_coordinate_system_max', [0, 0, 0]);
-      const w = toWorld(c, [R(lo[0], hi[0]), R(lo[1], hi[1]), R(lo[2], hi[2])]), d = randDir(), s = R(P(o, 'random_speed_min', 0), P(o, 'random_speed_max', 0));
+      const w = speedWorld(c, [R(lo[0], hi[0]), R(lo[1], hi[1]), R(lo[2], hi[2])]), d = randDir(), s = R(P(o, 'random_speed_min', 0), P(o, 'random_speed_max', 0));
       p.vx += w.x + d.x * s; p.vy += w.y + d.y * s; p.vz += w.z + d.z * s;
     },
     'Velocity Noise': (S, p, o) => {
@@ -604,6 +607,12 @@
     unkeep(key) { const fx = KEEP.get(key); KEEP.delete(key); if (fx) for (const S of fx.root.all()) dispose(S); },
     kept: () => [...KEEP.keys()],
     stop() { ZPFX._tok = (ZPFX._tok || 0) + 1; if (FX) { for (const S of FX.root.all()) dispose(S); FX = null; } },
+    /* warm(system): read its definition and materials ahead, so a burst later starts at once */
+    async warm(system) { try { const d = await find(system); if (d) await preload(d); } catch (e) {} },
+    /* clear(): every effect gone (the preview window closed): the unusual, the one-shot bursts and the kept ones, which come back
+       on their own the next time the merc shows them */
+    clear() { ZPFX.stop(); for (const b of BURST) for (const S of b.root.all()) dispose(S); BURST.length = 0;
+      for (const [k, f] of KEEP) { if (f) for (const S of f.root.all()) dispose(S); } KEEP.clear(); },
     cur: () => FX, active: () => !!FX, bursts: () => ZPFX._nb || 0,
     tick(dt, sc, cam) {
       for (const b of BURST.slice()) {

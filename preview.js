@@ -590,6 +590,7 @@
   function close() {
     if (!ST) return;
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
+    if (window.ZPFX && ZPFX.clear) ZPFX.clear();   // no particles carried over into the next preview
     ctlReset(); if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); exitFS(); undress();
     const s = ST; ST = null;
     removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('keyup', onCtlUp); removeEventListener('blur', onCtlUp); removeEventListener('resize', layout);

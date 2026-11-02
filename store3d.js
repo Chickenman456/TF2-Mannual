@@ -214,7 +214,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();lightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
-   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
+   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m,curC);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
      if(typeof ianimTick=='function')ianimTick(m,t);
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
      if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
@@ -230,19 +230,16 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
    const mx=new THREE.AnimationMixer(o),A={};g.animations.forEach(a=>A[a.name]=mx.clipAction(a));let cur=null;
    const play=(n,once)=>{const a=A[n];const mm0=M[c];if(mm0)mm0._lwant=n;
      if(!a&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready){const bs=new Set();o.traverse(x=>{if(x.isBone)bs.add(x.name)});
-      ZLIVE.taunt(n.slice(5),c,bs).then(async r=>{if(!r){if(window.toast)toast('Couldn\u2019t load that taunt from your install');return}A[n]=mx.clipAction(r.clip);if(M[c]){M[c]._ltp=M[c]._ltp||{};if(r.prop||M[c]._wtHide!==n)M[c]._ltp[n]=r.prop;M[c]._ltps=M[c]._ltps||{};M[c]._ltps[n]=r.pseq}if(window.ZFACE)await ZFACE.addLive(c,n,r.sc,r.urls);if(M[c]&&M[c]._lwant===n)play(n,once)}).catch(e=>console.warn('[ZLIVE] taunt',e));return true}
+      ZLIVE.taunt(n.slice(5),c,bs).then(async r=>{if(!r){if(window.toast)toast('Couldn\u2019t load that taunt from your install');return}A[n]=mx.clipAction(r.clip);if(window.ZPFX&&ZPFX.warm)for(const x of (r.clip.zpfx||[]))ZPFX.warm(x.sys);if(M[c]){M[c]._ltp=M[c]._ltp||{};if(r.prop||M[c]._wtHide!==n)M[c]._ltp[n]=r.prop;M[c]._ltps=M[c]._ltps||{};M[c]._ltps[n]=r.pseq}if(window.ZFACE)await ZFACE.addLive(c,n,r.sc,r.urls);if(M[c]&&M[c]._lwant===n)play(n,once)}).catch(e=>console.warn('[ZLIVE] taunt',e));return true}
      if(!a)return false;a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=!!once;if(cur&&cur!==a)a.crossFadeFrom(cur,.25,false);a.paused=false;a.play();cur=a;if(M[c]){M[c].cn=n;M[c].act=a}const tn=/^(taunt|live:)/.test(n);if(M[c]&&tn&&window.ZFACE)ZFACE.start(c,M[c],n,a);
-     {const mm=M[c];const fs=tn&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.tauntSlot?ZLIVE.tauntSlot(n.slice(5)):null;
+     {const mm=M[c];let fs=tn&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.tauntSlot?ZLIVE.tauntSlot(n.slice(5)):null;
+      // the game's loadout slots: the Spy's PRIMARY is his revolver and his SECONDARY the sapper (here 'secondary' and 'building')
+      if(fs&&c==='Spy')fs={primary:'secondary',secondary:'building'}[fs]||fs;
       if(mm&&fs){let W={};try{const S=LOX.ls(c);W=S.P[S.pre].w||{}}catch(e){}if(!mm._tslot0&&mm._wbase)mm._tslot0={slot:mm._wbase.slot,name:W[mm._wbase.slot]||null};mm._tforce=1;
        if(!mm._wbase||mm._wbase.slot!==fs)setWeapon(c,fs,W[fs]||null)}
       else if(mm&&!tn&&mm._tslot0){const b0=mm._tslot0;mm._tslot0=null;mm._tforce=0;setWeapon(c,b0.slot,b0.name)}
       const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@scene:/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);mm._wmOff=hw;wmBG(mm);
-      // custom_taunt_prop_per_class: bonemerged for the taunt's length
-      if(mm._tprop){const r=mm._tprop;mm._tprop=null;r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}
-      const pp=/^live:/.test(n)&&mm._ltp&&mm._ltp[n];const ps=pp&&mm._ltps&&mm._ltps[n];
-      // a prop with a scene of its own stands at the merc's feet and plays its sequence in step with the taunt; otherwise it rides prop_bone
-      if(pp)Promise.all([bonemerge(mm,c,(ps?'livepropx:':'liveprop:')+pp,null),ps?ZLIVE.propClip(pp,ps.seq).catch(()=>null):null,ps?ZLIVE.propEvents(pp,ps.seq).catch(()=>[]):[]]).then(([r,pc,pev])=>{if(r)r.pev=pev||[];if(!r)return;if(mm.cn!==n){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-       if(pc&&r.holder){const px=new THREE.AnimationMixer(r.holder);const pa=px.clipAction(pc);pa.play();r.pmx=px;r.pa=pa;r.poff=ps.off||0;r.ploop=ps.loop;propTick(mm)}mm._tprop=r})}}return true};
+      tauntProp(mm,c,n)}}return true};
    const st0={idle:'stand_PRIMARY'};mx.addEventListener('finished',e=>{if(e&&e.action&&e.action._zg)return;play(st0.idle)});// a firing gesture ends on its own
    // team skins: RED maps ship with the model, BLU maps (models/<class>_<part>_blu.jpg) load on demand
    const mats=[...new Set([...cache.values()].filter(m=>m.name=='body'||m.name=='pack'))];
@@ -324,7 +321,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(m.wname===wk)return;m.wname=wk;
   const wdrop=()=>{if(m.wmx){m.wmx.stopAllAction();m.wmx=null}if(m.wmesh){m.wmesh.forEach(x=>x.parent&&x.parent.remove(x));(m.wextra||[]).forEach(b=>b.parent&&b.parent.remove(b));m.wmesh=null}};
   if(!key){wdrop();m._wmHide=null;wmBG(m);m._wdone=1;return}let src,man,fsrc=null;try{[src,man]=/^live:/.test(key)?await ZLIVE.load(key):await Promise.all([wload(key),wman()]);if(fest)fsrc=await wload(fest).catch(()=>null)}catch(e){if(/^live:/.test(key))console.warn('[ZLIVE]',key,e);if(/^live:/.test(key)&&bkey){try{[src,man]=await Promise.all([wload(bkey),wman()]);key=bkey}catch(e2){m._wdone=1;return}}else{m._wdone=1;return}}if(m.wname!==wk)return;
-  const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
+  const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx&&!pb[n.name])pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
   const pbl={};for(const k in pb)pbl[k.toLowerCase()]=pb[k];const mk=b=>{if(bm[b.name])return bm[b.name];const pm=pb[b.name]||pbl[b.name.toLowerCase()];if(pm&&!/^c_weapon|^vm_/.test(b.name))return bm[b.name]=pm;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):(pb.weapon_bone||m.o);par.add(nb);extra.push(nb);return bm[b.name]=nb};
   // festivized: the item's attached_models_festive model (strings of lights) bonemerged onto the weapon's own bones
   const meshes=[...src.map(s=>[s,key]),...(fsrc||[]).map(s=>[s,fest])].map(([s,key])=>{const wm=s.clone();const bones=s.skeleton.bones.map(mk);const MI=(man[key]||{})[s.material.name]||{};wm.userData.srcMat=s.material.name;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zteam=s.userData.zteam;if(wm.userData.zteam&&wm.material)wm.material.visible=wm.userData.zteam==team;wm.frustumCulled=false;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm});
@@ -355,7 +352,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    const f=((t-E.t0)*A.fps)%A.nf,f0=Math.floor(f),f1=(f0+1)%A.nf,u=f-f0;
    for(const n in A.b){const B=E.B[n];if(!B)continue;const[Q,P]=A.b[n];iq.fromArray(Q,f0*4);iq2.fromArray(Q,f1*4);B.quaternion.copy(iq).slerp(iq2,u);B.position.set(P[f0*3]+(P[f1*3]-P[f0*3])*u,P[f0*3+1]+(P[f1*3+1]-P[f0*3+1])*u,P[f0*3+2]+(P[f1*3+2]-P[f0*3+2])*u)}}}
  async function bonemerge(m,c,key,tint){let src,man;try{[src,man]=/^livepropx:/.test(key)?await ZLIVE.propOwn(key.slice(10)):/^liveprop:/.test(key)?await ZLIVE.prop(key.slice(9)):/^livexw:/.test(key)?await ZLIVE.loadXW(key):/^live:/.test(key)?await ZLIVE.load(key):await Promise.all([wload(key),wman()])}catch(e){if(/^live(xw)?:/.test(key))console.warn('[ZLIVE]',key,e);return null}
-  const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
+  const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx&&!pb[n.name])pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
   const pbl={};for(const k in pb)pbl[k.toLowerCase()]=pb[k];const own=!!(man[key]||{})._own;
   // own: a taunt prop entity - none of its bones merge; its root sits beside the merc's skeleton root, animated on its own (holder)
   let holder=null;if(own){const pr=Object.values(pb).find(b=>!b.parent||!b.parent.isBone);holder=new THREE.Group();holder.name='zprop';((pr&&pr.parent)||m.o).add(holder);extra.push(holder)}
@@ -455,6 +452,14 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   function whideTick(m){const a=m.act,W=a&&/^live:/.test(m.cn||'')&&a.getClip().zwhide;const h=!!(W&&!m._wmOff&&W.some(w=>a.time>=w.s&&a.time<w.e))||(!!m._wtHide&&m.cn===m._wtHide);if(h===!!m._whid)return;m._whid=h;(m.wmesh||[]).forEach(x=>x.visible=!h)}
   function invisTick(m){const a=m.act,IV=a&&/^live:/.test(m.cn||'')&&a.getClip().zinvis;const hid=!!(IV&&IV.some(w=>w.v>=1&&a.time>=w.s&&a.time<w.e));if(hid===!!m._inv)return;m._inv=hid;
    const keep=new Set((m._tprop&&m._tprop.meshes)||[]);m.o.traverse(n=>{if(!n.isMesh||keep.has(n))return;if(hid){n.userData._iv=n.visible;n.visible=false}else if('_iv' in n.userData){n.visible=n.userData._iv;delete n.userData._iv}})}
+  // custom_taunt_prop_per_class: bonemerged for the taunt's length (put on again at another LOD)
+  function tauntProp(mm,c,n){
+      if(mm._tprop){const r=mm._tprop;mm._tprop=null;r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}
+      const pp=/^live:/.test(n)&&mm._ltp&&mm._ltp[n];const ps=pp&&mm._ltps&&mm._ltps[n];
+      // a prop with a scene of its own stands at the merc's feet and plays its sequence in step with the taunt; otherwise it rides prop_bone
+      if(pp)Promise.all([bonemerge(mm,c,(ps?'livepropx:':'liveprop:')+pp,null),ps?ZLIVE.propClip(pp,ps.seq).catch(()=>null):null,ps?ZLIVE.propEvents(pp,ps.seq).catch(()=>[]):[]]).then(([r,pc,pev])=>{if(r)r.pev=pev||[];if(window.ZPFX&&ZPFX.warm)for(const x of (pev||[]))if(/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||''))ZPFX.warm(String(x.opt||'').trim().split(/\s+/)[0]);if(!r)return;if(mm.cn!==n){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b));return}
+       if(pc&&r.holder){const px=new THREE.AnimationMixer(r.holder);const pa=px.clipAction(pc);pa.play();r.pmx=px;r.pa=pa;r.poff=ps.off||0;r.ploop=ps.loop;propTick(mm)}mm._tprop=r})}
+  window.ZTPROP=(c)=>{const mm=M[c];if(mm&&/^live:/.test(mm.cn||''))tauntProp(mm,c,mm.cn)};
   // the taunt prop's own sequence follows the merc's taunt clock (pause, replay and the hold loop included)
   function propTick(m){const r=m._tprop||null;const R=r&&r.pa?r:null;if(!R||!m.act)return;const pc=R.pa.getClip();let t=m.act.time-R.poff;const L=R.ploop;
   if(L&&t>L.to)t=L.from+((t-L.from)%(L.to-L.from));R.pa.time=Math.max(0,Math.min(pc.duration,t));R.pmx.update(0);
@@ -463,14 +468,20 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    // AE_CL_BODYGROUP_SET_VALUE "<bodygroup> <state>" up to this point of the sequence (the Pool Party's pool appears, the gas can comes and goes)
    const cyc=pc.duration>0?R.pa.time/pc.duration:0,bg={};for(const x of (R.pev||[]).filter(x=>/AE_CL_BODYGROUP_SET_VALUE/.test(x.name||'')).sort((a,b)=>a.cycle-b.cycle)){if(x.cycle>cyc)break;const q=String(x.opt||'').trim().split(/\s+/);if(q[0])bg[q[0].toLowerCase()]=+q[1]||0}
    const sig=on+JSON.stringify(bg);if(R._on!==sig){R._on=sig;R.meshes.forEach(x=>x.visible=on&&(x.userData.bg==null||(bg[x.userData.bg]||0)===x.userData.bgs))}}
-  // a point to put a taunt's particle effect on: an attachment of the prop (or the merc), else a bone of that name
-  function attObj(m,name){name=String(name||'').toLowerCase();const C=m._attc||(m._attc={});if(C[name]&&C[name].parent)return C[name];const P=(m._tprop&&m._tprop.meshes)||[];
-   for(const sm of P){const a=(sm.userData.att||[]).find(x=>x.name===name);const b=a&&sm.skeleton&&sm.skeleton.bones.find(x=>x.name===a.bone);if(b){const o=new THREE.Object3D(),q=a.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);b.add(o);return C[name]=o}}
-   let bn=null;for(const sm of P){if(sm.skeleton)bn=sm.skeleton.bones.find(x=>x.name.toLowerCase()===name);if(bn)break}if(!bn)m.o.traverse(x=>{if(!bn&&x.isBone&&x.name.toLowerCase()===name)bn=x});return bn?(C[name]=bn):null}
+  // a point to put a taunt's particle effect on: an attachment of the entity that fired the event (the merc for its own sequence, the prop for
+  // the prop's), then of the other one, else a bone of that name, oriented as the attachment is (Source's PATTACH_POINT_FOLLOW)
+  function attObj(m,name,propFirst){name=String(name||'').toLowerCase();const C=m._attc||(m._attc={});const ck=(propFirst?'p:':'m:')+name;if(C[ck]&&C[ck].parent)return C[ck];const P=(m._tprop&&m._tprop.meshes)||[];
+   const put=(a,b)=>{const o=new THREE.Object3D(),q=a.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);b.add(o);return C[ck]=o};
+   const fromProp=()=>{for(const sm of P){const a=(sm.userData.att||[]).find(x=>x.name===name);const b=a&&sm.skeleton&&sm.skeleton.bones.find(x=>x.name===a.bone);if(b)return put(a,b)}return null};
+   const fromMerc=()=>{const a=(m._matts||[]).find(x=>x.name===name);if(!a||!a.bone)return null;let b=null;m.o.traverse(x=>{if(!b&&x.isBone&&!x.userData.zx&&x.name===a.bone)b=x});return b?put(a,b):null};
+   const o=propFirst?(fromProp()||fromMerc()):(fromMerc()||fromProp());if(o)return o;
+   let bn=null;for(const sm of P){if(sm.skeleton)bn=sm.skeleton.bones.find(x=>x.name.toLowerCase()===name);if(bn)break}if(!bn)m.o.traverse(x=>{if(!bn&&x.isBone&&!x.userData.zx&&x.name.toLowerCase()===name)bn=x});return bn?(C[ck]=bn):null}
   // the particle effects the taunt's sequence and its prop's sequence fire, each once as the taunt passes its time
-  function tauntFx(m){const a=m.act;if(!window.ZPFX||!a||!/^live:/.test(m.cn||'')){m._fxl=null;return}const now=a.time;if(m._fxl==null||now<m._fxl-.05||m._fxc!==m.cn){m._fxl=now;m._fxc=m.cn;return}
-   const E=(a.getClip().zpfx||[]).slice();const R=m._tprop;if(R&&R.pa&&R.pev){const d=R.pa.getClip().duration;for(const x of R.pev)if(/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||'')){const q=String(x.opt||'').trim().split(/\s+/);if(q[0])E.push({s:(R.poff||0)+x.cycle*d,sys:q[0],att:/attachment/.test(q[1]||'')?(q[2]||''):''})}}
-   for(const x of E)if(x.s>m._fxl&&x.s<=now){const o=(x.att&&attObj(m,x.att))||m.o;ZPFX.burst(x.sys,()=>({obj:o,merc:m.o,yup:o===m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}
+  function tauntFx(m,c){const a=m.act;if(!window.ZPFX||!a||!/^live:/.test(m.cn||'')){m._fxl=null;return}
+   if(m._matts===undefined&&window.ZLIVE&&ZLIVE.mercAtts&&c){m._matts=null;ZLIVE.mercAtts(c).then(A=>{m._matts=A||[];m._attc={}}).catch(()=>{m._matts=[]})}
+   const now=a.time;if(m._fxl==null||now<m._fxl-.05||m._fxc!==m.cn){m._fxl=now;m._fxc=m.cn;return}
+   const E=(a.getClip().zpfx||[]).slice();const R=m._tprop;if(R&&R.pa&&R.pev){const d=R.pa.getClip().duration;for(const x of R.pev)if(/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||'')){const q=String(x.opt||'').trim().split(/\s+/);if(q[0])E.push({s:(R.poff||0)+x.cycle*d,sys:q[0],att:/attachment/.test(q[1]||'')?(q[2]||''):'',prop:1})}}
+   for(const x of E)if(x.s>m._fxl&&x.s<=now){const o=(x.att&&attObj(m,x.att,x.prop))||m.o;ZPFX.burst(x.sys,()=>({obj:o,merc:m.o,yup:o===m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}
    m._fxl=now}
  async function setCosmetics(c){const m=M[c];if(!m)return;let names=[];try{const S=LOX.ls(c);names=(S.P[S.pre].c||[]).slice(0,4).filter(Boolean)}catch(e){}if(window.ZPREV&&ZPREV.cls==c)names=(ZPREV.cos||[]).slice();
   {let W=[];try{const S=LOX.ls(c);W=Object.values(S.P[S.pre].w||{})}catch(e){}if(window.ZPREV&&ZPREV.cls==c)W=[...new Set([ZPREV.wname].concat(ZPREV.worn||[]).filter(Boolean))];
@@ -668,7 +679,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
 // the preview's LOD button: the merc, his cosmetics and his weapon at LOD 0, 1 or 2, read from the install. The merc's own (LOD 0)
 // model is swapped for the class model's LOD from the install, worn with the same bodygroups.
 async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;
- await lodBody(c);m.csig=null;m.wname=null;window.ZREDRESS(c)}
+ await lodBody(c);m.csig=null;m.wname=null;window.ZREDRESS(c);if(window.ZTPROP)ZTPROP(c)}
 // the class model at the LOD, worn with the bodygroups the cosmetics leave (rebuilt when they change: setCosmetics calls it)
 async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0;
  const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
@@ -839,6 +850,8 @@ function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.
  if(sc)for(const e of sc.sc.ev){if(e.t!='expr'||st<e.s||st>e.e)continue;const set=h.vfe[e.file]&&h.vfe[e.file][e.name.toLowerCase()];if(!set)continue;const sca=evIntensity(e,st,sc.sc);
   for(const [j,w,inf] of set){const s=Math.min(1,Math.max(0,sca*inf));g[j]=g[j]*(1-s)+w*s}}
  if(sc)sc.voices=sc.voices.filter(x=>{const a=x.a;const t=a.paused&&a.currentTime===0?performance.now()/1000-x.t0:a.currentTime;if(a.ended)return false;visemes(R,x.v,t);return true});
+ // flexes only play at LOD 0 (the lower LODs' meshes have none): at LOD 1 and 2 the face and the items on it hold their neutral shape
+ if(window.ZLIVE&&ZLIVE.lod>0&&g&&g.fill)g.fill(0);
  rules(R);deform(R);
  for(const it of m.faceItems||[]){const ig=it.R.g;for(let i=0;i<ig.length;i++){const j=it.map[i];ig[i]=j>=0?g[j]:0}rules(it.R);deform(it.R)}
  R.live=act}
@@ -916,7 +929,10 @@ function step(J,t){const p=J.p,d=J.d,goal=J.bone.matrixWorld,e=goal.elements;
    const to=new THREE.Matrix4().makeBasis(side,oth,bd).transpose(),S=new THREE.Matrix4().makeScale(sq,sq,st),from=to.clone().transpose();
    out=new THREE.Matrix4().makeBasis(L,U,Fw).multiply(to.multiply(S).multiply(from)).setPosition(base)}}
  return out}
-function tick(m,t){const L=m.jig;if(!L||!L.length)return;let any=false;if(!_i){_i=new THREE.Matrix4();_b=new THREE.Matrix4()}
+function tick(m,t){const L=m.jig;if(!L||!L.length)return;
+ // jiggle bones only move at LOD 0 (their bones are only set up for the top LOD's vertexes): at LOD 1 and 2 they rest
+ if(window.ZLIVE&&ZLIVE.lod>0){if(!m._jigOff){m._jigOff=1;for(const J of L){J.bone.position.copy(J.rest[0]);J.bone.quaternion.copy(J.rest[1]);J.bone.scale.copy(J.rest[2]);J.d={}}return true}return false}m._jigOff=0;
+ let any=false;if(!_i){_i=new THREE.Matrix4();_b=new THREE.Matrix4()}
  for(const J of L){if(!J.bone.parent)continue;J.bone.position.copy(J.rest[0]);J.bone.quaternion.copy(J.rest[1]);J.bone.scale.copy(J.rest[2]);J.bone.updateMatrixWorld(true);// goal = the bone's own (unjiggled) pose under its animated parent
   const M=step(J,t);if(!M)continue;any=true;
   _i.copy(J.bone.parent.matrixWorld).invert();_b.multiplyMatrices(_i,M);_b.decompose(J.bone.position,J.bone.quaternion,J.bone.scale);J.bone.updateMatrixWorld(true)}
@@ -1606,7 +1622,7 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if
  return{clip:A.clip,sc:mu?{ev,mu}:{ev},urls,prop:pp,pseq}})()}
 // the prop's own sequence as a clip (bones named as in the prop model)
 async function propClip(path,seqName){const k='pclip|'+path+'|'+seqName;if(ST.cache[k])return ST.cache[k];return ST.cache[k]=(async()=>{const b=await mdlBuf(path);if(!b)return null;const r=await clipOf(b,seqName,'prop:'+seqName,null);return r&&r.clip})()}
-async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0,null,{allbg:1}).then(A=>{A[1][key]._own=1;return A})}
+async function propOwn(path){const key='livepropx:'+path,lod=ST.lod|0,ck=key+'#lod'+lod;if(ST.cache[ck])return ST.cache[ck];return ST.cache[ck]=assemble(key,path,{r:{}},0,null,{allbg:1,lod}).then(A=>{A[1][key]._own=1;return A})}
 const SEQ={};
 async function seq(cl,name,boneSet,P){const c=clsKey(cl);const k=c+'|'+name.toLowerCase()+(P?'|'+JSON.stringify(P):'');if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet,P).then(r=>r&&r.clip)}
 // the firing gestures: the sequences of the activity the game plays when the weapon fires (ACT_MP_ATTACK_STAND_<anim slot>, _CROUCH_),
@@ -1754,7 +1770,7 @@ async function weaponTaunt(cl,wname,extra){const c=clsKey(cl);const e=entry(wnam
   if(ok&&taunt&&sc>bs){const sc0=r.resp.flatMap(x=>R.resp[x]||[]);if(sc0.length){best=sc0;bs=sc}}}
  return best?best[Math.floor(Math.random()*best.length)].replace(/\\/g,'/').toLowerCase():null}
 
-async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0,null,{allbg:1})}
+async function prop(path){const key='liveprop:'+path,lod=ST.lod|0,ck=key+'#lod'+lod;if(ST.cache[ck])return ST.cache[ck];return ST.cache[ck]=assemble(key,path,{r:{}},0,null,{allbg:1,lod})}
 // the events of a prop's own sequence (AE_CL_BODYGROUP_SET_VALUE, AE_CL_CREATE_PARTICLE_EFFECT), by cycle
 async function propEvents(path,seqName){const b=await mdlBuf(path);return b?seqEvents(b,seqName):[]}
 // ---------- an item's sources: its model written out as a QC, and the VMTs of its materials (the preview's Model & Materials window) ----------
