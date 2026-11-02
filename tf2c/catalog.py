@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 43
+CATALOG_VERSION = 44
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -31,7 +31,7 @@ def source_files(tf_dir):
 
 def signature(sources, data_dir):
     parts = ["v%d" % CATALOG_VERSION]
-    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json", "achievements.json", "effects.json")]:
+    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json", "achievements.json", "effects.json", "store.json")]:
         try:
             st = os.stat(p)
             parts.append("%d:%d" % (st.st_size, int(st.st_mtime)))
@@ -149,6 +149,21 @@ def effects(ig, loc, data_dir):
             seen.add((kind, name))
             out.append([i, name, kind, cell.get(i, -1), *added.get(name.lower(), ("", ""))])
     return sorted(out, key=lambda e: e[0])
+
+
+def store_buy(data_dir, keep, dup):
+    """Items the Mann Co. Store sells, as {listed defindex: the defindex Steam sells it under} (data/store.json, from the TF2 Wiki's
+    store.steampowered.com/buyitem/440/<defindex> links): an item listed under another copy's defindex buys that copy."""
+    try:
+        spec = json.load(open(os.path.join(data_dir, "store.json"), encoding="utf-8")).get("buy", "")
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for d in sorted(_ids([x for x in spec.split(",") if x])):
+        k = dup.get(d, d)
+        if k in keep:
+            out.setdefault(str(k), d)
+    return out
 
 
 def _read(path):
@@ -827,4 +842,5 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "ach_alt": {k: [i for i in v if isinstance(i, int)] for k, v in cur.get("achievement_variants", {}).items() if k.isdigit()},
             "expired": {str(k): expired_on(k)[:10] for k in keep if cat.get(k) == "x"},
             "overlay": overlays(R, keep),
-            "effects": effects(ig, loc, data_dir)}
+            "effects": effects(ig, loc, data_dir),
+            "buy": store_buy(data_dir, keep, dup)}
