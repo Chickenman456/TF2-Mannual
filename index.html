@@ -566,11 +566,23 @@ button.vg:focus-visible{outline:none}
       <input id="sid" class="in" placeholder="Steam ID or profile link" aria-label="Steam ID or profile link" autocomplete="off" spellcheck="false">
       <button id="syncBtn" class="btn big" type="button">Sync</button>
       <button id="wsBtn" class="btn ibtn" type="button" title="Workshop: your compiled items" aria-label="Workshop"><span class="gi" style="--g:url(ui/glyph_steamworkshop.webp)"></span></button>
+      <a id="bugBtn" class="btn ibtn" href="https://github.com/Chickenman456/TF2-Mannual/issues" target="_blank" rel="noopener" title="Report a bug" aria-label="Report a bug"><span class="gi" style="--g:url(ui/glyph_bug.webp)"></span></a>
       <button id="setBtn" class="btn ibtn" type="button" title="Settings" aria-label="Settings"><span class="gi" style="--g:url(ui/glyph_options.webp)"></span></button>
     </div>
     <div class="meter"><b id="pct">0%</b><div class="track"><div class="fill" id="pfill" style="width:0"></div></div><span id="ptxt" class="sub"></span></div>
   </div>
   <div class="status gut" id="status"></div>
+  <div class="gut" id="helperPanel" hidden>
+    <div class="panel">
+      <div><b>Sync your backpack from Steam</b></div>
+      <ol>
+        <li>Only once: drag this button to your bookmarks bar: <a class="btn" id="helperLink" href="#" title="Drag me to your bookmarks bar" onclick="event.preventDefault()">Send to the Mann-ual</a></li>
+        <li>On the Steam page that just opened (<a id="helperOpen" target="mannual_steam" href="#">open it again</a>), click the <b>Send to the Mann-ual</b> bookmark</li>
+        <li>That's it: your backpack comes back here by itself</li>
+      </ol>
+      <div class="row"><span class="sub">Signed in to Steam, it reads your own backpack even when it's private. Rather do it by hand? <a href="#" id="toPaste">Copy and paste it instead</a>.</span><span class="grow"></span><button class="btn" type="button" id="helperClose">Close</button></div>
+    </div>
+  </div>
   <div class="gut" id="pastePanel" hidden>
     <div class="panel">
       <div><b>One more step.</b> <span id="pasteWhy">This page can't reach Steam by itself here.</span></div>
@@ -655,7 +667,7 @@ button.vg:focus-visible{outline:none}
 <main id="main" class="gut"></main>
 <footer class="disclaimer gut">
   <span class="mannco" role="img" aria-label="Mann Co."></span>
-  <p>AI Slop software "made" by Chickenman with Claude. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
+  <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
@@ -1720,9 +1732,14 @@ document.addEventListener('mousemove', e => {
 });
 
 /* ---------------- Steam sync ---------------- */
+// a Steam ID in any of the forms Steam shows it, as the 17-digit SteamID64: a profile link or the number itself, STEAM_0:1:2345,
+// [U:1:4691] or a bare account ID. A custom URL (/id/name) can't be turned into one from here: the Steam helper reads it off the profile
 function parseId(text){
-  const t = (text||'').trim();
+  const t = (text||'').trim(), B = 76561197960265728n;
   const m = t.match(/7656\d{13}/); if (m) return {id: m[0]};
+  const s2 = t.match(/^STEAM_[0-5]:([01]):(\d+)$/i); if (s2) return {id: String(B + BigInt(s2[2]) * 2n + BigInt(s2[1]))};
+  const s3 = t.match(/^\[?U:1:(\d+)\]?$/i); if (s3) return {id: String(B + BigInt(s3[1]))};
+  if (/^\d{1,10}$/.test(t) && +t > 0) return {id: String(B + BigInt(t))};
   const v = t.match(/\/id\/([^/?#\s]+)/);
   const vanity = v ? v[1] : (/^[A-Za-z0-9_-]{2,32}$/.test(t) ? t : '');
   return {vanity};
@@ -1866,6 +1883,36 @@ async function autoSync(input){
   }
   finishSync(owned, total, quals, fx, bp, id);
 }
+/* Sync in a regular browser: Steam doesn't let other sites read its pages, so a bookmark run on Steam's own page does it. The page
+   opens your inventory on steamcommunity.com; there you click the "Send to the Mann-ual" bookmark (dragged to the bookmarks bar once),
+   which reads every page of your TF2 backpack there and hands it back to this tab. Signed in to Steam, it works for a private backpack too. */
+const HELPER = "javascript:(async()=>{const m=location.pathname.match(/\\/profiles\\/(\\d{17})/);const id=(m&&m[1])||(window.g_rgProfileData&&g_rgProfileData.steamid)||(window.UserThem&&UserThem.strSteamId)||(window.g_ActiveUser&&g_ActiveUser.strSteamId);"
+  + "if(!/^steamcommunity\\.com$/.test(location.hostname)||!id){alert('Open your Steam profile or inventory on steamcommunity.com first, then click this again.');return}"
+  + "document.title='Reading your TF2 backpack...';const pages=[];let start='';for(let i=0;i<30;i++){const r=await fetch('/inventory/'+id+'/440/2?l=english&count=2000'+(start?'&start_assetid='+start:''),{credentials:'include'});"
+  + "if(!r.ok){if(!pages.length){alert(r.status==401||r.status==403?'Steam won\\'t show this backpack. Sign in to Steam as its owner, or set your inventory to Public.':'Steam is busy (error '+r.status+'). Wait a minute and click again.');return}break}"
+  + "const d=await r.json();if(!d||!d.success&&!d.assets){break}pages.push(d);if(d.more_items&&d.last_assetid){start=d.last_assetid;await new Promise(q=>setTimeout(q,1500))}else break}"
+  + "const msg={mannual:1,steamid:id,pages:pages};if(window.opener){window.opener.postMessage(msg,'*');document.title='Sent to the Mann-ual';alert('Sent '+pages.reduce((a,p)=>a+(p.assets||[]).length,0)+' items to the Mann-ual. You can close this tab.')}"
+  + "else{await navigator.clipboard.writeText(JSON.stringify(msg));alert('Copied your backpack. Go back to the Mann-ual and press Ctrl+V.')}})()";
+let helperWin = null;
+function helperSync(id, vanity){
+  const url = id ? `https://steamcommunity.com/profiles/${id}/inventory/#440` : `https://steamcommunity.com/id/${encodeURIComponent(vanity)}/inventory/#440`;
+  $('#helperLink').href = HELPER;
+  $('#helperOpen').href = url;
+  $('#helperPanel').hidden = false;
+  if (id){ $('#invLink').href = invUrl(id, 2000); pend = {id, owned:{}, quals:{}, fx:{}, bp:[], total:0}; }
+  try { helperWin = window.open(url, 'mannual_steam'); } catch { helperWin = null; }
+}
+function takeBackpack(msg){
+  if (!msg || msg.mannual !== 1 || !/^\d{17}$/.test(String(msg.steamid || '')) || !Array.isArray(msg.pages)) return false;
+  const owned = {}, quals = {}, fx = {}, bp = []; let total = 0;
+  for (const d of msg.pages){ addPage(owned, d, quals, fx, bp); total = d.total_inventory_count || total + (d.assets||[]).length; }
+  $('#sid').value = msg.steamid; S.steamId = msg.steamid; save();
+  $('#helperPanel').hidden = true; $('#pastePanel').hidden = true; pend = null;
+  finishSync(owned, total, quals, fx, bp, msg.steamid);
+  try { if (helperWin && !helperWin.closed) helperWin.close(); } catch {}
+  return true;
+}
+addEventListener('message', e => { if (e.origin === 'https://steamcommunity.com') takeBackpack(e.data); });
 let pend = null;  // paste-mode pagination
 function showPaste(id, why){
   pend = {id, owned:{}, quals:{}, fx:{}, bp:[], total:0};
@@ -1889,23 +1936,24 @@ async function doSync(){
       }
     }
     const {id, vanity} = parseId(raw);
-    if (!id){
-      status(`<span class="err">Use your 17-digit Steam ID here. <a target="_blank" rel="noopener" href="https://steamcommunity.com/id/${encodeURIComponent(vanity)}/?xml=1">Look it up</a> (it's the number in &lt;steamID64&gt;), or open this page in the Claude desktop app to sync with just your profile name.</span>`);
-      return;
-    }
+    if (id && id !== raw){ $('#sid').value = id; S.steamId = id; save(); }   // shown as the SteamID64 it stands for
+    if (!id && !vanity){ status('<span class="err">That doesn\'t look like a Steam profile. Paste your profile link, your SteamID64 or your custom URL name.</span>'); return; }
     status('');
     syncBusy(false, '', true);
-    showPaste(id, MCP ? 'The Claude app\'s browser didn\'t respond, so grab your backpack by hand this time.' : 'Open this page in the Claude desktop app to sync in one click. In a regular browser, grab your backpack by hand:');
+    helperSync(id, vanity);
   } finally { if ($('#syncBtn').classList.contains('busy')) syncBusy(false); }
 }
 $('#syncBtn').onclick = doSync;
 $('#sid').addEventListener('keydown', e => { if (e.key === 'Enter') doSync(); });
 $('#pasteClose').onclick = () => { $('#pastePanel').hidden = true; };
+$('#helperClose').onclick = () => { $('#helperPanel').hidden = true; };
+$('#toPaste').onclick = e => { e.preventDefault(); const {id} = parseId(S.steamId); if (!id){ status('<span class="err">Copying by hand needs your SteamID64 or profile link (with the number).</span>'); return; } $('#helperPanel').hidden = true; showPaste(id, 'Grab your backpack by hand:'); };
 document.addEventListener('paste', e => {
   const text = e.clipboardData && e.clipboardData.getData('text');
   if (!text) return;
   const id17 = text.match(/<steamID64>\s*(\d{17})/);
   if (id17 && e.target !== $('#sid')){ e.preventDefault(); $('#sid').value = id17[1]; S.steamId = id17[1]; save(); doSync(); return; }
+  if (/^\s*\{\s*"mannual"\s*:\s*1/.test(text)){ e.preventDefault(); try { if (takeBackpack(JSON.parse(text))) return; } catch {} status('<span class="err">That paste was cut off. Click the bookmark on the Steam page again.</span>'); return; }
   if (!/^\s*\{\s*"(assets|total_inventory_count|success)"/.test(text)) return;
   e.preventDefault();
   let data; try { data = JSON.parse(text); } catch { status('<span class="err">That paste was cut off. Copy the whole page with Ctrl+A first.</span>'); return; }
@@ -1932,7 +1980,7 @@ function gamePanel(msg){
       : on ? `Linked to your TF2 folder <span class="path">${esc(TF2Files.name)}</span>. Click any item for the Mann Co. Store preview, then a class portrait to see it on that merc in 3D, read straight from your game files. What the preview reads is saved in this browser, so it's still there after a reload or a page update.`
       : `Click any item for the Mann Co. Store preview. Point this page at your TF2 folder and it shows the item on the merc in 3D too, read straight from your game files. Your files stay on your computer: the page only reads them, in your browser.`}</p>
     ${on ? '' : `<p class="sub">Pick your <b>Team Fortress 2</b> folder, usually <span class="path">C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2</span>. The <b>tf</b> folder inside it works too, but some unusual effects use materials from the <b>hl2</b> folder next to it, so those show only part of the effect. Your browser will ask whether to "upload" it. Nothing is sent anywhere; that's just how browsers word letting a page read a folder. What the preview reads is saved in this browser, so it's still there next time.</p>`}
-    ${window.TF2Files && !TF2Files.canKeep ? `<p class="sub">Inside Claude, the browser doesn't let this page keep your folder, so it works from the saved copy until you link it again. Open the page in its own tab and link the folder there: the browser remembers it (in Chrome, choose <b>Allow on every visit</b> when it asks) and you won't have to link it again.</p>
+    ${window.TF2Files && !TF2Files.canKeep && window.claude ? `<p class="sub">Inside Claude, the browser doesn't let this page keep your folder, so it works from the saved copy until you link it again. Open the page in its own tab and link the folder there: the browser remembers it (in Chrome, choose <b>Allow on every visit</b> when it asks) and you won't have to link it again.</p>
     <div class="row"><a class="btn" href="${esc(location.href)}" target="_blank" rel="noopener">Open in its own tab</a></div>` : ''}
     <div class="row"><button class="btn big" id="tfgo" type="button">${on && TF2Files.saved ? 'Link my TF2 folder again' : on ? 'Pick another folder' : 'Link my TF2 folder'}</button>${on ? '<button class="btn" id="tfoff" type="button">Unlink</button>' : ''}</div>
     <p class="sub" id="tfmsg" style="margin:0;color:var(--AttribNegative)">${msg ? esc(msg) : ''}</p>`;
