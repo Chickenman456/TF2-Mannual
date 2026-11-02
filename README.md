@@ -111,7 +111,6 @@ assets/              Application assets
 ```
 ## Known Issues
 * Character animations can be bugged, and weapon particles are equally funky.
-* Lucky Number 42 is bugged.
 * Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
 * particle effects are horribly inaccurate at the time being.
 * Destruction PDA doesn't display correctly.
