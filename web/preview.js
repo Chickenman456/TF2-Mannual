@@ -88,6 +88,8 @@
     if (o.attrs && o.attrs.length) rows.push(`<div class="spv-attrs big">${o.attrs.map(([t, c]) => `<div${c ? ` style="color:${c}"` : ''}>${E(t)}</div>`).join('')}</div>`);
     // the item's collection, the way its description lists it in game (grade colours, this item marked), and the case it comes from
     if (o.col) rows.push(`<div class="spv-col big">${o.col.cases.length ? `<div class="cs">Found in: ${E(o.col.cases.join(', '))}</div>` : ''}<div class="h">${E(o.col.name)}</div>${o.col.items.map(([n, c, cur]) => `<div${cur ? ' class="cur"' : ''}${c ? ` style="color:${c}"` : ''}>${E(n)}</div>`).join('')}</div>`);
+    // a noise maker: play one of its sounds, as using it in game does (read from the game's files)
+    if (live() && ZLIVE.noiseSounds && ST.noise && ST.noise.length) rows.push(`<button type="button" class="spv-btn spv-wiki big" data-spv="noise">\u25B6 Play Sound</button>`);
     if (live() && ZLIVE.source) rows.push(`<button type="button" class="spv-btn spv-wiki big" data-spv="src">Model &amp; Materials...</button>`);
     if (o.wiki) rows.push(`<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Item Wiki Page...</a>`);
     if (o.tradable != null) rows.push(lab('Tradable:', o.tradable ? 'Yes' : 'No', 'big'));
@@ -139,6 +141,16 @@
     if (s !== 'item') { const ic = ST.el.querySelector('.spv-icon'); if (ic) ic.remove(); iconTok++; }
     if (s === 'player') dress(); else { undress(); if (s === 'item') bigIcon(); }
     details();
+    if (ST.noise === undefined && live() && ZLIVE.noiseSounds) { ST.noise = null; const st = ST; ZLIVE.noiseSounds(ST.o.name).then(L => { if (ST === st) { st.noise = L; details(); } }).catch(() => {}); }
+  }
+  // a noise maker's sound, one of its set at random (a noise maker with several sounds, like the Winter Holiday one, picks one each use)
+  let noiseAu = null;
+  function playNoise() {
+    const L = ST && ST.noise; if (!L || !L.length) return;
+    const g = L[(Math.random() * L.length) | 0], u = g[(Math.random() * g.length) | 0];
+    try { if (noiseAu) noiseAu.pause(); } catch (e) {}
+    let v = 1; try { v = window.ZVOL ? Math.max(0, Math.min(1, +ZVOL() || 0)) : 1; } catch (e) {}
+    noiseAu = new Audio(u); noiseAu.volume = v; noiseAu.play().catch(() => {});
   }
 
   // ---- the 3D merc (CTFPlayerModelPanel, via store3d.js) ----
@@ -469,6 +481,7 @@
     else if (k === 'fsexit') exitFS();
     else if (k === 'wish') { o.wish.toggle(); wishLabel(); }
     else if (k === 'src') srcView();
+    else if (k === 'noise') playNoise();
     else if (k === 'lod') { ST.lod = ((ST.lod || 0) + 1) % 3; lodLabel(); const cn = CNAME[ST.cls]; if (cn && window.Store3D && Store3D.lod) Store3D.lod(cn, ST.lod); }
   }
   // ---- Model & Materials: the item's QC (reconstructed from the compiled model, or the Workshop item's own) and its VMTs ----
@@ -591,6 +604,7 @@
     if (!ST) return;
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
     if (window.ZPFX && ZPFX.clear) ZPFX.clear();   // no particles carried over into the next preview
+    try { if (noiseAu) { noiseAu.pause(); noiseAu = null; } } catch (e) {}
     ctlReset(); if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); exitFS(); undress();
     const s = ST; ST = null;
     removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('keyup', onCtlUp); removeEventListener('blur', onCtlUp); removeEventListener('resize', layout);
