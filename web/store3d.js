@@ -10,7 +10,9 @@
  const TK=[['conga','taunt_conga'],['kazotsky','taunt_russian'],['schadenfreude','taunt_laugh'],['square dance','taunt_dosido_dance'],['rock, paper','taunt_rps_rock_win'],['circuit','taunt_circuit_breaker'],['scaredy','taunt_scaredycat']];
  // taunt clips each class model really contains (checked against the baked .glb animations)
  const ZCLIPS=window.ZCLIPS={"demoman":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"engineer":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"heavy":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat","taunt_circuit_breaker"],"medic":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"pyro":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"scout":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"sniper":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"soldier":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"],"spy":["taunt_conga","taunt_russian","taunt_laugh","taunt_dosido_dance","taunt_rps_rock_win","taunt_scaredycat"]};
- const clipFor=n=>{const n0=n;n=String(n||'').toLowerCase().replace(/&#39;|\u2019/g,"'");const k=TK.find(t=>n.includes(t[0]));if(k)return k[1];return (n0&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasTaunt(n0,curC||'Scout'))?'live:'+n0:undefined};
+ const clipFor=n=>{const n0=n;n=String(n||'').toLowerCase().replace(/&#39;|\u2019/g,"'");const k=TK.find(t=>n.includes(t[0]));
+  // with the game's files, the taunt itself (its props, scenes and sounds); the packed clips are for when there are none
+  if(n0&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasTaunt(n0,curC||'Scout'))return 'live:'+n0;return k?k[1]:undefined};
  let V=null,boot=null;const M={},loading={};let curC=null;
 const ZMAX=1.8,headAt=c=>{const m=M[c];if(!m||!m.o)return null;let h=null;m.o.traverse(x=>{if(!h&&x.isBone&&x.name==='bip_head')h=x});if(!h)return null;m.o.updateMatrixWorld(true);return h.getWorldPosition(new THREE.Vector3())};
  // TF2 player shader, ported from the Source SDK 2013 "skin" pixel shader (VertexLitGeneric + $phong) — skin_ps20b.fxc / common_vertexlitgeneric_dx9.h:
@@ -212,7 +214,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();lightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
-   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
+   ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
      if(typeof ianimTick=='function')ianimTick(m,t);
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
      if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
@@ -239,7 +241,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
       if(mm._tprop){const r=mm._tprop;mm._tprop=null;r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}
       const pp=/^live:/.test(n)&&mm._ltp&&mm._ltp[n];const ps=pp&&mm._ltps&&mm._ltps[n];
       // a prop with a scene of its own stands at the merc's feet and plays its sequence in step with the taunt; otherwise it rides prop_bone
-      if(pp)Promise.all([bonemerge(mm,c,(ps?'livepropx:':'liveprop:')+pp,null),ps?ZLIVE.propClip(pp,ps.seq).catch(()=>null):null]).then(([r,pc])=>{if(!r)return;if(mm.cn!==n){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b));return}
+      if(pp)Promise.all([bonemerge(mm,c,(ps?'livepropx:':'liveprop:')+pp,null),ps?ZLIVE.propClip(pp,ps.seq).catch(()=>null):null,ps?ZLIVE.propEvents(pp,ps.seq).catch(()=>[]):[]]).then(([r,pc,pev])=>{if(r)r.pev=pev||[];if(!r)return;if(mm.cn!==n){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b));return}
        if(pc&&r.holder){const px=new THREE.AnimationMixer(r.holder);const pa=px.clipAction(pc);pa.play();r.pmx=px;r.pa=pa;r.poff=ps.off||0;r.ploop=ps.loop;propTick(mm)}mm._tprop=r})}}return true};
    const st0={idle:'stand_PRIMARY'};mx.addEventListener('finished',e=>{if(e&&e.action&&e.action._zg)return;play(st0.idle)});// a firing gesture ends on its own
    // team skins: RED maps ship with the model, BLU maps (models/<class>_<part>_blu.jpg) load on demand
@@ -457,7 +459,19 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   function propTick(m){const r=m._tprop||null;const R=r&&r.pa?r:null;if(!R||!m.act)return;const pc=R.pa.getClip();let t=m.act.time-R.poff;const L=R.ploop;
   if(L&&t>L.to)t=L.from+((t-L.from)%(L.to-L.from));R.pa.time=Math.max(0,Math.min(pc.duration,t));R.pmx.update(0);
    // the prop entity goes when its scene ends (the Yeti leaves; the merc carries on)
-   const on=!!L||t<=pc.duration+.05;if(R._on!==on){R._on=on;R.meshes.forEach(x=>x.visible=on)}}
+   const on=!!L||t<=pc.duration+.05;
+   // AE_CL_BODYGROUP_SET_VALUE "<bodygroup> <state>" up to this point of the sequence (the Pool Party's pool appears, the gas can comes and goes)
+   const cyc=pc.duration>0?R.pa.time/pc.duration:0,bg={};for(const x of (R.pev||[]).filter(x=>/AE_CL_BODYGROUP_SET_VALUE/.test(x.name||'')).sort((a,b)=>a.cycle-b.cycle)){if(x.cycle>cyc)break;const q=String(x.opt||'').trim().split(/\s+/);if(q[0])bg[q[0].toLowerCase()]=+q[1]||0}
+   const sig=on+JSON.stringify(bg);if(R._on!==sig){R._on=sig;R.meshes.forEach(x=>x.visible=on&&(x.userData.bg==null||(bg[x.userData.bg]||0)===x.userData.bgs))}}
+  // a point to put a taunt's particle effect on: an attachment of the prop (or the merc), else a bone of that name
+  function attObj(m,name){name=String(name||'').toLowerCase();const C=m._attc||(m._attc={});if(C[name]&&C[name].parent)return C[name];const P=(m._tprop&&m._tprop.meshes)||[];
+   for(const sm of P){const a=(sm.userData.att||[]).find(x=>x.name===name);const b=a&&sm.skeleton&&sm.skeleton.bones.find(x=>x.name===a.bone);if(b){const o=new THREE.Object3D(),q=a.m;new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1).decompose(o.position,o.quaternion,o.scale);b.add(o);return C[name]=o}}
+   let bn=null;for(const sm of P){if(sm.skeleton)bn=sm.skeleton.bones.find(x=>x.name.toLowerCase()===name);if(bn)break}if(!bn)m.o.traverse(x=>{if(!bn&&x.isBone&&x.name.toLowerCase()===name)bn=x});return bn?(C[name]=bn):null}
+  // the particle effects the taunt's sequence and its prop's sequence fire, each once as the taunt passes its time
+  function tauntFx(m){const a=m.act;if(!window.ZPFX||!a||!/^live:/.test(m.cn||'')){m._fxl=null;return}const now=a.time;if(m._fxl==null||now<m._fxl-.05||m._fxc!==m.cn){m._fxl=now;m._fxc=m.cn;return}
+   const E=(a.getClip().zpfx||[]).slice();const R=m._tprop;if(R&&R.pa&&R.pev){const d=R.pa.getClip().duration;for(const x of R.pev)if(/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||'')){const q=String(x.opt||'').trim().split(/\s+/);if(q[0])E.push({s:(R.poff||0)+x.cycle*d,sys:q[0],att:/attachment/.test(q[1]||'')?(q[2]||''):''})}}
+   for(const x of E)if(x.s>m._fxl&&x.s<=now){const o=(x.att&&attObj(m,x.att))||m.o;ZPFX.burst(x.sys,()=>({obj:o,merc:m.o,yup:o===m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}
+   m._fxl=now}
  async function setCosmetics(c){const m=M[c];if(!m)return;let names=[];try{const S=LOX.ls(c);names=(S.P[S.pre].c||[]).slice(0,4).filter(Boolean)}catch(e){}if(window.ZPREV&&ZPREV.cls==c)names=(ZPREV.cos||[]).slice();
   {let W=[];try{const S=LOX.ls(c);W=Object.values(S.P[S.pre].w||{})}catch(e){}if(window.ZPREV&&ZPREV.cls==c)W=[...new Set([ZPREV.wname].concat(ZPREV.worn||[]).filter(Boolean))];
    W.forEach(n=>{const k=n&&wkey(n);if(k&&WEARW[BYNAME[k]])names.push('#w:'+BYNAME[k]);else if(!k&&n&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasXW(n,c))names.push('#x:'+n)})}
@@ -1265,20 +1279,22 @@ async function model(path,pre,opt){pre=pre||'m';const base=path.replace(/\.mdl$/
  if(LOD>0){const mro=X.getInt32(24,true);if(mro>0){const h=mro+LOD*8,nr=X.getInt32(h,true),ro=X.getInt32(h+4,true);for(let r=0;r<nr;r++){const e=h+ro+r*6,id=X.getInt16(e,true),nm=cstr(vtx,e+X.getInt32(e+2,true));if(id>=0&&id<texn.length&&nm)texn[id]=nm}}}
  if(nfix){map=[];for(let k=0;k<nfix;k++){const lod=VV.getInt32(fixs+12*k,true),s=VV.getInt32(fixs+12*k+4,true),n=VV.getInt32(fixs+12*k+8,true);if(lod>=LOD)for(let j=0;j<n;j++)map.push(s+j)}}
  const vidx=i=>map?map[i]:i;
- const vbpo=X.getInt32(32,true);const prims={},flexRaw={};
+ const vbpo=X.getInt32(32,true);const prims={},flexRaw={},GR={};
  // at LOD 1+ the vertexes are the fixed-up list for that LOD, where each mesh starts after all the meshes before it (mstudiomesh_t
  // vertexdata.numLODVertexes[LOD], in bodypart / model / mesh order)
  const lodBase=new Map();if(LOD>0){let acc=0;for(let bp=0;bp<nbp;bp++){const mbo=bpi+bp*16,nmod=I(mbo+4),modi=I(mbo+12);for(let mi=0;mi<nmod;mi++){const mo=mbo+modi+mi*148,nmesh=I(mo+72),meshi=I(mo+76);
    for(let me=0;me<nmesh;me++){const meo=mo+meshi+me*116;lodBase.set(meo,acc);acc+=I(meo+52+LOD*4)}}}}
  for(let bp=0;bp<nbp;bp++){const mbo=bpi+bp*16;const nmod=I(mbo+4),modi=I(mbo+12);const xbo=vbpo+bp*8;const xmo=X.getInt32(xbo+4,true);
   const bpn=cstr(mdl,mbo+I(mbo)).toLowerCase();let sel=0;if(opt&&opt.only){if(!(bpn in opt.only))continue;sel=+opt.only[bpn]}else if(opt&&opt.bg){const v=opt.bg[bp]!=null?opt.bg[bp]:opt.bg[bpn];if(v!=null)sel=+v}
-  for(let mi=sel;mi<Math.min(sel+1,nmod);mi++){// the chosen (default 0) bodygroup state
+  // opt.allbg (a taunt prop whose sequence switches its bodygroups: the Pool Party's pool, gas can and duck): every state, each its own meshes
+  for(let mi=(opt&&opt.allbg)?0:sel;mi<((opt&&opt.allbg)?nmod:Math.min(sel+1,nmod));mi++){// the chosen (default 0) bodygroup state
+   const PR=(opt&&opt.allbg)?(GR[bpn+'|'+mi]||(GR[bpn+'|'+mi]={bp:bpn,st:mi,prims:{}})).prims:prims;
    const mo=mbo+modi+mi*148;const nmesh=I(mo+72),meshi=I(mo+76),vertidx=I(mo+84);const xmod=xbo+xmo+mi*8;const lo=X.getInt32(xmod+4,true);const xl=xmod+lo+Math.min(LOD,Math.max(0,X.getInt32(xmod,true)-1))*12;const mso=X.getInt32(xl+4,true);
    for(let me=0;me<nmesh;me++){const meo=mo+meshi+me*116;const mat=I(meo),voff=I(meo+12);const xm=xl+mso+me*9;const nsg=X.getInt32(xm,true),sgo=X.getInt32(xm+4,true);const base_=LOD>0?lodBase.get(meo):vertidx/48+voff;
-    for(let g=0;g<nsg;g++){const xg=xm+sgo+g*25;const vo=X.getInt32(xg+4,true),ni=X.getInt32(xg+8,true),io=X.getInt32(xg+12,true);const L=prims[mat]||(prims[mat]=[]);
+    for(let g=0;g<nsg;g++){const xg=xm+sgo+g*25;const vo=X.getInt32(xg+4,true),ni=X.getInt32(xg+8,true),io=X.getInt32(xg+12,true);const L=PR[mat]||(PR[mat]=[]);
      for(let k=0;k<ni;k++){const vi=X.getUint16(xg+io+k*2,true);L.push(base_+X.getUint16(xg+vo+vi*9+4,true))}}
     // mesh flexes (mstudioflex_t -> mstudiovertanim_t / _wrinkle_t)
-    const nfl=LOD>0?0:I(meo+16),fli=I(meo+20);for(let f=0;f<nfl;f++){const fo=meo+fli+f*60;const n=I(fo+20),vi=fo+I(fo+24),typ=mdl[fo+32],st=typ==1?18:16;const V=[];
+    const nfl=(LOD>0||(opt&&opt.allbg))?0:I(meo+16),fli=I(meo+20);for(let f=0;f<nfl;f++){const fo=meo+fli+f*60;const n=I(fo+20),vi=fo+I(fo+24),typ=mdl[fo+32],st=typ==1?18:16;const V=[];
      for(let k=0;k<n;k++){const a=vi+k*st;V.push([base_+M.getUint16(a,true),mdl[a+3],f16(M.getUint16(a+4,true)),f16(M.getUint16(a+6,true)),f16(M.getUint16(a+8,true)),f16(M.getUint16(a+10,true)),f16(M.getUint16(a+12,true)),f16(M.getUint16(a+14,true))])}
      (flexRaw[mat]||(flexRaw[mat]=[])).push({d:I(fo),p:I(fo+28),t:[Fl(fo+4),Fl(fo+8),Fl(fo+12),Fl(fo+16)],V})}}}}
  const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);const root=new THREE.Group();root.name='wroot';
@@ -1289,8 +1305,8 @@ async function model(path,pre,opt){pre=pre||'m';const base=path.replace(/\.mdl$/
  try{if(I(188)>0&&I(180)>0){const o=I(192);const ai=M.getInt16(o+I(o+60),true);const A=decodeAnim(mdl,ai);if(!(A.flags&4)){const f=A.frame(0);if(f)bones.forEach((b,i)=>{if(b.parent<0||!f.P[i]||!f.Q[i])return;B[i].position.set(...f.P[i]);B[i].quaternion.set(...f.Q[i])})}}}catch(e){}
  root.updateMatrixWorld(true);
  const att=[];{const na=I(240),ai=I(244);for(let k=0;k<na;k++){const o=ai+k*92;const lb=I(o+8);const mm=[];for(let q=0;q<12;q++)mm.push(Fl(o+12+4*q));att.push({name:cstr(mdl,o+I(o)).toLowerCase(),bone:bones[lb]?bones[lb].name:null,m:mm})}}
- const out=[];const slots=Object.keys(prims).map(Number).sort((a,b)=>a-b);const fprims=[];
- for(const s of slots){const tri=prims[s];const used=new Map();const P=[],N=[],U=[],J=[],W=[];
+ const out=[];const groups=(opt&&opt.allbg)?Object.values(GR):[{prims}];const slots=[...new Set(groups.flatMap(G=>Object.keys(G.prims).map(Number)))].sort((a,b)=>a-b);const fprims=[];
+ for(const G of groups)for(const s of Object.keys(G.prims).map(Number).sort((a,b)=>a-b)){const tri=G.prims[s];const used=new Map();const P=[],N=[],U=[],J=[],W=[];
   const add=v=>{let k=used.get(v);if(k!=null)return k;k=used.size;used.set(v,k);const o=vds+vidx(v)*48;
    const w=[VV.getFloat32(o,true),VV.getFloat32(o+4,true),VV.getFloat32(o+8,true)],bn=[vvd[o+12],vvd[o+13],vvd[o+14]],nbn=vvd[o+15];
    const x=VV.getFloat32(o+16,true),y=VV.getFloat32(o+20,true),z=VV.getFloat32(o+24,true),nx=VV.getFloat32(o+28,true),ny=VV.getFloat32(o+32,true),nz=VV.getFloat32(o+36,true);
@@ -1299,7 +1315,7 @@ async function model(path,pre,opt){pre=pre||'m';const base=path.replace(/\.mdl$/
   const idx=[];for(let t=0;t<tri.length;t+=3){const a=add(tri[t]),b=add(tri[t+1]),c=add(tri[t+2]);idx.push(c,b,a)}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
   g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(J,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(W,4));g.setIndex(used.size>65535?new THREE.Uint32BufferAttribute(idx,1):new THREE.Uint16BufferAttribute(idx,1));g.computeBoundingSphere();
-  const mat=new THREE.MeshBasicMaterial();mat.name=pre+s;const sm=new THREE.SkinnedMesh(g,mat);sm.name='live_'+pre+s;root.add(sm);sm.bind(new THREE.Skeleton(B,inv),new THREE.Matrix4());sm.userData.att=att;out.push(sm);
+  const mat=new THREE.MeshBasicMaterial();mat.name=pre+s;const sm=new THREE.SkinnedMesh(g,mat);sm.name='live_'+pre+s;root.add(sm);sm.bind(new THREE.Skeleton(B,inv),new THREE.Matrix4());sm.userData.att=att;if(G.bp!=null){sm.userData.bg=G.bp;sm.userData.bgs=G.st;sm.visible=G.st===0}out.push(sm);
   // flexes in the same shape ZFACE's packs use (dp x4096, dn x127, Y-up), indexed into this slot's geometry
   if(flexRaw[s]){const fl=[];for(const F of flexRaw[s]){const L=F.V.filter(v=>used.has(vidx(v[0])));if(!L.length)continue;const n=L.length;
     const f={d:F.d,p:(F.p>0&&F.p!==F.d)?F.p:-1,t:F.t,n,idx:new Uint32Array(n),dp:new Float32Array(3*n),dn:new Float32Array(3*n),side:new Uint8Array(n)};
@@ -1565,6 +1581,8 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if
  // AE_TAUNT_ADD_ATTRIBUTE "taunt_attr_player_invis_percent <amount> <seconds>" (Yeti Smash: the merc goes invisible while the yeti plays)
  // AE_WPN_HIDE ... AE_WPN_UNHIDE: the weapon put away for that part of the taunt (the Scout's pistol taunt)
  {const W=[];let h=null;for(const x of [...SE].sort((a,b)=>a.cycle-b.cycle)){const t=Math.max(0,Math.min(1,x.cycle))*A.clip.duration;if(/AE_WPN_HIDE/.test(x.name||'')){if(h==null)h=t}else if(/AE_WPN_UNHIDE/.test(x.name||'')&&h!=null){W.push({s:h,e:t});h=null}}if(h!=null)W.push({s:h,e:1e9});if(W.length)A.clip.zwhide=W}
+ // AE_CL_CREATE_PARTICLE_EFFECT "<system> follow_attachment <attachment>": the taunt's own effects (the Circuit Breaker's sparks)
+ {const P=[];for(const x of SE){if(!/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||''))continue;const q=String(x.opt||'').trim().split(/\s+/);if(q[0])P.push({s:Math.max(0,Math.min(1,x.cycle))*A.clip.duration,sys:q[0],att:/attachment/.test(q[1]||'')?(q[2]||''):''})}if(P.length)A.clip.zpfx=P}
  {const inv=[];for(const x of SE){if(!/AE_TAUNT_ADD_ATTRIBUTE/.test(x.name||''))continue;const q=/taunt_attr_player_invis_percent\s+([\d.]+)\s+([\d.]+)/i.exec(x.opt||'');if(q&&+q[1]>0){const s=Math.max(0,Math.min(1,x.cycle))*A.clip.duration;inv.push({s,e:s+(+q[2]),v:+q[1]})}}if(inv.length)A.clip.zinvis=inv}
  for(const x of SE.filter(sndEvent)){const w=await soundOf(x.opt);if(w.length){const s=s0+Math.max(0,Math.min(1,x.cycle))*sd;ev.push({t:'speak',s,e:s+8,v:1,w})}}
  // items_game: "taunt success sound" (once, after "taunt success sound offset") and "taunt success sound loop" (music while it runs)
@@ -1588,7 +1606,7 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if
  return{clip:A.clip,sc:mu?{ev,mu}:{ev},urls,prop:pp,pseq}})()}
 // the prop's own sequence as a clip (bones named as in the prop model)
 async function propClip(path,seqName){const k='pclip|'+path+'|'+seqName;if(ST.cache[k])return ST.cache[k];return ST.cache[k]=(async()=>{const b=await mdlBuf(path);if(!b)return null;const r=await clipOf(b,seqName,'prop:'+seqName,null);return r&&r.clip})()}
-async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0).then(A=>{A[1][key]._own=1;return A})}
+async function propOwn(path){const key='livepropx:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0,null,{allbg:1}).then(A=>{A[1][key]._own=1;return A})}
 const SEQ={};
 async function seq(cl,name,boneSet,P){const c=clsKey(cl);const k=c+'|'+name.toLowerCase()+(P?'|'+JSON.stringify(P):'');if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet,P).then(r=>r&&r.clip)}
 // the firing gestures: the sequences of the activity the game plays when the weapon fires (ACT_MP_ATTACK_STAND_<anim slot>, _CROUCH_),
@@ -1736,7 +1754,9 @@ async function weaponTaunt(cl,wname,extra){const c=clsKey(cl);const e=entry(wnam
   if(ok&&taunt&&sc>bs){const sc0=r.resp.flatMap(x=>R.resp[x]||[]);if(sc0.length){best=sc0;bs=sc}}}
  return best?best[Math.floor(Math.random()*best.length)].replace(/\\/g,'/').toLowerCase():null}
 
-async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0)}
+async function prop(path){const key='liveprop:'+path;if(ST.cache[key])return ST.cache[key];return ST.cache[key]=assemble(key,path,{r:{}},0,null,{allbg:1})}
+// the events of a prop's own sequence (AE_CL_BODYGROUP_SET_VALUE, AE_CL_CREATE_PARTICLE_EFFECT), by cycle
+async function propEvents(path,seqName){const b=await mdlBuf(path);return b?seqEvents(b,seqName):[]}
 // ---------- an item's sources: its model written out as a QC, and the VMTs of its materials (the preview's Model & Materials window) ----------
 // Valve doesn't ship the QC files of its own items, so for those the QC is reconstructed from the compiled .mdl (studiohdr_t, MDL 44-49):
 // what studiomdl kept of it. Workshop items carry their real QC in the importer's zip.
@@ -1847,7 +1867,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  if(await h.queryPermission({mode:'read'})==='granted'){connect(dirSource(h));return}
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
-window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
+window.ZLIVE={playerMats,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
