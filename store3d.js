@@ -219,7 +219,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
      if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
   const ZZ={Scout:20,Sniper:25,Soldier:20,Demoman:22,Medic:30,Heavy:30,Pyro:22,Spy:27,Engineer:20};
-  V={r,sc,cam,ctl,fit,warp,storeApply:c=>{const f=V.storeZf!=null?V.storeZf:(V.storeZoom?1:0),f1=Math.min(f,1),g=Math.max(0,f-1)/(ZMAX-1),b=V.storeFS?[221,42]:[190,36];let y=b[1]+f1*(ZZ[c]||20),d=b[0]-f1*100;
+  V={r,sc,cam,ctl,fit,warp,storeApply:c=>{if(NPC.g&&NPC.fr&&!c){const F=NPC.fr,f=Math.min(V.storeZf||0,ZMAX)/ZMAX,P=V.storePan||(V.storePan={x:0,y:0}),lim=F.h*.6;P.x=Math.max(-lim,Math.min(lim,P.x));P.y=Math.max(-lim,Math.min(lim,P.y));const d=F.d*(1-.8*f);ctl.target.set(F.c.x+P.x,F.c.y+P.y,F.c.z);cam.position.set(F.c.x+P.x,F.c.y+P.y,F.c.z+d);if(V.storeCam&&V.storeCam.md==null)V.storeCam.md=ctl.minDistance;ctl.minDistance=0;ctl.update();return}const f=V.storeZf!=null?V.storeZf:(V.storeZoom?1:0),f1=Math.min(f,1),g=Math.max(0,f-1)/(ZMAX-1),b=V.storeFS?[221,42]:[190,36];let y=b[1]+f1*(ZZ[c]||20),d=b[0]-f1*100;
    // past the store's close-up the wheel keeps going, in to the merc's head (where hats and their effects sit)
    let x=0,z=0;if(g>0){const h=headAt(c);if(h){y+=(h.y+5-y)*g;x=h.x*g;z=h.z*g}d+=(26-d)*g}
    // plus wherever the view was dragged or zoomed toward the mouse (kept on the merc)
@@ -547,6 +547,24 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  const firstSlot=c=>c=='Spy'?'secondary':'primary';
  // the class comes from the figure element itself (aria-label), never from a possibly-stale global
  const clsOf=f=>{const a=f.getAttribute('aria-label');return KEY[a]?a:st.merc};
+ // the store's left-drag turning, right/middle-drag panning and wheel zoom on the renderer's canvas (installed once)
+ function spinCtl(){if(!V._spin){V._spin=1;const el=V.r.domElement;let lx=null,ly=null,pid=null,pan=false;
+    // left button turns the merc (as in the store); right or middle button drags the view around him
+    const cls=()=>(window.ZPREV&&ZPREV.cls)||curC,dist=()=>V.cam.position.distanceTo(V.ctl.target),half=()=>Math.tan(V.cam.fov*Math.PI/360)*dist();
+    el.addEventListener('contextmenu',e=>{if(V.storeCam)e.preventDefault()});
+    el.addEventListener('pointerdown',e=>{if(!V.storeCam||e.button>2)return;pan=e.button!==0;lx=e.clientX;ly=e.clientY;pid=e.pointerId;if(pan)e.preventDefault();try{el.setPointerCapture(pid)}catch(x){}});
+    el.addEventListener('pointermove',e=>{if(lx==null||e.pointerId!==pid)return;
+     if(pan){const k=2*half()/(el.clientHeight||1),P=V.storePan;P.x-=(e.clientX-lx)*k;P.y+=(e.clientY-ly)*k;V.storeApply(cls())}
+     else{const m=curC&&M[curC];if(m&&m.o)m.o.rotation.y+=(e.clientX-lx)*.01;else if(NPC.g)NPC.g.rotation.y+=(e.clientX-lx)*.01}lx=e.clientX;ly=e.clientY});
+    ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,()=>{lx=null;pid=null}));
+    // the mouse wheel zooms from the store's full-body framing in to the head, toward wherever the mouse is (easing toward where
+    // the wheel left it); zooming back out drifts the view back to the middle
+    el.addEventListener('wheel',e=>{if(!V.storeCam)return;e.preventDefault();const r=el.getBoundingClientRect();V._zc=[((e.clientX-r.left)/r.width)*2-1,1-((e.clientY-r.top)/r.height)*2];
+     V._zfT=Math.max(0,Math.min(ZMAX,(V._zfT!=null?V._zfT:V.storeZf||0)-e.deltaY*(e.deltaMode?.05:.0015)));
+     if(V._zfa)return;V._zfa=1;const st=()=>{const t=V._zfT,c0=V.storeZf||0,n=Math.abs(t-c0)<.002?t:c0+(t-c0)*.25,P=V.storePan,[cx,cy]=V._zc,asp=V.cam.aspect;
+      if(n>c0){const h0=half(),wx=V.ctl.target.x+cx*h0*asp,wy=V.ctl.target.y+cy*h0;V.storeZf=n;V.storeApply(cls());const h1=half();P.x+=wx-(V.ctl.target.x+cx*h1*asp);P.y+=wy-(V.ctl.target.y+cy*h1);V.storeApply(cls())}
+      else{const k=c0>0?n/c0:0;P.x*=k;P.y*=k;V.storeZf=n;V.storeApply(cls())}
+      if(n!==t)requestAnimationFrame(st);else V._zfa=0};st()},{passive:false})}}
  async function show(f){const c=clsOf(f);if(!KEY[c])return;try{await init()}catch(e){return}
   if(f.dataset.m3d===c&&f.querySelector('canvas'))return;f.dataset.m3d=c;
   // hide whatever was on screen before so the previous merc never lingers while the new one streams in
@@ -557,23 +575,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(f.classList.contains('zspfig')){if(!V.storeCam)V.storeCam={fov:V.cam.fov,pos:V.cam.position.clone(),tgt:V.ctl.target.clone(),zoomed:V.zoomed};V.storeZoom=false;V.storeZf=0;V._zfT=0;V.storePan={x:0,y:0};V.cam.fov=40;V.cam.updateProjectionMatrix();V.storeApply(c);
    // the store's CTFPlayerModelPanel: no orbit; dragging with the left button turns the merc about his own vertical axis and the
    // < > buttons turn him while held. Added here: wheel zoom toward the mouse and dragging the view with the right or middle button
-   V.ctl.enabled=false;if(!V._spin){V._spin=1;const el=V.r.domElement;let lx=null,ly=null,pid=null,pan=false;
-    // left button turns the merc (as in the store); right or middle button drags the view around him
-    const cls=()=>(window.ZPREV&&ZPREV.cls)||curC,dist=()=>V.cam.position.distanceTo(V.ctl.target),half=()=>Math.tan(V.cam.fov*Math.PI/360)*dist();
-    el.addEventListener('contextmenu',e=>{if(V.storeCam)e.preventDefault()});
-    el.addEventListener('pointerdown',e=>{if(!V.storeCam||e.button>2)return;pan=e.button!==0;lx=e.clientX;ly=e.clientY;pid=e.pointerId;if(pan)e.preventDefault();try{el.setPointerCapture(pid)}catch(x){}});
-    el.addEventListener('pointermove',e=>{if(lx==null||e.pointerId!==pid)return;
-     if(pan){const k=2*half()/(el.clientHeight||1),P=V.storePan;P.x-=(e.clientX-lx)*k;P.y+=(e.clientY-ly)*k;V.storeApply(cls())}
-     else{const m=curC&&M[curC];if(m&&m.o)m.o.rotation.y+=(e.clientX-lx)*.01}lx=e.clientX;ly=e.clientY});
-    ['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,()=>{lx=null;pid=null}));
-    // the mouse wheel zooms from the store's full-body framing in to the head, toward wherever the mouse is (easing toward where
-    // the wheel left it); zooming back out drifts the view back to the middle
-    el.addEventListener('wheel',e=>{if(!V.storeCam)return;e.preventDefault();const r=el.getBoundingClientRect();V._zc=[((e.clientX-r.left)/r.width)*2-1,1-((e.clientY-r.top)/r.height)*2];
-     V._zfT=Math.max(0,Math.min(ZMAX,(V._zfT!=null?V._zfT:V.storeZf||0)-e.deltaY*(e.deltaMode?.05:.0015)));
-     if(V._zfa)return;V._zfa=1;const st=()=>{const t=V._zfT,c0=V.storeZf||0,n=Math.abs(t-c0)<.002?t:c0+(t-c0)*.25,P=V.storePan,[cx,cy]=V._zc,asp=V.cam.aspect;
-      if(n>c0){const h0=half(),wx=V.ctl.target.x+cx*h0*asp,wy=V.ctl.target.y+cy*h0;V.storeZf=n;V.storeApply(cls());const h1=half();P.x+=wx-(V.ctl.target.x+cx*h1*asp);P.y+=wy-(V.ctl.target.y+cy*h1);V.storeApply(cls())}
-      else{const k=c0>0?n/c0:0;P.x*=k;P.y*=k;V.storeZf=n;V.storeApply(cls())}
-      if(n!==t)requestAnimationFrame(st);else V._zfa=0};st()},{passive:false})}}
+   V.ctl.enabled=false;spinCtl();}
   else if(V.storeCam){const S=V.storeCam;V.storeCam=null;if(S.md!=null)V.ctl.minDistance=S.md;V.ctl.enabled=true;V.cam.fov=S.fov;V.cam.updateProjectionMatrix();V.cam.position.copy(S.pos);V.ctl.target.copy(S.tgt);V.zoomed=S.zoomed;V.ctl.update()}
   let m;try{m=await load(c)}catch(e){delete f.dataset.m3d;return}if(!f.isConnected||clsOf(f)!==c)return;
   const was=curC;Object.entries(M).forEach(([k,x])=>x.o.visible=k===c);curC=c;m.skin();if(was!==c||!m.started||performance.now()-(m.seen||0)>1500){m.started=1;const fs=firstSlot(c),el=slotEl(fs);m.wname=undefined;m.st0.idle=null;(window.ZPREV&&ZPREV.cls==c)?setWeapon(c,ZPREV.wslot||fs,ZPREV.wname):setWeapon(c,fs,el&&el.dataset.tipn)}m.csig=null;setCosmetics(c)}
@@ -705,7 +707,9 @@ async function robotAnims(c){const m=M[c];if(!m||!m.A||!m.mx||!window.ZLIVE||!ZL
  const path=on?(/^models\//.test(String(on))?on:'models/bots/'+String(KEY[c]||'').toLowerCase()+'/bot_'+String(KEY[c]||'').toLowerCase()+'.mdl'):null;
  ZLIVE.setRobot(c,path);
  for(const k of Object.keys(m.A))if(/^live:/.test(k)&&m.cn!==k)delete m.A[k];   // taunts read again: the robot's sequences and voice
- const back=m._A0||{};m._A0={};for(const k in back){const r=m.A[k];m.A[k]=back[k].a;m.STATIC[k]=back[k].s;if(m.cn===k&&m.play)m.play(k);if(r&&r!==m.A[k])setTimeout(()=>r.stop(),400)}
+ if(!m._Abase)m._Abase=new Set(Object.keys(m.A).filter(k=>!/^live:/.test(k)));
+ const back=m._A0||{};m._A0={};let lazy=false;for(const k of Object.keys(m.A)){if(m._Abase.has(k)||k in back||/^live:/.test(k))continue;const a=m.A[k];delete m.A[k];if(m.STATIC)delete m.STATIC[k];if(m.cn===k)lazy=true;else if(a)a.stop()}if(lazy)setTimeout(()=>{try{KCTL.refresh(c)}catch(e){}},0);
+ for(const k in back){const r=m.A[k];m.A[k]=back[k].a;m.STATIC[k]=back[k].s;if(m.cn===k&&m.play)m.play(k);if(r&&r!==m.A[k])setTimeout(()=>r.stop(),400)}
  if(!path||!ZLIVE.ready)return;let names;try{names=await ZLIVE.robotSeqs(path)}catch(e){return}if(m._rtok!==tok)return;
  const bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});
  for(const k of Object.keys(m.A)){if(!/^(stand|run|crouch|swim|airwalk|jump|a_jump)/i.test(k)||!names.has(k.toLowerCase()))continue;let cl=null;try{cl=await ZLIVE.seq(c,k,bs)}catch(e){}if(m._rtok!==tok)return;if(!cl)continue;
@@ -717,22 +721,27 @@ const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play
 const NPC={};
 async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+1;npcDrop();
  el.appendChild(V.r.domElement);V.r.domElement.style.opacity='';{const w=el.clientWidth||620,h=el.clientHeight||620;V.r.setSize(w,h);V.cam.aspect=w/h;V.cam.updateProjectionMatrix();V.cam.clearViewOffset()}
- if(V.storeCam){const S=V.storeCam;V.storeCam=null;if(S.md!=null)V.ctl.minDistance=S.md;V.cam.fov=S.fov;V.cam.updateProjectionMatrix();V.zoomed=S.zoomed}V.ctl.enabled=true;
+ if(el.classList.contains('zspfig')){if(!V.storeCam)V.storeCam={fov:V.cam.fov,pos:V.cam.position.clone(),tgt:V.ctl.target.clone(),zoomed:V.zoomed};V.storeZoom=false;V.storeZf=0;V._zfT=0;V.storePan={x:0,y:0};V.cam.fov=40;V.cam.updateProjectionMatrix();V.ctl.enabled=false;spinCtl()}
+ else{if(V.storeCam){const S=V.storeCam;V.storeCam=null;if(S.md!=null)V.ctl.minDistance=S.md;V.cam.fov=S.fov;V.cam.updateProjectionMatrix();V.zoomed=S.zoomed}V.ctl.enabled=true}NPC.fr=null;
  Object.values(M).forEach(x=>x.o.visible=false);curC=null;V.go();if(!(window.ZLIVE&&ZLIVE.ready))throw new Error('link');
- const {src,man,seqs}=await ZLIVE.npcLoad(def.mdl);if(NPC.tok!==tok)return null;
+ if(def.pak)await ZLIVE.mountPak(def.pak);const {src,man,seqs}=await ZLIVE.npcLoad(def.mdl);if(NPC.tok!==tok)return null;
  const g=new THREE.Group();const pb={};const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];const nb=new THREE.Bone();nb.name=b.name;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);nb.scale.copy(b.scale);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||g).add(nb);return pb[k]=nb};
  const MI0=man[Object.keys(man)[0]]||{};const meshes=src.map(s=>{const wm=s.clone();const MI=MI0[s.material.name]||{};wm.userData.mi=MI;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P):s.material;wm.frustumCulled=false;wm.castShadow=true;
   if(s.isSkinnedMesh){wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mk),s.skeleton.boneInverses),new THREE.Matrix4())}g.add(wm);return wm});
+ // what it wears (the Skeleton King's crown): bonemerged, its bones taken from the character's of the same name
+ for(const ap of (def.attach||[])){try{const A=await ZLIVE.npcLoad(ap);if(NPC.tok!==tok)return null;const A0=A.man[Object.keys(A.man)[0]]||{};
+  for(const s of A.src){const wm=s.clone();const MI=A0[s.material.name]||{};wm.userData.mi=MI;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P):s.material;wm.frustumCulled=false;wm.castShadow=true;
+   if(s.isSkinnedMesh)wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mk),s.skeleton.boneInverses),new THREE.Matrix4());g.add(wm);meshes.push(wm)}}catch(e){console.warn('[NPC] attach',ap,e)}}
  g.scale.setScalar(def.scale||1);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
  return seqs}
 function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=new THREE.Box3();const v=new THREE.Vector3();g.traverse(x=>{if(x.isBone)B.expandByPoint(x.getWorldPosition(v))});try{B.union(new THREE.Box3().setFromObject(g))}catch(e){}
- const c=B.getCenter(new THREE.Vector3()),sz=B.getSize(new THREE.Vector3());const h=Math.max(sz.y*1.25,sz.x,sz.z,20);const d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.15;
- V.ctl.target.copy(c);V.cam.position.set(c.x,c.y,c.z+d);V.ctl.minDistance=d*.25;V.ctl.maxDistance=d*3;V.ctl.update()}
+ const c=B.getCenter(new THREE.Vector3()),sz=B.getSize(new THREE.Vector3());c.y+=sz.y*.1;const h=Math.max(sz.y*1.45,sz.x*1.1,sz.z*.8,20);const d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.1;
+ NPC.fr={c,h,d};if(V.storeCam){V.storeApply();return}V.ctl.target.copy(c);V.cam.position.set(c.x,c.y,c.z+d);V.ctl.minDistance=d*.25;V.ctl.maxDistance=d*3;V.ctl.update()}
 async function npcPlay(name){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
  const a=NPC.mx.clipAction(r.clip);a.reset();a.setLoop(THREE.LoopRepeat);if(NPC.act&&NPC.act!==a)a.crossFadeFrom(NPC.act,.2,false);a.play();const first=!NPC.act;NPC.act=a;if(first){NPC.mx.update(0);npcFit()}return true}
 function npcTeam(team){(NPC.meshes||[]).forEach(wm=>{const MI=wm.userData.mi||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P)})}
 function npcDrop(){if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null}
-window.Store3D={show:f=>show(f),npc:{show:npcShow,play:npcPlay,team:npcTeam,close:()=>{NPC.tok=(NPC.tok||0)+1;npcDrop()},refit:()=>npcFit(),pause:p=>{if(NPC.act)NPC.act.paused=!!p},hasBlu:()=>(NPC.meshes||[]).some(w=>w.userData.mi&&w.userData.mi.blu)},init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;if(isBuster(m))setWeapon(c,'melee',null);lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+window.Store3D={show:f=>show(f),npc:{show:npcShow,play:npcPlay,team:npcTeam,close:()=>{NPC.tok=(NPC.tok||0)+1;npcDrop()},refit:()=>npcFit(),pause:p=>{if(NPC.act)NPC.act.paused=!!p},_:NPC,state:()=>!NPC.act?'none':NPC.act.paused?'paused':'playing',replay:()=>{if(NPC.act){NPC.act.reset();NPC.act.paused=false;NPC.act.play()}},turn:d=>{if(NPC.g)NPC.g.rotation.y+=d},hasBlu:()=>(NPC.meshes||[]).some(w=>w.userData.mi&&w.userData.mi.blu)},init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;if(isBuster(m))setWeapon(c,'melee',null);lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -1016,12 +1025,12 @@ async function openVpk(src,base){const f=await src.get(base+'_dir.vpk');if(!f)re
  return{base,E,async read(p){const e=E.get(p.toLowerCase().replace(/\\/g,'/'));if(!e)return null;const out=new Uint8Array(e.pre+e.len);out.set(b.subarray(e.po,e.po+e.pre),0);
   if(e.len){if(e.ai===0x7fff)out.set(b.subarray(data+e.off,data+e.off+e.len),e.pre);else{const af=await arc(e.ai);if(!af)throw new Error('missing '+base+'_'+e.ai+'.vpk');out.set(new Uint8Array(await af.slice(e.off,e.off+e.len).arrayBuffer()),e.pre)}}
   return out},has:p=>E.has(p.toLowerCase().replace(/\\/g,'/'))}}
-async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');{const o=OV.get(p);if(o)return o}for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
+async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');{const o=OV.get(p);if(o)return o}if(PAKS.size){const b=await pakRead(p);if(b)return b}for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
  if(ST.src&&ST.src.kind=='dir'){// loose files under tf/ (custom content is skipped; this is only for files Valve ships loose)
   try{let h=ST.src.handle;const parts=p.split('/');for(let i=0;i<parts.length-1;i++)h=await h.getDirectoryHandle(parts[i]);const f=await (await h.getFileHandle(parts[parts.length-1])).getFile();return new Uint8Array(await f.arrayBuffer())}catch(e){}}
  if(ST.src&&ST.src.path){const f=await ST.src.path(p);if(f)return new Uint8Array(await f.arrayBuffer())}
  return null}
-const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return OV.has(p)||VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
+const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return OV.has(p)||PAKZ.some(k=>k.Z.has(p))||VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
 
 // TF2's own archives first, then the Half-Life 2 content it also mounts (shared particle materials)
 const VPKS=['tf2_misc','tf2_textures','tf2_sound_misc','tf2_sound_vo_english','hl2_misc','hl2_textures'];
@@ -1728,7 +1737,7 @@ async function noiseSounds(n){const e=entry(n);const V=e&&e.r.visuals;if(!V)retu
 async function mercAtts(cl){return attsOf('models/player/'+SHORT[clsKey(cl)]+'.mdl')}
 async function attsOf(p){const b=await mdlBuf(p);if(!b)return null;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true);
  const bn=I(156),bi=I(160),out=[];for(let k=0;k<I(240);k++){const o=I(244)+k*92,lb=I(o+8),mm=[];for(let q=0;q<12;q++)mm.push(dv.getFloat32(o+12+4*q,true));out.push({name:cstr(b,o+I(o)).toLowerCase(),bone:lb>=0&&lb<bn?cstr(b,bi+lb*216+I(bi+lb*216)):null,m:mm})}return out}
-async function gesture(cl,act,boneSet){const c=clsKey(cl);const k=c+'|g|'+act.toLowerCase();if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{const out=[];
+async function gesture(cl,act,boneSet){const c=clsKey(cl);const k=c+'|g|'+act.toLowerCase()+rkey(c);if(SEQ[k])return SEQ[k];return SEQ[k]=(async()=>{const out=[];
  for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const L=seqList(b).filter(x=>x.act.toLowerCase()===act.toLowerCase());
   const CH=await ikChains(c);for(const x of L){try{const g=await gestureOf(b,x.o,boneSet);if(g){g.name=x.name;g.w=Math.max(1,x.w);g.ch=CH;g.locks=g.locks.map(l=>({...l,links:CH[l.chain]})).filter(l=>l.links&&l.links.length===3&&l.links.every(q=>q.bone));out.push(g)}}catch(e){console.warn('[ZLIVE] gesture',x.name,e)}}if(out.length)break}
  return out.length?out:null})()}
@@ -1873,10 +1882,13 @@ async function srcBlob(p){const s=ST.src;if(!s)return null;
 async function zipDir(f){const n=f.size;const t=new Uint8Array(await f.slice(Math.max(0,n-65600),n).arrayBuffer());const dv=new DataView(t.buffer);let e=t.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('not a zip file');
  const cnt=dv.getUint16(e+10,true),csz=dv.getUint32(e+12,true),cof=dv.getUint32(e+16,true);const b=new Uint8Array(await f.slice(cof,cof+csz).arrayBuffer());const D=new DataView(b.buffer);const out=new Map();
  for(let i=0,o=0;i<cnt&&o+46<=b.length&&D.getUint32(o,true)===0x02014b50;i++){const nl=D.getUint16(o+28,true);const name=td.decode(b.subarray(o+46,o+46+nl)).replace(/\\/g,'/').toLowerCase();
-  if(!name.endsWith('/'))out.set(name,{m:D.getUint16(o+10,true),cs:D.getUint32(o+20,true),lo:D.getUint32(o+42,true)});o+=46+nl+D.getUint16(o+30,true)+D.getUint16(o+32,true)}
+  if(!name.endsWith('/'))out.set(name,{m:D.getUint16(o+10,true),cs:D.getUint32(o+20,true),us:D.getUint32(o+24,true),lo:D.getUint32(o+42,true)});o+=46+nl+D.getUint16(o+30,true)+D.getUint16(o+32,true)}
  return out}
 async function zipGet(f,z){const h=new DataView(await f.slice(z.lo,z.lo+30).arrayBuffer());const d0=z.lo+30+h.getUint16(26,true)+h.getUint16(28,true);const d=new Uint8Array(await f.slice(d0,d0+z.cs).arrayBuffer());
- if(z.m===0)return d;if(z.m!==8||typeof DecompressionStream=='undefined')return null;
+ if(z.m===0)return d;
+ // method 14: LZMA (APPNOTE 5.8.8: 2 version bytes, 2 bytes properties size, the 5 properties, then the stream; vendor/lzmadec.js)
+ if(z.m===14){const dec=await lzmaLib();return dec(d.subarray(4,9),d.subarray(9),z.us)}
+ if(z.m!==8||typeof DecompressionStream=='undefined')return null;
  return new Uint8Array(await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}
 async function wsList(){const s=ST.src;if(!ST.ready||!s||!s.list)return null;const L=await s.list(WSDIR);return L&&L.filter(x=>/\.zip$/i.test(x.name)).sort((a,b)=>b.t-a.t)}
 const WSCLS={scout:'scout',soldier:'soldier',pyro:'pyro',demo:'demoman',demoman:'demoman',heavy:'heavy',heavyweapons:'heavy',engineer:'engineer',medic:'medic',sniper:'sniper',spy:'spy'};
@@ -1936,13 +1948,24 @@ async function resume(){// after a reload: reuse the remembered folder if the br
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
 function itemAttr(n,key){const e=entry(n);if(!e)return null;const k=key.toLowerCase();for(const b of ['attributes','static_attrs']){const A=e.r[b];if(!A||typeof A!='object')continue;for(const x in A)if(x.toLowerCase()==k){const v=A[x];return v&&typeof v=='object'?v.value:v}}return null}
 // characters (the NPC viewer): a model read from the install with its own skeleton, and the sequences of it and its $includemodels
+const PAKS=new Map(),PAKZ=[];
+function lzmaLib(){if(window.lzmaDecode)return Promise.resolve(window.lzmaDecode);return lzmaLib.p||(lzmaLib.p=new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='vendor/lzmadec.js';sc.onload=()=>window.lzmaDecode?ok(window.lzmaDecode):no(new Error('lzma'));sc.onerror=()=>no(new Error('lzma'));document.head.appendChild(sc)}))}
+async function mapFile(name){const p='maps/'+name,src=ST.src;if(!src)return null;
+ if(src.handle){try{return await (await (await src.handle.getDirectoryHandle('maps')).getFileHandle(name)).getFile()}catch(e){}}
+ if(src.blob){try{const f=await src.blob(p);if(f)return f}catch(e){}}if(src.map){try{const f=await src.map(name);if(f)return f}catch(e){}}
+ if(src.path&&src.kind=='list'){try{return await src.path(p)}catch(e){}}return null}
+async function mountPak(name){if(PAKS.has(name))return PAKS.get(name);const P=(async()=>{const f=await mapFile(name);if(!f)throw new Error('maps/'+name+' not found in your TF2 folder');
+  const h=new DataView(await f.slice(0,8+64*16).arrayBuffer());if(h.getUint32(0,true)!==0x50534256)throw new Error(name+': not a map');const off=h.getInt32(8+40*16,true),len=h.getInt32(8+40*16+4,true);
+  const z={size:len,slice:(a,b)=>f.slice(off+a,off+Math.min(b,len))};const Z=await zipDir(z);const k={z,Z};PAKZ.push(k);return k})();PAKS.set(name,P);try{return await P}catch(e){PAKS.delete(name);throw e}}
+async function pakRead(p){for(const P of PAKS.values()){let k;try{k=await P}catch(e){continue}const e=k.Z.get(p);if(e)return zipGet(k.z,e)}return null}
 async function npcFiles(path){path=path.toLowerCase();const b=await mdlBuf(path);if(!b)return[];return [path,...incOf(b).map(x=>x.replace(/\\/g,'/').toLowerCase())]}
 async function npcLoad(path){const [src,man]=await assemble('npc:'+path.toLowerCase(),path,{r:{}},0,'m',{lod:0,bg:{}});const seqs=[],seen=new Set();
  for(const p of await npcFiles(path)){const b=await mdlBuf(p);if(!b)continue;for(const x of seqList(b)){const k=x.name.toLowerCase();if(seen.has(k))continue;seen.add(k);
-  if(/^(ref|ragdoll|ragdollspawn|user_ref|reference|idle_ref)$|^layer_|aimmatrix|^a_|_delta$|^r_(hand|arm)poses$|^gesture_|^g_/i.test(x.name))continue;seqs.push({name:x.name,act:x.act})}}
+  if(/^(ref|ragdoll|ragdollspawn|user_ref|reference|idle_ref)$|layer_|aimmatrix|^a_|_delta$|^r_(hand|arm)poses$|^gesture_|^g_/i.test(x.name))continue;seqs.push({name:x.name,act:x.act,file:p})}}
  return {src,man,seqs}}
-async function npcClip(path,name,boneSet){for(const p of await npcFiles(path)){const b=await mdlBuf(p);if(!b)continue;const r=await clipOf(b,name,name,boneSet,{move_x:1,move_y:0,move_yaw:0,move_scale:1});if(r)return r}return null}
-window.ZLIVE={playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
+// the $includemodels first, the model itself last (the order animMdls reads a class in: a player model's own copy of a sequence can point at animation data it doesn't carry)
+async function npcClip(path,name,boneSet){const F=await npcFiles(path);for(const p of F.slice(1).concat(F.slice(0,1))){const b=await mdlBuf(p);if(!b)continue;const P=/^(run|walk|crouch_walk|swim|airwalk|a_run)|_movement$|^run_/i.test(name)?{move_x:1,move_y:0,move_yaw:0,move_scale:1}:null;let r=null;try{r=await clipOf(b,name,name,boneSet,P)}catch(e){try{r=P?await clipOf(b,name,name,boneSet,null):null}catch(e2){}if(!r)continue}if(r)return r}return null}
+window.ZLIVE={playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

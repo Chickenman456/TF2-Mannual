@@ -47,6 +47,8 @@
         let ok = false; try { const r = await fetch(url, {headers: {Range: 'bytes=0-0'}}); ok = r.ok; } catch (e) {}
         return (F[n] = ok ? file(url) : null);
       },
+      // a map's .bsp, read a slice at a time (the character viewer's map-packed models)
+      async map(n) { const url = 'map/' + encodeURIComponent(n); try { const r = await fetch(url, {headers: {Range: 'bytes=0-0'}}); return r.ok ? file(url) : null; } catch (e) { return null; } },
       async path(p) {
         try { const r = await fetch('game/' + p.split('/').map(encodeURIComponent).join('/')); return r.ok ? await r.blob() : null; } catch (e) { return null; }
       },
@@ -87,6 +89,8 @@
         if (src.handle) { try { let h = src.handle; const parts = p.split('/'); for (let i = 0; i < parts.length - 1; i++) h = await h.getDirectoryHandle(parts[i]); return await (await h.getFileHandle(parts[parts.length - 1])).getFile(); } catch (e) { return null; } }
         return null;
       },
+      // a map's .bsp from the app's server, read a slice at a time and not kept
+      async map(n) { return src.map ? src.map(n) : null; },
       // a folder's file list (the Workshop importer's zips), kept with the saved copy
       async list(dir) { const L = src.list ? await src.list(dir) : null; if (L) cput(sig + '|ls|' + dir, L); return L; }};
   }

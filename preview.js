@@ -567,20 +567,22 @@
     if (!ST) { raf = 0; return; }
     raf = requestAnimationFrame(tick);
     const dt = last ? Math.min(.1, (t - last) / 1000) : 0; last = t;
-    if (ST.rot && ST.cls && window.Store3D) Store3D.turn(CNAME[ST.cls], ST.rot * 3.6 * dt);
+    if (ST.rot && ST.npc && window.Store3D) Store3D.npc.turn(ST.rot * 3.6 * dt);
+    else if (ST.rot && ST.cls && window.Store3D) Store3D.turn(CNAME[ST.cls], ST.rot * 3.6 * dt);
     tauntButtons();
   }
   // taunt controls: shown while a taunt is on the merc; the first button pauses it, resumes it, or plays it again once it has ended
   function tauntButtons() {
     const tc = window.Store3D && Store3D.taunt, on = tc && ST.state === 'player' && ST.o.kind === 't' && ST.cls;
-    let st = on ? tc.state(CNAME[ST.cls]) : 'none';
+    let st = ST.npc ? (window.Store3D ? Store3D.npc.state() : 'none') : on ? tc.state(CNAME[ST.cls]) : 'none';
     // once the taunt has ended the merc goes back to his idle: the buttons stay, to play it again
     if (on && st !== 'none') ST.tauntSeen = true; else if (on && ST.tauntSeen) st = 'done';
+    if (ST.npc && st === 'none') st = 'none';
     const show = st !== 'none';
     document.querySelectorAll('[data-spv=tplay], [data-spv=treplay]').forEach(b => { if (b.hidden === show) b.hidden = !show; });
     if (!show) return;
     const want = st === 'playing' ? 'pause' : 'play';
-    document.querySelectorAll('[data-spv=tplay]').forEach(b => { if (b.dataset.ic !== want) { b.dataset.ic = want; b.innerHTML = TICON[want]; b.title = want === 'pause' ? 'Pause' : st === 'done' ? 'Play again' : 'Play'; b.setAttribute('aria-label', b.title + ' the taunt'); } });
+    document.querySelectorAll('[data-spv=tplay]').forEach(b => { if (b.dataset.ic !== want) { b.dataset.ic = want; b.innerHTML = TICON[want]; b.title = want === 'pause' ? 'Pause' : st === 'done' ? 'Play again' : 'Play'; b.setAttribute('aria-label', b.title + (ST.npc ? ' the animation' : ' the taunt')); } });
   }
 
   /* open({id, name, nm, color, kind, classes:['scout',...], level, holiday, status:[text,color], attrs:[[text,color]],
@@ -609,6 +611,7 @@
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
     if (window.ZPFX && ZPFX.clear) ZPFX.clear();   // no particles carried over into the next preview
     try { if (noiseAu) { noiseAu.pause(); noiseAu = null; } } catch (e) {}
+    if (ST.npc && window.Store3D && Store3D.npc) Store3D.npc.close();
     ctlReset(); if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); exitFS(); undress();
     const s = ST; ST = null;
     removeEventListener('keydown', onKey, true); removeEventListener('keydown', onCtl); removeEventListener('keyup', onCtlUp); removeEventListener('blur', onCtlUp); removeEventListener('resize', layout);
@@ -616,5 +619,56 @@
     if (s.o.close) s.o.close();
   }
   window.ZSTYLETABS = () => { if (ST) { const was = ST.style; styleTabs(); if (ST.style !== was && ST.state === 'player') dress(); } };
-  window.ItemPreview = {open, close, isOpen: () => !!ST};
+  /* openNpc({name, level, where:[...], def:{mdl, pak, attach, idle, skins:[[label, team], ...], keep(seq)}, esc, sfx, close}):
+     a character (the NPC viewer) in the same window: on its own model, turned and zoomed like the store's merc, with its
+     animations in a dropdown where the store has Style, and RED / BLU (or the character's own skins) where the store has them */
+  function openNpc(o) {
+    close();
+    const el = document.createElement('div'); el.className = 'spv spv-npc player';
+    el.innerHTML = markup(o);
+    document.body.appendChild(el);
+    ST = {o, el, u: 2, npc: true, state: 'npc', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
+    ['.spv-icons', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=full]', '[data-spv=lod]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
+    const sk = o.def.skins || null, teamUI = el.querySelector('.spv-team');
+    if (!sk || !(sk[0][0] === 'RED' && sk[1] && sk[1][0] === 'BLU')) teamUI.remove();
+    const E = o.esc;
+    el.querySelector('.spv-rows').innerHTML = (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
+      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div>${o.where.map(w => `<div>${E(w)}</div>`).join('')}</div>`;
+    el.addEventListener('pointerdown', onDown);
+    const bar = (cls, label) => { const b = document.createElement('label'); b.className = 'spv-styles pl ' + cls; b.innerHTML = `<span>${E(label)}</span><select aria-label="${E(label)}"></select>`; el.querySelector('.spv-frame').appendChild(b); return b.querySelector('select'); };
+    const anim = bar('spv-fxsel', 'Animation');
+    let skin = null;
+    if (sk && !el.querySelector('.spv-team')) { skin = bar('', 'Skin'); skin.innerHTML = sk.map(([l, t]) => `<option value="${E(t)}">${E(l)}</option>`).join(''); skin.onchange = () => { o.sfx('buttonclick'); Store3D.npc.team(skin.value); }; }
+    el.addEventListener('click', e => {
+      if (!ST || ST.el !== el) return;
+      const tb = e.target.closest('[data-spt]'); if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); Store3D.npc.team(ST.team); return; }
+      const a = e.target.closest('[data-spv]'); if (!a) return; const k = a.dataset.spv;
+      if (k === 'close') { close(); return; }
+      o.sfx('buttonclick');
+      if (k === 'tplay') { const st = Store3D.npc.state(); if (st !== 'none') Store3D.npc.pause(st === 'playing'); }
+      else if (k === 'treplay') Store3D.npc.replay();
+    });
+    addEventListener('keydown', onKey, true); addEventListener('resize', layout);
+    teamSel(); layout(); setTimeout(layout, 60); placeBars();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
+    el.querySelector('.spv-back').focus();
+    if (!raf) raf = requestAnimationFrame(tick);
+    const mp = el.querySelector('.spv-model'), note = mp.querySelector('.spv-note');
+    if (!live()) { setNote('Link your TF2 folder to see the characters. They load from the game’s own files.', true); return true; }
+    const f = document.createElement('div'); f.id = 'zfig'; f.className = 'zspfig'; f.setAttribute('aria-label', o.name); mp.insertBefore(f, note);
+    setNote('Loading ' + o.name + '…');
+    const st0 = ST;
+    Store3D.npc.show(f, o.def, 'RED').then(seqs => {
+      if (ST !== st0 || !seqs) return; setNote('');
+      const keep = o.def.keep ? seqs.filter(o.def.keep) : seqs;
+      anim.innerHTML = keep.map(q => `<option value="${E(q.name)}">${E(q.name)}</option>`).join('');
+      const pri = (o.def.idle ? [new RegExp('^' + o.def.idle + '$', 'i')] : []).concat([/^stand_primary$/i, /^stand_melee$/i, /^stand_item1$/i, /^idle/i, /^stand/i, /idle|stand/i]);
+      let idle = null; for (const re of pri) { idle = keep.find(q => re.test(q.name)); if (idle) break; } idle = idle || keep[0];
+      anim.onchange = () => { o.sfx('buttonclick'); Store3D.npc.play(anim.value); };
+      if (idle) { anim.value = idle.name; Store3D.npc.play(idle.name); } else Store3D.npc.refit();
+      sizeFig(f);
+    }).catch(e => { console.warn('[NPC]', e); if (ST === st0) setNote('Couldn’t load ' + o.name + ' from your TF2 files' + (e && /not found/.test(e.message) ? ': ' + e.message : '') + '.', true); });
+    return true;
+  }
+  window.ItemPreview = {open, openNpc, close, isOpen: () => !!ST};
 })();
