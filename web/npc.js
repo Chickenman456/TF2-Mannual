@@ -21,7 +21,9 @@
     {id: 'monoculus', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
     {id: 'merasmus', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
     {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, skins: TEAM, where: ['Helltower (Scream Fortress 2013)']},
-    {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: ['models/player/items/demo/crown.mdl'], idle: 'stand_melee', keep: SKEL, where: ['Helltower (Scream Fortress 2013)']},
+    {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, where: ['Helltower (Scream Fortress 2013)']},
+    {id: 'saxton', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
+      where: ['Versus Saxton Hale: the vsh_ maps (vsh_distillery, vsh_maul, vsh_nucleus, vsh_outburst, vsh_skirmish, vsh_tinyrock)']},
     {id: 'toastmaster', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
   ];
   // the merc cards from Chickenman's TF2 UI redesign (Items > Mercs), the same markup and styles: class render cropped to head and
@@ -65,7 +67,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 @media (max-width:420px){.npcgrid{grid-template-columns:356px;transform-origin:top center}}`;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
