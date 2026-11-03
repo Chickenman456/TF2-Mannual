@@ -38,7 +38,12 @@
   "5074": "Something Special For Someone Special (the ring, still sold in the Mann Co. Store)",
   "5084-5085": "Loaded Giftapult and Delivered Giftapult Package (made by using a Giftapult, still sold)",
   "536": "Noise Maker - TF Birthday, still obtainable",
-  "5869": "Jungle Inferno ConTracker, from the Jungle Inferno Campaign Pass"
+  "5869": "Jungle Inferno ConTracker, from the Jungle Inferno Campaign Pass",
+  "166": "Mercenary badge, still given out",
+  "261": "Mann Co. Cap, still given out",
+  "994": "Mann Co. Online Cap, still given out",
+  "1195": "Halloween Package, handed out during Halloween events",
+  "5718": "Gift-Stuffed Stocking, handed out every winter"
  },
  "unobtainable": {
   "727": "Black Rose (old promo, no longer available)",
@@ -46,7 +51,6 @@
   "756": "Bolt Action Blitzer (CrimeCraft promo, no longer available)",
   "761": "Triclops (Super Monday Night Combat promo, no longer available)",
   "762": "Flamingo Kid (Super Monday Night Combat promo, no longer available)",
-  "166": "Mercenary (no longer given out)",
   "1057-1065": "MvM GateBot lights (worn only by the Mann vs. Machine robots that capture gates, never given to players)",
   "30143-30161": "MvM robot armor (worn only by the Mann vs. Machine robots in Romevision, never given to players)"
  },
@@ -325,5 +329,9 @@
   "_note": "Cosmetics only the Mann vs. Machine robots wear: previewed on the robot (models/bots/<class>/bot_<class>.mdl).",
   "1057-1065": "GateBot lights",
   "30143-30161": "Romevision robot armor"
+ },
+ "yearly_items": {
+  "_note": "Items reissued each year under a new defindex with the year in the name: listed once under this name, owning any year's copy counts.",
+  "Gift-Stuffed Stocking": "a new one each winter"
  }
 }

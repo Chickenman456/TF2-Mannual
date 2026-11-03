@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 47
+CATALOG_VERSION = 48
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -707,10 +707,13 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     # The same item listed twice under two defindexes (e.g. the two Pyrovision
     # Goggles): show it once, and count either copy as owning it.
     dup, first_of = {}, {}
+    yearly = {n.lower() for n in cur.get("yearly_items", {}) if not n.startswith("_")}
     for it in items:
         if it[3] == "m":
             continue
-        key = (it[1].lower(), it[3])
+        nm = it[1].lower()
+        base = re.sub(r"\s+(19|20)\d\d$", "", nm)
+        key = (base if base in yearly else nm, it[3])
         if key in first_of:
             f = first_of[key]
             dup[it[0]] = f[0]
@@ -721,6 +724,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             f[8] = min(f[8], it[8])
             f[4] |= it[4]           # the Shotgun: one stock weapon, four classes
         else:
+            if key[0] != nm:
+                it[1] = re.sub(r"\s+(19|20)\d\d$", "", it[1])   # listed under the name without a year
             first_of[key] = it
     items = [it for it in items if it[0] not in dup]
     keep = set(ids) - set(dup)
