@@ -681,21 +681,25 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
 async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;n=Math.max(0,Math.min(2,n|0));ZLIVE.setLod(n);const m=M[c];if(!m)return;
  await lodBody(c);m.csig=null;m.wname=null;window.ZREDRESS(c);if(window.ZTPROP)ZTPROP(c)}
 // the class model at the LOD, worn with the bodygroups the cosmetics leave (rebuilt when they change: setCosmetics calls it)
-async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0;
+// (and the robot body for the cosmetics only the MvM robots wear: m._robot, set by the preview)
+async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0,bot=!!m._robot;
+ const eyes=m._eyeMesh||(m._eyeMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&x.userData.zeye)L.push(x)});return L})());eyes.forEach(x=>x.layers.set(bot&&ZLIVE.ready?31:0));
  const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
- if(n<=0||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
+ if((n<=0&&!bot)||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
  const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
- const sig=n+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
- try{const [src,man]=await ZLIVE.body(c,bg);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
+ const sig=n+'|'+bot+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
+ try{const [src,man]=await ZLIVE.body(c,bg,bot);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
-  const meshes=src.map(s=>{if(/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(b=>pb[b.name.toLowerCase()]);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+  // a robot's own bones (its antennas, gears and plates): made under the merc bone their parent merged onto, at their rest pose
+  const xb=[];const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];if(!bot)return null;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||m.o).add(nb);xb.push(nb);return pb[k]=nb};
+  const meshes=src.map(s=>{if(!bot&&/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
-  drop();if(meshes.length){m._lbody=meshes;own.forEach(x=>x.layers.set(31))}else own.forEach(x=>x.layers.set(0))}catch(e){console.warn('[ZLIVE] LOD body',e)}}
+  drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
-window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];if(!m||!!m._robot===!!on)return;m._robot=!!on;lodBody(c)},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -1018,11 +1022,10 @@ const MEDAL=/TournamentMedal|CommunityMedal/i;
 // what a schema entry is, the way the loadout treats it (CTFItemDefinition item_class / item_slot)
 const regsOf=r=>{const out=[];if(r.equip_region&&typeof r.equip_region=='string')out.push(r.equip_region.toLowerCase());if(r.equip_regions&&typeof r.equip_regions=='object')Object.keys(r.equip_regions).forEach(k=>out.push(k.toLowerCase()));return out};
 const hasModel=r=>!!((r.model_player&&String(r.model_player).trim())||(r.model_player_per_class&&typeof r.model_player_per_class=='object'&&Object.keys(r.model_player_per_class).length));
-const robotOnly=r=>/^mvm /i.test(String(r.name||''))||/^tw_[a-z]+bot_/i.test(String(r.name||''))||/models\/bots\//i.test(JSON.stringify(r.model_player||r.model_player_per_class||'').replace(/\\\\/g,'/'));
 function kindOf(r){const cl=String(r.item_class||'').toLowerCase(),sl=String(r.item_slot||'').toLowerCase();
  if(MEDAL.test(String(r.item_type_name||''))||regsOf(r).includes('medal'))return 'medal';
  if(sl=='taunt'||(r.taunt&&!/^(primary|secondary|melee|pda|pda2|building)$/.test(sl)))return 'taunt';
- if(/^tf_wearable/.test(cl)&&!/_vm/.test(cl)&&(sl=='head'||sl=='misc')&&hasModel(r))return robotOnly(r)?'other':'cos';
+ if(/^tf_wearable/.test(cl)&&!/_vm/.test(cl)&&(sl=='head'||sl=='misc')&&hasModel(r))return 'cos';   // the MvM robots' own cosmetics too: the preview shows them on the robot
  if(sl=='action')return 'action';
  if(/^(primary|secondary|melee|pda|pda2|building)$/.test(sl)&&/^(tf_weapon|saxxy|tf_wearable)/.test(cl))return 'wep';
  return 'other'}
@@ -1865,8 +1868,9 @@ function playerMats(cl){const c=clsKey(cl);if(PMAT[c])return PMAT[c];return PMAT
   if(R.RED)out[part]=R}
  return out})().catch(e=>{console.warn('[ZLIVE] player materials',e);return null})}
 // the class model itself at a level of detail (the preview's LOD button), its bodygroups as the merc wears them
-function body(cl,bg){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
- return ST.cache[key]=assemble(key,'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:bg||{}})}
+function body(cl,bg,robot){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+(robot?'bot:':'')+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
+ // robot: the Mann vs. Machine robot of the class (models/bots/<class>/bot_<class>.mdl), on the same skeleton
+ return ST.cache[key]=assemble(key,robot?'models/bots/'+SHORT[c]+'/bot_'+SHORT[c]+'.mdl':'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:robot?{}:(bg||{})})}
 async function connect(src){ST.src=src;ST.lod=0;for(const k in PMAT)delete PMAT[k];ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();

@@ -46,7 +46,9 @@
   "756": "Bolt Action Blitzer (CrimeCraft promo, no longer available)",
   "761": "Triclops (Super Monday Night Combat promo, no longer available)",
   "762": "Flamingo Kid (Super Monday Night Combat promo, no longer available)",
-  "166": "Mercenary (no longer given out)"
+  "166": "Mercenary (no longer given out)",
+  "1057-1065": "MvM GateBot lights (worn only by the Mann vs. Machine robots that capture gates, never given to players)",
+  "30143-30161": "MvM robot armor (worn only by the Mann vs. Machine robots in Romevision, never given to players)"
  },
  "fixed_dates": {
   "5617-5625": "2013-10-28",
@@ -66,7 +68,9 @@
   "1163": "2012-08-15",
   "1070": "2014-10-29",
   "1132": "2014-10-29",
-  "839": "2012-08-10"
+  "839": "2012-08-10",
+  "30143-30161": "2013-08-20",
+  "1057-1065": "2013-11-21"
  },
  "reskins": {
   "741": "Rainblower (Flame Thrower with Pyrovision)",
@@ -260,9 +264,7 @@
   "_note": "Items in the game files that were never given out. Shown as Unreleased, with this note.",
   "1192": "never given out",
   "1193": "never given out",
-  "1194": "never given out",
-  "1057-1065": "worn by the Mann vs. Machine gate-capturing robots (GateBots), never given to players",
-  "30143-30161": "worn by the Mann vs. Machine robots in Romevision, never given to players"
+  "1194": "never given out"
  },
  "not_quality": {
   "_note": "Qualities the wiki's quality tables list an item in, but that it never came in (a name clash on the wiki).",
@@ -314,5 +316,14 @@
  "own_name": {
   "_note": "Items that share their in-game name with another item but are their own: defindex: the game's localization key for their own name.",
   "839": "#TF_Bundle_STSBundle"
+ },
+ "community_medals": {
+  "_note": "Medals the game types as Tournament Medals that come from community events, not competitive play: listed with the community medals.",
+  "19250-19258": "Painter's Workshop (an art contest)"
+ },
+ "robot_cosmetics": {
+  "_note": "Cosmetics only the Mann vs. Machine robots wear: previewed on the robot (models/bots/<class>/bot_<class>.mdl).",
+  "1057-1065": "GateBot lights",
+  "30143-30161": "Romevision robot armor"
  }
 }

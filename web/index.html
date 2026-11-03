@@ -843,7 +843,10 @@ const availIs = id => S.avail === 'craft' ? CRAFT.has(id) : S.avail === 'achieve
 // with Pyroland on Only these, its three groups list every type
 // expired items (the 2013 spells, transmogrifiers, Cursed Objects) sort with the tools
 // the item-type box an item is under: medals split into community and tournament medals (their type line), expired tools with the tools
-const tkey = it => it.cat === 'x' ? 'l' : it.cat === 'm' && it.type === 'Tournament Medal' ? 'mt' : it.cat;
+// (the community events the game also types as tournament medals, like the Painter's Workshop, are curated back to community)
+let CMEDAL = null;
+const cmedal = () => (CMEDAL && CMEDAL.raw === RAW) ? CMEDAL : (CMEDAL = Object.assign(new Set((RAW && RAW.community_medals) || []), {raw: RAW}));
+const tkey = it => it.cat === 'x' ? 'l' : it.cat === 'm' && it.type === 'Tournament Medal' && !cmedal().has(it.id) ? 'mt' : it.cat;
 const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[tkey(it)] : !anyFx() && it.cat !== 'm';
 function inScope(id, anyT){
   const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
@@ -1925,6 +1928,7 @@ function openPreview(id, opt){
     tradable: it.cat === 'm' ? false : it.cat === 's' ? !!qOf(id) : !it.untradable,   // the stock copy can't be traded; a Strange or Unusual one can
     wiki: 'https://wiki.teamfortress.com/scripts/itemredirect.php?id=' + id + '&lang=en_US',
     // sold in the Mann Co. Store: Steam's buy page for it (the link the TF2 Wiki uses, buyitem/440/<defindex>)
+    robot: ((RAW && RAW.robot) || []).includes(+id),   // worn only by the MvM robots: shown on the robot
     buy: BUY.has(+id) ? 'https://store.steampowered.com/buyitem/440/' + BUY.get(+id) : null,
     market: marketable(it) ? 'https://steamcommunity.com/market/search?appid=440&q=' + encodeURIComponent('"' + (qOf(id) ? QUAL[qOf(id)].n + ' ' : '') + it.name + '"') : null,
     wish: {on: () => S.wishlist.includes(id), toggle: () => { const add = !S.wishlist.includes(id); S.wishlist = add ? [...S.wishlist, id] : S.wishlist.filter(x => x !== id); sfx(add ? 'item_store_add_to_cart' : 'buttonclickrelease', add ? .5 : 1); save(); render(); }},

@@ -211,6 +211,8 @@
     if (fresh) { try { await Store3D.show(f); } catch (e) { return; } }
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     Store3D.redress(cn);
+    // the cosmetics only the Mann vs. Machine robots wear are shown on the robot
+    if (Store3D.robot) Store3D.robot(cn, !!ST.o.robot && live());
     if (Store3D.ctl && Store3D.ctl.preload) Store3D.ctl.preload(cn, KSLOTS[cn] || KSLOTS._);   // the number keys switch at once
     lodLabel(); if (ST.lod && Store3D.lod) Store3D.lod(cn, ST.lod);
     if (!ST || tok !== ST.tok || !f.isConnected) return;
@@ -281,7 +283,7 @@
   function undress() {
     const ic = ST && ST.el.querySelector('.spv-icon'); if (ic) ic.remove();
     if (window.ZPFX) ZPFX.stop(); fxTok++;
-    const f = ST && ST.el.querySelector('#zfig'); if (f) { stopTaunt(f.getAttribute('aria-label')); f.remove(); }
+    const f = ST && ST.el.querySelector('#zfig'); if (f) { stopTaunt(f.getAttribute('aria-label')); if (window.Store3D && Store3D.robot) Store3D.robot(f.getAttribute('aria-label'), false); f.remove(); }
     window.ZPREV = null;
   }
 

@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 45
+CATALOG_VERSION = 47
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -265,6 +265,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     # curated: an item that shares its in-game name with another but is its own item, named by another of the game's
     # own strings (the Steam Translation Server's copy of the Mann Co. Store Package: "#TF_Bundle_STSBundle")
     own_name = notes("own_name")
+    robot_only = _ids([x for x in cur.get("robot_cosmetics", {}) if not x.startswith("_")])
     unused = notes("unused")
     unob_notes = notes("unobtainable")
     not_limited = notes("not_limited")
@@ -649,7 +650,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
         mask = sum(1 << i for i, c in enumerate(CLASSES) if c in classes)
         if not mask and cat[k] in ("c", "m", "t", "x", "o", "l", "a"):
             mask = 511
-        unt = untradable(k)
+        unt = untradable(k) or k in robot_only   # the MvM robots' own cosmetics: no player ever had one to trade
         unob = k not in force_limited and k not in unused and (k in always_unob or (k not in earnable and (cat[k] == "m" or
                 (unt and (tname(k) == "Community Medal" or dates[k] < year_ago)))))
         warp = any(t.startswith("paintkit") and t != "paintkit_base" for t in prefab_str(k).split())
@@ -843,4 +844,6 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "expired": {str(k): expired_on(k)[:10] for k in keep if cat.get(k) == "x"},
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
-            "buy": store_buy(data_dir, keep, dup)}
+            "buy": store_buy(data_dir, keep, dup),
+            "robot": sorted(k for k in _ids([x for x in cur.get("robot_cosmetics", {}) if not x.startswith("_")]) if k in keep),
+            "community_medals": sorted(k for k in _ids([x for x in cur.get("community_medals", {}) if not x.startswith("_")]) if k in keep)}
