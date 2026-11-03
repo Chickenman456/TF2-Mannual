@@ -341,7 +341,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(404, {"error": "not found"})
                 ctype = "application/wasm" if path.endswith(".wasm") else (mimetypes.guess_type(path)[0] or "application/octet-stream")
                 return self.send(200, data, ctype, cache=True)
-            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/", "/vendor/", "/ctk/")) or path in ("/preview.js", "/store3d.js", "/game.js", "/pfx.js", "/vgui.js", "/wpi.js"):
+            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/", "/vendor/", "/ctk/")) or path in ("/preview.js", "/store3d.js", "/game.js", "/pfx.js", "/vgui.js", "/wpi.js", "/npc.js"):
                 rel = path[len("/static/"):] if path.startswith("/static/") else path.lstrip("/")
                 fp = os.path.normpath(os.path.join(WEB, rel))
                 if fp.startswith(WEB) and os.path.isfile(fp):
