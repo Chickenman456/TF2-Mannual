@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 48
+CATALOG_VERSION = 49
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -851,4 +851,5 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "effects": effects(ig, loc, data_dir),
             "buy": store_buy(data_dir, keep, dup),
             "robot": sorted(k for k in _ids([x for x in cur.get("robot_cosmetics", {}) if not x.startswith("_")]) if k in keep),
+            "robot_body": {k: v for k, v in cur.get("robot_body", {}).items() if not k.startswith("_") and int(k) in keep},
             "community_medals": sorted(k for k in _ids([x for x in cur.get("community_medals", {}) if not x.startswith("_")]) if k in keep)}

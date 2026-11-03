@@ -212,7 +212,7 @@
     if (!ST || tok !== ST.tok || !f.isConnected) return;
     Store3D.redress(cn);
     // the cosmetics only the Mann vs. Machine robots wear are shown on the robot
-    if (Store3D.robot) Store3D.robot(cn, !!ST.o.robot && live());
+    if (Store3D.robot) Store3D.robot(cn, ST.o.robot && live() ? ST.o.robot : false);
     if (Store3D.ctl && Store3D.ctl.preload) Store3D.ctl.preload(cn, KSLOTS[cn] || KSLOTS._);   // the number keys switch at once
     lodLabel(); if (ST.lod && Store3D.lod) Store3D.lod(cn, ST.lod);
     if (!ST || tok !== ST.tok || !f.isConnected) return;

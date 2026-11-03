@@ -333,5 +333,9 @@
  "yearly_items": {
   "_note": "Items reissued each year under a new defindex with the year in the name: listed once under this name, owning any year's copy counts.",
   "Gift-Stuffed Stocking": "a new one each winter"
+ },
+ "robot_body": {
+  "_note": "Robot cosmetics shown on a robot other than the class's own (models/bots/<class>/bot_<class>.mdl): defindex: the robot's model.",
+  "30161": "models/bots/demo/bot_sentry_buster.mdl"
  }
 }
