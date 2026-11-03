@@ -234,6 +234,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404, {"error": "not found"})
         # hl2_*.vpk: the Half-Life 2 content TF2 mounts from Team Fortress 2/hl2 (glow and smoke materials of unusual effects)
         fp = os.path.join(APP.tf_dir, name) if name.startswith("tf2_") else os.path.join(os.path.dirname(os.path.normpath(APP.tf_dir)), "hl2", name)
+        return self.send_range(fp)
+
+    def send_map(self, name):
+        """A map's .bsp, a byte range at a time: the character viewer reads models packed into a map (its pakfile lump)."""
+        if not APP.tf_dir or not re.fullmatch(r"[a-z0-9_]+\.bsp", name):
+            return self.send(404, {"error": "not found"})
+        return self.send_range(os.path.join(APP.tf_dir, "maps", name))
+
+    def send_range(self, fp):
         if not os.path.isfile(fp):
             return self.send(404, {"error": "missing"})
         size = os.path.getsize(fp)
@@ -295,6 +304,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, jload(os.path.join(USER, "backpack.json"), {}))
             if path.startswith("/vpk/"):
                 return self.send_vpk(urllib.parse.unquote(path[len("/vpk/"):]))
+            if path.startswith("/map/"):
+                return self.send_map(urllib.parse.unquote(path[len("/map/"):]))
             if path == "/api/list":
                 # the Workshop importer's compiled items (tf/workshop/import_source/*.zip), for the Workshop window
                 d = workshop_dir()
