@@ -631,7 +631,8 @@ button.vg:focus-visible{outline:none}
         <label class="chk"><input type="checkbox" data-type="p"> War paints</label>
         <label class="chk" title="Weapons that come with a war paint already applied"><input type="checkbox" data-type="d"> Decorated weapons</label>
         <label class="chk" title="Items for the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal..."><input type="checkbox" data-type="a"> Action items</label>
-        <label class="chk"><input type="checkbox" data-type="m"> Community medals</label>
+        <label class="chk" title="Medals handed out to community members, event organisers and contributors"><input type="checkbox" data-type="m"> Community medals</label>
+        <label class="chk" title="Medals from competitive leagues and tournaments (ETF2L, UGC, RGL, ozfortress...): thousands of them"><input type="checkbox" data-type="mt"> Tournament medals</label>
         <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools, and the expired ones (the 2013 spells, transmogrifiers, Cursed Objects)"><input type="checkbox" data-type="l"> Tools</label>
         <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
         <label class="chk" title="Every unusual effect, in sections for cosmetic, taunt, weapon and special effects; collected when any item you own has it"><input type="checkbox" data-type="fx"> Unusual effects</label>
@@ -774,6 +775,7 @@ function migrate(x){
   // Craft Hats and Achievement Items moved to Availability, and Unusual Effects to the item types
   if (x.view === 'craft' || x.view === 'achieve'){ x.avail = x.view; x.view = 'class'; }
   if (x.view === 'effects'){ x.view = 'class'; x.types = {fx: true}; }
+  if (x.types && x.types.m && x.types.mt === undefined) x.types = {...x.types, mt: true};   // medals were one box
   if (x.types && ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial'].some(k => k in x.types)){ x.types = {...x.types, fx: ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial'].some(k => x.types[k])}; for (const k of ['fxcosmetic', 'fxtaunt', 'fxweapon', 'fxspecial']) delete x.types[k]; }
   if (x.quality && !QUAL[x.quality]) x.quality = '';
   x.qowned = x.qowned || {};
@@ -840,7 +842,9 @@ const availIs = id => S.avail === 'craft' ? CRAFT.has(id) : S.avail === 'achieve
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
 // with Pyroland on Only these, its three groups list every type
 // expired items (the 2013 spells, transmogrifiers, Cursed Objects) sort with the tools
-const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[it.cat === 'x' ? 'l' : it.cat] : !anyFx() && it.cat !== 'm';
+// the item-type box an item is under: medals split into community and tournament medals (their type line), expired tools with the tools
+const tkey = it => it.cat === 'x' ? 'l' : it.cat === 'm' && it.type === 'Tournament Medal' ? 'mt' : it.cat;
+const typeOk = it => S.pyro === 'only' ? true : anyType() ? !!S.types[tkey(it)] : !anyFx() && it.cat !== 'm';
 function inScope(id, anyT){
   const it = ITEMS[id]; if (!it || (!anyT && !typeOk(it))) return false;
   if (S.solo && it.classes.length !== 1) return false;
@@ -1309,7 +1313,7 @@ function fadeFilters(){
   na($('#clsbar').closest('.fld'), fx); na($('.tgrid[aria-label="Item types"]'), fx);
   for (const b of document.querySelectorAll('#clsbar [data-cls]')) { const c = b.dataset.cls; if (c === '') continue; const n = +c;
     na(b, !fx && !has(T, it => it.ckey === n || (n < 9 && it.mask >> n & 1)), `No ${b.title || b.textContent.trim()} items in ${here}`); }
-  for (const i of document.querySelectorAll('input[data-type]:not([data-type^="fx"])')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => (it.cat === 'x' ? 'l' : it.cat) === i.dataset.type)),
+  for (const i of document.querySelectorAll('input[data-type]:not([data-type^="fx"])')) na(i.closest('.chk'), !fx && (S.pyro === 'only' || !has(U2, it => tkey(it) === i.dataset.type)),
     S.pyro === 'only' ? 'Pyroland: Only these lists every type' : `No ${i.closest('.chk').textContent.trim()} match the other filters`);
   na($('#noresk').closest('.chk'), !has(T, it => it.reskin)); na($('#nobk').closest('.chk'), !has(T, it => it.botkiller)); na($('#nofest').closest('.chk'), !has(T, it => it.newfest));
   na($('#solo').closest('.chk'), !has(T, it => it.classes.length !== 1));
@@ -1469,7 +1473,7 @@ function filterSummary(){
   $('#filters').hidden = !open;
   $('#filtBtn').setAttribute('aria-expanded', String(open));
   $('#fcount').textContent = f.length ? String(f.length) : '';
-  const types = Object.keys(CATNAME).filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]).concat(S.types.fx ? ['Unusual effects'] : []);
+  const types = Object.keys(CATNAME).concat('mt').filter(k => S.types[k]).map(k => ({c:'Cosmetics',t:'Taunts',w:'Weapons',s:'Stock',a:'Action',m:'Community medals',mt:'Tournament medals',p:'War paints',d:'Decorated',l:'Tools',x:'Expired',o:'Other'})[k]).concat(S.types.fx ? ['Unusual effects'] : []);
   $('#fsum').hidden = open;
   $('#fsum').innerHTML = `<span>Collecting</span><span class="ft">${esc(types.join(', ') || 'everything')}</span>` +
     f.map(x => `<span class="ft">${esc(x)}</span>`).join('') +
