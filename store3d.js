@@ -211,7 +211,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   ctl.addEventListener('change',()=>{const t=ctl.target;const cx=Math.max(-45,Math.min(45,t.x)),cy=Math.max(5,Math.min(85,t.y)),cz=Math.max(-45,Math.min(45,t.z));if(cx!==t.x||cy!==t.y||cz!==t.z){const d=new THREE.Vector3(cx-t.x,cy-t.y,cz-t.z);t.add(d);cam.position.add(d)}});ctl.minPolarAngle=Math.PI*.38;ctl.maxPolarAngle=Math.PI*.6;ctl.enableDamping=true;ctl.update();
   // loading spinner: the TF logo turning in the middle of the merc view while the model and its items stream in (sits beside the canvas, wherever it is mounted)
   const ZLSP=window.ZLSP=(cv,on)=>{let sp=cv._zsp;if(!sp){sp=cv._zsp=document.createElement('i');sp.className='zldspin';sp.setAttribute('aria-label','Loading')}const par=cv.parentNode;if(on&&par&&sp.parentNode!==par)par.insertBefore(sp,cv.nextSibling);const d=on?'block':'none';if(sp.style.display!==d)sp.style.display=d};
-  const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();if(m&&m._robot&&/sentry_buster/i.test(m._robot)){(m.wmesh||[]).forEach(x=>x.visible=false);(m.wextra||[]).forEach(x=>x.visible=false)}   // the Sentry Buster carries no weaponlightTick(cam,ctl.target);
+  const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);if(NPC.mx&&NPC.g)NPC.mx.update(dt);const m=curC&&M[curC];if(m)m.seen=performance.now();if(m&&m._robot&&/sentry_buster/i.test(m._robot)){(m.wmesh||[]).forEach(x=>x.visible=false);(m.wextra||[]).forEach(x=>x.visible=false)}   // the Sentry Buster carries no weaponlightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
    ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m,curC);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
@@ -296,7 +296,8 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  const pilotTick=t=>{const p=Math.sin(t*2*Math.PI/.1)*.02,p2=Math.sin(t*2*Math.PI/7)*-.005,a=87*Math.PI/180;PILOT.forEach(u=>{u.t0.value.set(p2,p);u.t2.value.set((Math.cos(a)*3*t)%1,(Math.sin(a)*3*t)%1)})};
  window.ZW={init:()=>init(),wload:f=>wload(f),wman:()=>wman(),warp:n=>getWarp(n),tex:(u,s)=>texLoad(u,s),mat:(P,map)=>tf2({name:'weapon',map},getWarp(P.warp||'weapon'),{P,exp:P.expTex?texLoad('models/'+P.expTex):null,normal:P.bump?texLoad('models/'+P.bump):false})};
  function wmat(P,tint){if(P.shader=='unlittwotexture')return pilotMat(P);const TX=(u,s)=>u&&u.isTexture?u:texLoad('models/'+u,s);return tf2({name:'weapon',map:P.map?TX(P.map,true):BLANK()},V.warp,{P:{...P,warp:P.warp},exp:P.expTex?TX(P.expTex):null,normal:P.bump?TX(P.bump):false,tint})}
- async function setWeapon(c,slot,name){const m=M[c];// the Destruction PDA (pda2) only when it's read from the install: the page bakes no stock model for that slot
+ async function setWeapon(c,slot,name){const m=M[c];if(isBuster(m)){slot='melee';name=null}   // the Sentry Buster: melee only
+// the Destruction PDA (pda2) only when it's read from the install: the page bakes no stock model for that slot
   if(slot=='pda2'&&!name&&c=='Engineer')name='#26';   // the stock Destruction PDA (defindex 26)
   if(!m||!slot||(slot=='pda2'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c))))return;if(slot=='action'&&!(name&&window.ZLIVE&&ZLIVE.ready&&ZLIVE.hasWep(name,c)))return;
   let nk=wkey(name);
@@ -590,16 +591,17 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
 // keyboard controls in the store preview (preview.js): run in place (W), crouch (Ctrl), fire (F), the held weapon's taunt (G).
 // Movement plays the class's run_ / crouch_ / crouch_walk_ sequence for the weapon's anim slot, read from the linked install
 // (run_ at move_x 1: running forward), and becomes what the merc returns to after a taunt or a gesture.
+const isBuster=m=>!!(m&&m._robot&&/sentry_buster/i.test(m._robot));
 const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,crouch:false})):null};const busy=m=>/^(taunt|live:)/.test(m.cn||'');
  const suf=m=>String(zIdle(m)||'stand_PRIMARY').replace(/^stand_/,'');const bones=m=>{const bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});return bs};
  const want=m=>{const v=m._mv||{};if(m._spin){const x=suf(m);return v.crouch?'crouch_deployed_'+x:v.run?x+'_deployed_movement':'stand_deployed_'+x}return v.crouch?(v.run?'crouch_walk_':'crouch_')+suf(m):v.run?'run_'+suf(m):null};
  async function move(c){const m=M[c];if(!m||!m.play)return;const nm=want(m);
   if(!nm){const a=zIdle(m);if(m.st0.idle!==a||!busy(m)&&m.cn!==a){m.st0.idle=a;if(!busy(m))m.play(a)}return}
-  if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),{move_x:/^run_|^crouch_walk_|deployed_movement/.test(nm)?1:0,move_y:0});if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
+  if(!m.A[nm]){if(!(window.ZLIVE&&ZLIVE.ready))return;const cl=await ZLIVE.seq(c,nm,bones(m),(r=>({move_x:r,move_y:0,move_yaw:0,move_scale:r}))(/^run_|^crouch_walk_|deployed_movement/.test(nm)?1:0));if(!cl||M[c]!==m)return;if(!m.A[nm]){m.A[nm]=m.mx.clipAction(cl);m.STATIC[nm]=false}}
   if(want(m)!==nm)return;m.st0.idle=nm;if(!busy(m)&&m.cn!==nm)m.play(nm)}
  // F: the firing gesture over what the merc is doing, the weapon's firing sound, its muzzle flash; held, it fires again at the weapon's rate
  const pickW=L=>{let t=L.reduce((a,x)=>a+x.w,0)*Math.random();for(const x of L){t-=x.w;if(t<=0)return x}return L[0]};
- async function fire(c,tok){const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return null;const sx=suf(m).toUpperCase(),cr=!!(m._mv||{}).crouch;
+ async function fire(c,tok){const m=M[c];if(!m||isBuster(m)||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return null;const sx=suf(m).toUpperCase(),cr=!!(m._mv||{}).crouch;
   const wn=wname(m);const [G,F]=await Promise.all([ZLIVE.gesture(c,'ACT_MP_ATTACK_'+(cr?'CROUCH':'STAND')+'_'+sx,bones(m)).catch(()=>null),wn?ZLIVE.fireInfo(c,wn).catch(()=>null):null]);
   if(M[c]!==m||busy(m))return null;
   if(tok&&FT!==tok)return null;if(F&&F.nofire)return null;
@@ -622,7 +624,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  const vol=()=>{try{return window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){return 1}};
  const sound=(L,loop)=>{if(!L||!L.length)return null;const au=new Audio(L[(Math.random()*L.length)|0]);const v=vol();au.volume=v*.6;au.loop=!!loop;if(v>0)au.play().catch(()=>{});return au};
  const gest=async(c,m,a)=>{const G=await ZLIVE.gesture(c,'ACT_MP_ATTACK_'+((m._mv||{}).crouch?'CROUCH':'STAND')+'_'+a,bones(m)).catch(()=>null);if(G&&M[c]===m&&!busy(m))m._gest=[{g:pickW(G),t:0}]};
- async function fireDown(c){fireUp();const tok={c};FT=tok;
+ async function fireDown(c){fireUp();if(isBuster(M[c]))return;const tok={c};FT=tok;
   // the minigun spins up first (the Heavy's spool-up gesture into his deployed stance, the wind-up sound), then fires
   {const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F0=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(FT!==tok)return;
    // the Huntsman is drawn while the trigger is held (the deployed stance, the bow's pull sound) and looses its arrow on release
@@ -648,13 +650,13 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
  const wname=m=>{const b=m._wbase;if(b.lname)return b.lname;const k=(STOCK[b.c]||{})[b.slot];if(!k)return b.c=='Heavy'&&b.slot=='melee'?'Fists':null;for(const n in BYNAME)if(BYNAME[n]===k)return n;return null};
  // R: the weapon's reload gesture and sound (ACT_MP_RELOAD_<STAND|CROUCH>_<slot>); a weapon loaded a round at a time (_LOOP, _END)
  // plays the start, a loop and its sound per round of its clip, then the end, as from empty; firing cuts it short
- async function reload(c){const m=M[c];if(!m||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(!F||!F.reload||!(F.reload.clip>0)||M[c]!==m)return;
+ async function reload(c){const m=M[c];if(!m||isBuster(m)||busy(m)||!(window.ZLIVE&&ZLIVE.ready)||!m._wbase)return;const wn=wname(m);const F=wn?await ZLIVE.fireInfo(c,wn).catch(()=>null):null;if(!F||!F.reload||!(F.reload.clip>0)||M[c]!==m)return;
   const A='ACT_MP_RELOAD_'+((m._mv||{}).crouch?'CROUCH':'STAND')+'_'+suf(m).toUpperCase();
   const [G0,GL,GE]=await Promise.all([A,A+'_LOOP',A+'_END'].map(a=>ZLIVE.gesture(c,a,bones(m)).catch(()=>null)));if((!G0&&!GL)||M[c]!==m||busy(m))return;
   const tok=m._rtok={},ok=()=>m._rtok===tok&&M[c]===m&&!busy(m),play=G=>{m._gest=[{g:pickW(G),t:0}];return G[0].dur},wait=s=>new Promise(r=>setTimeout(r,s*1000));
   if(!GL){play(G0);sound(F.reload.urls);return}
   let d=G0?play(G0):0;for(let i=0;i<F.reload.clip;i++){await wait(d);if(!ok())return;d=play(GL);sound(F.reload.urls)}await wait(d);if(ok()&&GE)play(GE)}
- async function taunt(c){fireUp(true);const m=M[c];if(!m||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
+ async function taunt(c){fireUp(true);const m=M[c];if(!m||isBuster(m)||busy(m)||!m._wbase||!(window.ZLIVE&&ZLIVE.ready))return false;const wn=wname(m);if(!wn)return false;
   // full Halloween costume sets (CTFPlayer::ModifyOrAppendCriteria, held weapon without special_taunt): the Tin Soldier, the Highland
   // Hound and the FrankenHeavy taunt their own way; the Brundle Bundle's set bonus special_dsp 134 is the Engineer's fly voice
   const worn=new Set((m.cmesh||[]).map(r=>{const n=r&&r.key?String(r.key).split(':').slice(3).join(':'):'';const e=n&&ZLIVE.entry(n);return e?String(e.r.name||'').toLowerCase():''}));
@@ -711,7 +713,26 @@ async function robotAnims(c){const m=M[c];if(!m||!m.A||!m.mx||!window.ZLIVE||!ZL
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
-window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+// the NPC viewer: the character on the page's own renderer, with no merc on screen
+const NPC={};
+async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+1;npcDrop();
+ el.appendChild(V.r.domElement);V.r.domElement.style.opacity='';{const w=el.clientWidth||620,h=el.clientHeight||620;V.r.setSize(w,h);V.cam.aspect=w/h;V.cam.updateProjectionMatrix();V.cam.clearViewOffset()}
+ if(V.storeCam){const S=V.storeCam;V.storeCam=null;if(S.md!=null)V.ctl.minDistance=S.md;V.cam.fov=S.fov;V.cam.updateProjectionMatrix();V.zoomed=S.zoomed}V.ctl.enabled=true;
+ Object.values(M).forEach(x=>x.o.visible=false);curC=null;V.go();if(!(window.ZLIVE&&ZLIVE.ready))throw new Error('link');
+ const {src,man,seqs}=await ZLIVE.npcLoad(def.mdl);if(NPC.tok!==tok)return null;
+ const g=new THREE.Group();const pb={};const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];const nb=new THREE.Bone();nb.name=b.name;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);nb.scale.copy(b.scale);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||g).add(nb);return pb[k]=nb};
+ const MI0=man[Object.keys(man)[0]]||{};const meshes=src.map(s=>{const wm=s.clone();const MI=MI0[s.material.name]||{};wm.userData.mi=MI;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P):s.material;wm.frustumCulled=false;wm.castShadow=true;
+  if(s.isSkinnedMesh){wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mk),s.skeleton.boneInverses),new THREE.Matrix4())}g.add(wm);return wm});
+ g.scale.setScalar(def.scale||1);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
+ return seqs}
+function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=new THREE.Box3();const v=new THREE.Vector3();g.traverse(x=>{if(x.isBone)B.expandByPoint(x.getWorldPosition(v))});try{B.union(new THREE.Box3().setFromObject(g))}catch(e){}
+ const c=B.getCenter(new THREE.Vector3()),sz=B.getSize(new THREE.Vector3());const h=Math.max(sz.y*1.25,sz.x,sz.z,20);const d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.15;
+ V.ctl.target.copy(c);V.cam.position.set(c.x,c.y,c.z+d);V.ctl.minDistance=d*.25;V.ctl.maxDistance=d*3;V.ctl.update()}
+async function npcPlay(name){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
+ const a=NPC.mx.clipAction(r.clip);a.reset();a.setLoop(THREE.LoopRepeat);if(NPC.act&&NPC.act!==a)a.crossFadeFrom(NPC.act,.2,false);a.play();const first=!NPC.act;NPC.act=a;if(first){NPC.mx.update(0);npcFit()}return true}
+function npcTeam(team){(NPC.meshes||[]).forEach(wm=>{const MI=wm.userData.mi||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P)})}
+function npcDrop(){if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null}
+window.Store3D={show:f=>show(f),npc:{show:npcShow,play:npcPlay,team:npcTeam,close:()=>{NPC.tok=(NPC.tok||0)+1;npcDrop()},refit:()=>npcFit(),pause:p=>{if(NPC.act)NPC.act.paused=!!p},hasBlu:()=>(NPC.meshes||[]).some(w=>w.userData.mi&&w.userData.mi.blu)},init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;if(isBuster(m))setWeapon(c,'melee',null);lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -1914,7 +1935,14 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
 function itemAttr(n,key){const e=entry(n);if(!e)return null;const k=key.toLowerCase();for(const b of ['attributes','static_attrs']){const A=e.r[b];if(!A||typeof A!='object')continue;for(const x in A)if(x.toLowerCase()==k){const v=A[x];return v&&typeof v=='object'?v.value:v}}return null}
-window.ZLIVE={playerMats,attr:itemAttr,setRobot,robotSeqs,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
+// characters (the NPC viewer): a model read from the install with its own skeleton, and the sequences of it and its $includemodels
+async function npcFiles(path){path=path.toLowerCase();const b=await mdlBuf(path);if(!b)return[];return [path,...incOf(b).map(x=>x.replace(/\\/g,'/').toLowerCase())]}
+async function npcLoad(path){const [src,man]=await assemble('npc:'+path.toLowerCase(),path,{r:{}},0,'m',{lod:0,bg:{}});const seqs=[],seen=new Set();
+ for(const p of await npcFiles(path)){const b=await mdlBuf(p);if(!b)continue;for(const x of seqList(b)){const k=x.name.toLowerCase();if(seen.has(k))continue;seen.add(k);
+  if(/^(ref|ragdoll|ragdollspawn|user_ref|reference|idle_ref)$|^layer_|aimmatrix|^a_|_delta$|^r_(hand|arm)poses$|^gesture_|^g_/i.test(x.name))continue;seqs.push({name:x.name,act:x.act})}}
+ return {src,man,seqs}}
+async function npcClip(path,name,boneSet){for(const p of await npcFiles(path)){const b=await mdlBuf(p);if(!b)continue;const r=await clipOf(b,name,name,boneSet,{move_x:1,move_y:0,move_yaw:0,move_scale:1});if(r)return r}return null}
+window.ZLIVE={playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype

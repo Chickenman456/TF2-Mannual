@@ -6,6 +6,7 @@
 <script src="vgui.js" defer></script>
 <script src="wpi.js" defer></script>
 <script src="preview.js" defer></script>
+<script src="npc.js" defer></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: TF2 backpack screen. Sticky control strip (sync, views, filters) over stacked panels of backpack slots.
@@ -605,6 +606,7 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="year" title="Every item, grouped by release year">By Year</button>
         <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
         <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
+        <button class="btn" type="button" data-view="npc" title="The game's characters: the Mann vs. Machine robots and the Halloween bosses, with their animations">Characters</button>
       </div>
       <div class="tabs" role="group" aria-label="Yours">
         <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
@@ -1284,6 +1286,8 @@ function render(){
       SETMAP['set'+s.id] = s.i;
       html += section('set'+s.id, null, title, kind + (when ? ' \u00b7 ' + when : ''), s.i, '');
     }
+  } else if (S.view === 'npc'){
+    html = window.NPCVIEW ? NPCVIEW.render() : '';
   } else if (S.view === 'backpack'){
     html = backpackView();
   } else {
@@ -1291,7 +1295,7 @@ function render(){
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
-  if (fxShown()){
+  if (fxShown() && S.view !== 'npc'){
     // unusual effects, ticked under Item types: a section for each kind after the items (in By Year, the dated ones are in their years)
     fxIndex(); const all = Object.values(FX).filter(e => S.view !== 'year' || !e.date);
     let fh = '';
