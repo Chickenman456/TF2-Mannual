@@ -31,16 +31,20 @@
   const CARDP = {"Scout": [-159.2, -13.4, 1.3616], "Soldier": [-47.1, -10.7, 1.0694], "Pyro": [-172.2, -5.3, 1.2405], "Demoman": [-184.9, -8.7, 1.2464], "Heavy": [-83.8, -12.7, 1.3359], "Engineer": [-73.5, -23.7, 1.0346], "Medic": [-23.6, -14.3, 1.1568], "Sniper": [-138.7, -57.7, 0.9266], "Spy": [-11.3, -61.5, 1.1045]};
   const ZCR = {Scout: [463, 736], Soldier: [416, 766], Pyro: [464, 706], Demoman: [467, 738], Heavy: [445, 752], Engineer: [416, 748], Medic: [368, 757], Sniper: [559, 812], Spy: [321, 797]};
   const BOTART = {scout: [453, 750], soldier: [401, 798], pyro: [487, 768], demo: [521, 793], heavy: [531, 792], medic: [410, 812], sniper: [417, 830], spy: [318, 812]};
+  // the robot renders placed the same way: head near the card's middle, at the size the class's merc render is drawn
+  const BOTP = {"scout": [-49.8, 6.0, 1.3362], "soldier": [-43.7, 6.0, 1.0265], "pyro": [-135.0, 6.0, 1.1404], "demo": [-99.2, 6.0, 1.16], "heavy": [-208.9, 6.0, 1.2684], "medic": [-3.7, 6.0, 1.0784], "sniper": [-18.7, 6.0, 0.9065], "spy": [36.0, 6.0, 1.0841]};
   const CNAME = Object.fromEntries(CLS.map(([s, n]) => [s, n]));
+  const CARD = f => (window.ZCARDS && ZCARDS[f]) || 'ui/cards/' + f;
   function card(n) {
     const c = n.cls ? CNAME[n.cls] : null; let art = '';
     if (c) {
       const q = CARDP[c], [w0, h0] = ZCR[c];
-      let src = 'ui/cards/' + c.toLowerCase() + '.webp', w = w0, h = h0;
-      if (n.bot) { const b = BOTART[n.cls]; if (b) { src = 'ui/cards/bot_' + n.cls + '.webp'; [w, h] = [b[0] * h0 / b[1], h0]; } else src = null; }
-      if (src) art = `<img src="${src}" alt="" style="left:${q[0]}px;top:${q[1]}px;width:${w * q[2]}px;height:${h * q[2]}px">`;
+      let src = CARD(c.toLowerCase() + '.webp'), w = w0, h = h0;
+      let p = q;
+      if (n.bot) { const b = BOTART[n.cls]; if (b) { src = CARD('bot_' + n.cls + '.webp'); [w, h] = b; p = BOTP[n.cls]; } else src = null; }
+      if (src) art = `<img src="${src}" alt="" style="left:${p[0]}px;top:${p[1]}px;width:${w * p[2]}px;height:${h * p[2]}px">`;
     }
-    const em = 'ui/cards/emb_' + (c ? c.toLowerCase() : 'all') + '.svg';
+    const em = CARD('emb_' + (c ? c.toLowerCase() : 'all') + '.svg');
     return `<button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button>`;
   }
   const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
