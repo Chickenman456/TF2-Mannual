@@ -211,7 +211,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
   ctl.addEventListener('change',()=>{const t=ctl.target;const cx=Math.max(-45,Math.min(45,t.x)),cy=Math.max(5,Math.min(85,t.y)),cz=Math.max(-45,Math.min(45,t.z));if(cx!==t.x||cy!==t.y||cz!==t.z){const d=new THREE.Vector3(cx-t.x,cy-t.y,cz-t.z);t.add(d);cam.position.add(d)}});ctl.minPolarAngle=Math.PI*.38;ctl.maxPolarAngle=Math.PI*.6;ctl.enableDamping=true;ctl.update();
   // loading spinner: the TF logo turning in the middle of the merc view while the model and its items stream in (sits beside the canvas, wherever it is mounted)
   const ZLSP=window.ZLSP=(cv,on)=>{let sp=cv._zsp;if(!sp){sp=cv._zsp=document.createElement('i');sp.className='zldspin';sp.setAttribute('aria-label','Loading')}const par=cv.parentNode;if(on&&par&&sp.parentNode!==par)par.insertBefore(sp,cv.nextSibling);const d=on?'block':'none';if(sp.style.display!==d)sp.style.display=d};
-  const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();lightTick(cam,ctl.target);
+  const clk=new THREE.Clock();let run=false;const loop=()=>{if(!r.domElement.isConnected){run=false;return}requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.1);const t=performance.now()/1000;pilotTick(t);const m=curC&&M[curC];if(m)m.seen=performance.now();if(m&&m._robot&&/sentry_buster/i.test(m._robot)){(m.wmesh||[]).forEach(x=>x.visible=false);(m.wextra||[]).forEach(x=>x.visible=false)}   // the Sentry Buster carries no weaponlightTick(cam,ctl.target);
    if(m&&m.o.visible){if(!m._rdy){const now=performance.now();m._t0=m._t0||now;const fk=curC!='Pyro';if(((!fk||m.face||m._nof)&&m._cdone&&m._wdone&&!m.cpend&&!m.wpend&&!texPend(m.o))||now-m._t0>8000)m._rdy=1}const op=m._rdy?'':'0';if(!r.domElement.style.transition)r.domElement.style.transition='opacity .3s';if(r.domElement.style.opacity!==op)r.domElement.style.opacity=op}
    if(m){const p=m.wpend>0||m.cpend>0;if(p&&!m._lp)m._lp=performance.now();else if(!p)m._lp=0}
    ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m,curC);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
@@ -690,18 +690,28 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
  if((n<=0&&!bot)||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
  const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
- const sig=n+'|'+bot+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
- try{const [src,man]=await ZLIVE.body(c,bg,bot);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
+ const sig=n+'|'+(m._robot||'')+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
+ try{const [src,man]=await ZLIVE.body(c,bg,m._robot||false);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
   // a robot's own bones (its antennas, gears and plates): made under the merc bone their parent merged onto, at their rest pose
   const xb=[];const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];if(!bot)return null;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||m.o).add(nb);xb.push(nb);return pb[k]=nb};
   const meshes=src.map(s=>{if(!bot&&/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
   drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
+// the robot's animations (bot_<class>_animations.mdl: stiffer stand_ / run_ loops), in place of the class's while it's shown as the robot
+async function robotAnims(c){const m=M[c];if(!m||!m.A||!m.mx||!window.ZLIVE||!ZLIVE.setRobot)return;const on=m._robot;const tok=m._rtok=(m._rtok||0)+1;
+ const path=on?(/^models\//.test(String(on))?on:'models/bots/'+String(KEY[c]||'').toLowerCase()+'/bot_'+String(KEY[c]||'').toLowerCase()+'.mdl'):null;
+ ZLIVE.setRobot(c,path);
+ for(const k of Object.keys(m.A))if(/^live:/.test(k)&&m.cn!==k)delete m.A[k];   // taunts read again: the robot's sequences and voice
+ const back=m._A0||{};m._A0={};for(const k in back){const r=m.A[k];m.A[k]=back[k].a;m.STATIC[k]=back[k].s;if(m.cn===k&&m.play)m.play(k);if(r&&r!==m.A[k])setTimeout(()=>r.stop(),400)}
+ if(!path||!ZLIVE.ready)return;let names;try{names=await ZLIVE.robotSeqs(path)}catch(e){return}if(m._rtok!==tok)return;
+ const bs=new Set();m.o.traverse(x=>{if(x.isBone)bs.add(x.name)});
+ for(const k of Object.keys(m.A)){if(!/^(stand|run|crouch|swim|airwalk|jump|a_jump)/i.test(k)||!names.has(k.toLowerCase()))continue;let cl=null;try{cl=await ZLIVE.seq(c,k,bs)}catch(e){}if(m._rtok!==tok)return;if(!cl)continue;
+  const was=m.A[k];m._A0[k]={a:was,s:m.STATIC[k]};m.A[k]=m.mx.clipAction(cl);m.STATIC[k]=cl.tracks.every(t=>t.times.length<=2);if(m.cn===k&&m.play){m.play(k);setTimeout(()=>was.stop(),400)}}}
 const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play){if(window.ZFACE)ZFACE.stop(m);m.play(n,true)}},
  pause:(c,p)=>{const m=M[c],a=m&&m.act;if(!a)return;a.paused=!!p;if(window.ZFACE)ZFACE.pause(m,!!p)},
  state:c=>{const m=M[c],a=m&&m.act;if(!a||!/^(taunt|live:)/.test(m.cn||''))return 'none';if(a.paused)return 'paused';return a.isRunning()?'playing':'done'}};
-window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];if(!m||!!m._robot===!!on)return;m._robot=!!on;lodBody(c)},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
+window.Store3D={show:f=>show(f),init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
 })();
@@ -1518,11 +1528,20 @@ const sndPath=w=>'sound/'+String(w).replace(/\\/g,'/').replace(/^[*#@<>^)}$!?(]+
 async function waves(name){const S=await soundscripts();const e=S[String(name).toLowerCase()];if(!e)return[];let W=[];const add=v=>W=W.concat(v);
  if(e.wave)add(e.wave);if(e.rndwave&&e.rndwave.wave)add(e.rndwave.wave);return W.filter(Boolean)}
 const AUD={};
-async function audioURL(w){const p=sndPath(w);if(p in AUD)return AUD[p];return AUD[p]=(async()=>{let b=null;try{b=await read(p)}catch(e){}if(!b)return null;return URL.createObjectURL(new Blob([b],{type:/\.mp3$/i.test(p)?'audio/mpeg':'audio/wav'}))})()}
+const VOC=/^sound\/vo\/(taunts\/)?(scout|soldier|pyro|demoman|heavy|engineer|medic|sniper|spy)_([^/]+)$/i;
+function robotVo(p){const m=VOC.exec(p);if(!m)return null;const r=ROBO[m[2].toLowerCase()];if(!r)return null;if(/sentry_buster/i.test(r))return '';return 'sound/vo/mvm/norm/'+(m[1]||'')+m[2].toLowerCase()+'_mvm_'+m[3]}
+async function audioURL(w){let p=sndPath(w);const rv=robotVo(p);if(rv==='')return null;if(rv){try{if(await read(rv))p=rv}catch(e){}}if(p in AUD)return AUD[p];return AUD[p]=(async()=>{let b=null;try{b=await read(p)}catch(e){}if(!b)return null;return URL.createObjectURL(new Blob([b],{type:/\.mp3$/i.test(p)?'audio/mpeg':'audio/wav'}))})()}
 // skeletal animation (studiohdr_t v48 local anims, RLE anim values, Quaternion48/64, Vector48) -> THREE.AnimationClip
 const MDLS={};
 async function mdlBuf(p){p=p.toLowerCase();if(p in MDLS)return MDLS[p];return MDLS[p]=read(p)}
-async function animMdls(c){const short=SHORT[c];const list=['models/workshop/player/animations/'+short+'_workshop_animations.mdl'];
+// a class shown as its MvM robot (ROBO[c] = the robot's .mdl): its sequences come from the robot's own animation .mdls
+// (models/bots/demo/bot_demo.mdl -> $includemodel bot_demo_animations.mdl) first, the player's after for what the robots don't have
+const ROBO={};const incOf=b=>{const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const n=dv.getInt32(336,true),ix=dv.getInt32(340,true),o=[];for(let k=0;k<n;k++){const q=ix+k*8;o.push(cstr(b,q+dv.getInt32(q+4,true)))}return o};
+async function robotFiles(path){const bm=await mdlBuf(path);if(!bm)return[];return [...incOf(bm),path].map(x=>x.replace(/\\/g,'/').toLowerCase())}
+async function robotSeqs(path){const out=new Set();for(const p of await robotFiles(path)){const b=await mdlBuf(p);if(b)for(const x of seqList(b))out.add(x.name.toLowerCase())}return out}
+function setRobot(cl,path){const c=clsKey(cl);if((ROBO[c]||null)===(path||null))return;if(path)ROBO[c]=path;else delete ROBO[c];for(const k in TAUNT)if(k.startsWith(c+'|'))delete TAUNT[k]}
+const rkey=c=>ROBO[c]?'|bot:'+ROBO[c]:'';
+async function animMdls(c){const short=SHORT[c];const list=ROBO[c]?await robotFiles(ROBO[c]):[];list.push('models/workshop/player/animations/'+short+'_workshop_animations.mdl');
  const main=await mdlBuf('models/player/'+short+'.mdl');if(main){const dv=new DataView(main.buffer,main.byteOffset,main.byteLength);const n=dv.getInt32(336,true),ix=dv.getInt32(340,true);
   for(let k=0;k<n;k++){const o=ix+k*8;list.push(cstr(main,o+dv.getInt32(o+4,true)))}list.push('models/player/'+short+'.mdl')}
  return [...new Set(list.map(x=>x.replace(/\\/g,'/').toLowerCase()))]}
@@ -1583,7 +1602,7 @@ async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)r
     tracks.push(new THREE.QuaternionKeyframeTrack(B.name+'.quaternion',times,QV),new THREE.VectorKeyframeTrack(B.name+'.position',times,PV))});
    return{clip:new THREE.AnimationClip(clipName,(F.length-1)/A.fps,tracks),seq:n,events:seqEvents(b,n)}}}
 const TAUNT={};
-async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if(TAUNT[key])return TAUNT[key];return TAUNT[key]=(async()=>{
+async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rkey(c);if(TAUNT[key])return TAUNT[key];return TAUNT[key]=(async()=>{
  // '@scene:<vcd>': a weapon taunt's scene (weaponTaunt), played as it is
  const at=/^@scene:/.test(n);const e=at?{r:{taunt:{}},dn:n,k:'taunt'}:entry(n);if(!e||e.k!='taunt')return null;
  const sp=at?n.slice(7):tauntScene(e,c);if(!sp)return null;let evs=null;try{evs=await scene(sp)}catch(err){console.warn('[ZLIVE] scene',sp,err)}
@@ -1631,7 +1650,7 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n);if
 async function propClip(path,seqName){const k='pclip|'+path+'|'+seqName;if(ST.cache[k])return ST.cache[k];return ST.cache[k]=(async()=>{const b=await mdlBuf(path);if(!b)return null;const r=await clipOf(b,seqName,'prop:'+seqName,null);return r&&r.clip})()}
 async function propOwn(path){const key='livepropx:'+path,lod=ST.lod|0,ck=key+'#lod'+lod;if(ST.cache[ck])return ST.cache[ck];return ST.cache[ck]=assemble(key,path,{r:{}},0,null,{allbg:1,lod}).then(A=>{A[1][key]._own=1;return A})}
 const SEQ={};
-async function seq(cl,name,boneSet,P){const c=clsKey(cl);const k=c+'|'+name.toLowerCase()+(P?'|'+JSON.stringify(P):'');if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet,P).then(r=>r&&r.clip)}
+async function seq(cl,name,boneSet,P){const c=clsKey(cl);const k=c+'|'+name.toLowerCase()+(P?'|'+JSON.stringify(P):'')+rkey(c);if(SEQ[k])return SEQ[k];return SEQ[k]=seqClip(c,[name],name,boneSet,P).then(r=>r&&r.clip)}
 // the firing gestures: the sequences of the activity the game plays when the weapon fires (ACT_MP_ATTACK_STAND_<anim slot>, _CROUCH_),
 // one picked by its activity weight when there are several (the Heavy's left and right punches). Played additively over whatever the merc
 // does: a delta sequence's rotations multiply the pose and its positions add (Source's delta animations; THREE's additive blending does the
@@ -1872,9 +1891,9 @@ function playerMats(cl){const c=clsKey(cl);if(PMAT[c])return PMAT[c];return PMAT
   if(R.RED)out[part]=R}
  return out})().catch(e=>{console.warn('[ZLIVE] player materials',e);return null})}
 // the class model itself at a level of detail (the preview's LOD button), its bodygroups as the merc wears them
-function body(cl,bg,robot){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+(robot?'bot:':'')+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
+function body(cl,bg,robot){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+(robot?'bot:'+robot+':':'')+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
  // robot: the Mann vs. Machine robot of the class (models/bots/<class>/bot_<class>.mdl), on the same skeleton
- return ST.cache[key]=assemble(key,robot?'models/bots/'+SHORT[c]+'/bot_'+SHORT[c]+'.mdl':'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:robot?{}:(bg||{})})}
+ return ST.cache[key]=assemble(key,robot?(/^models\//.test(String(robot))?robot:'models/bots/'+SHORT[c]+'/bot_'+SHORT[c]+'.mdl'):'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:robot?{}:(bg||{})})}
 async function connect(src){ST.src=src;ST.lod=0;for(const k in PMAT)delete PMAT[k];ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
@@ -1895,7 +1914,7 @@ async function resume(){// after a reload: reuse the remembered folder if the br
  const once=async()=>{removeEventListener('pointerdown',once,true);try{if(await h.requestPermission({mode:'read'})==='granted')connect(dirSource(h))}catch(e){}};addEventListener('pointerdown',once,true)}
 function off(){ST.on=false;ST.ready=false;ST.drop=null;ST.src=null;ST.vpk={};ST.cache={};ST.icons={};ST.iconPend={};try{localStorage.setItem('zlive','0')}catch(e){}dispatchEvent(new Event('zlive'));say('TF2 install unsynced',3000);refreshMercs()}
 function itemAttr(n,key){const e=entry(n);if(!e)return null;const k=key.toLowerCase();for(const b of ['attributes','static_attrs']){const A=e.r[b];if(!A||typeof A!='object')continue;for(const x in A)if(x.toLowerCase()==k){const v=A[x];return v&&typeof v=='object'?v.value:v}}return null}
-window.ZLIVE={playerMats,attr:itemAttr,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
+window.ZLIVE={playerMats,attr:itemAttr,setRobot,robotSeqs,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,workshop:{list:wsList,open:wsOpen},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
