@@ -46,7 +46,8 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  vec3 N=normalize((vec4(nV,0.)*viewMatrix).xyz);vec3 V=normalize(cameraPosition-vWPos);
  // SpecExponentSampler is TEXTURE_WHITE when the vmt has no $phongexponenttexture
  vec4 ex=hasExp>.5?texture2D(expMap,tUv):vec4(1.);
- float sExp=clamp(expFactor>0.?1.+expFactor*ex.r:(cExp>0.?cExp:1.+149.*ex.r),1.,255.);
+ // Source SDK Skin shader: absent an explicit exponent, read the normal map's alpha; an exponent texture uses its red channel.
+ float sExp=clamp(expFactor>0.?1.+expFactor*ex.r:(cExp>0.?cExp:1.+149.*(hasExp>.5?ex.r:nt.a)),1.,255.);
  float mask=maskMode<.5?nt.a:(maskMode<1.5?base.a:1.);           // normal.a | $basemapalphaphongmask | flat
  float rimMask=rimMaskOn>.5?ex.a:1.;vec3 tint=albTint>.5?mix(vec3(1.),albedo,ex.g):vec3(1.);
  float f=clamp(1.-dot(N,V),0.,1.);float f2=f*f-.5;float fR=fres.y+(f2>=0.?fres.z:fres.x)*f2;float f4=f*f*f*f;
@@ -169,7 +170,8 @@ void main(){vec3 d=vWPos-org;vec3 lft=normalize(eU),up=normalize(eV);
  let ECB=null;const ECUBE=()=>ECB||(ECB=(()=>{const t=new THREE.CubeTextureLoader().load([0,1,4,5,3,2].map(i=>'models/eye_env'+i+'.png'));t.encoding=THREE.sRGBEncoding;return t})());
  function eyeMat(m,root){mkLight();const E=m.userData.eye;const u={iris:{value:eTex('eye_iris_'+(E.irisTex||'blue')+'.webp',true)},ao:{value:eTex('eye_ao.png')},cornea:{value:eTex('eye_cornea.png')},env:{value:ECUBE()},warp:{value:getWarp('eye')},
    org:{value:new THREE.Vector3()},eU:{value:new THREE.Vector3()},eV:{value:new THREE.Vector3()},eF:{value:new THREE.Vector3()},iS:{value:E.iris},sS:{value:.43/E.radius},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
-  const t=new THREE.ShaderMaterial({name:m.name,uniforms:u,vertexShader:EVS,fragmentShader:EFS});
+  // EyeRefract eyeballs sit flush against the head surface; a small negative depth bias prevents z-fighting.
+  const t=new THREE.ShaderMaterial({name:m.name,uniforms:u,vertexShader:EVS,fragmentShader:EFS,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
   let bone=null;root.traverse(n=>{if(n.isBone&&n.name==E.bone)bone=n});
   const tc=new THREE.Vector3(),qa=new THREE.Quaternion(),QI=new THREE.Quaternion(),MAXA=.42;const o0=new THREE.Vector3(...E.org),up0=new THREE.Vector3(...E.up),f0=new THREE.Vector3(...E.fwd),up=new THREE.Vector3(),f=new THREE.Vector3(),l=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3();
   // R_StudioEyeballPosition: forward = look dir (straight out of the head), left = forward x up, up = left x forward, then shift by zoffset (the eyes' slight outward angle)
@@ -1235,10 +1237,9 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  P.map=bt&&anim?await texStrip(bt,true).catch(()=>null):null;if(P.map)P._frames=P.map.userData.frames;if(!P.map)P.map=bt?await tex(bt,true):null;
  // UnlitTwoTexture (the flamethrower pilot light): $basetexture x $texture2, additive
  if(String(sh).toLowerCase()=='unlittwotexture'&&k.$texture2)P.map2=await tex(k.$texture2,true).catch(()=>null);
- const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;// Source SDK VertexLitGeneric defaults $phongexponent to 5. Keep that default when the VMT omits it; zero incorrectly falls through to the white exponent map (150).
- // a positive $phongexponent overrides the exponent map's red channel even when the vmt has one (skin_dx9_helper: "Nonzero value in material
- // overrides map channel"); the map still gives the albedo tint (green) and the rim mask (alpha)
- P.exp=Math.max(0,num(k.$phongexponent,5));
+ const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;
+ // Source SDK Skin shader: without a positive $phongexponent, use normal-map alpha (or exponent-texture red when present).
+ P.exp=Math.max(0,num(k.$phongexponent,0));
  P.albTint=num(k.$phongalbedotint,0);P.rimMask=num(k.$rimmask,0);P.boost=num(k.$phongboost,1);P.fres=vec(k.$phongfresnelranges,[0,.5,1]);
  P.rim=phong?flag(k.$rimlight):0;P.halfL=flag(k.$halflambert);P.rimExp=num(k.$rimlightexponent,4);P.rimBoost=num(k.$rimlightboost,1);P.mask=flag(k.$basemapalphaphongmask);
  const bm=k.$bumpmap;P.bump=bm?await tex(bm,false):null;
