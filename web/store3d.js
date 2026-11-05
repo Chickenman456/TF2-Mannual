@@ -1177,8 +1177,9 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
   return Object.keys(out).length?out:null})()}
 async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};
   // Heavy fist weapons select the model's hands bodygroup state that removes the bare hands; their glove meshes remain on the weapon.
-  const id=String(n||'').toLowerCase().replace(/^(?:self-made|strange|unique|vintage|genuine|unusual|haunted|collector's|decorated|festive|the)\s+/,'').replace(/[^a-z0-9]/g,'');
-  if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(id))return{part:'hands',st:1};
+  // Loadouts can pass a display name or an item ID (#123); match the canonical items_game display name too.
+  const ids=[n,e&&e.dn,e&&e.r&&e.r.name].map(v=>String(v||'').toLowerCase().replace(/^(?:(?:self-made|strange|unique|vintage|genuine|unusual|haunted|collector's|decorated|festive|the)\s+)+/,'').replace(/[^a-z0-9]/g,''));
+  if(c=='heavy'&&ids.some(id=>new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(id)))return{part:'hands',st:1};
   const wo=wmOv(e,ZTEAM(c));if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
