@@ -1183,7 +1183,7 @@ async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
 function wmOv(e,team){const R=e&&e.r;if(!R)return null;const V=(team=='BLU'?R.visuals_blu:R.visuals_red)||R.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return Number.isInteger(i)&&Number.isInteger(st)&&i>-1&&st>-1?{i,st}:null}
-ST.pbn={};ST.pbn={};async function pbNames(c){if(ST.pbn[c])return ST.pbn[c];const b=await read('models/player/'+SHORT[c]+'.mdl');if(!b)return ST.pbn[c]=[];const M=new DataView(b.buffer,b.byteOffset,b.byteLength),I=o=>M.getInt32(o,true);
+ST.pbn={};async function pbNames(c){if(ST.pbn[c])return ST.pbn[c];const b=await read('models/player/'+SHORT[c]+'.mdl');if(!b)return ST.pbn[c]=[];const M=new DataView(b.buffer,b.byteOffset,b.byteLength),I=o=>M.getInt32(o,true);
  const nbp=I(232),bpi=I(236),L=[];for(let i=0;i<nbp;i++){const o=bpi+i*16;L.push(cstr(b,o+I(o)).toLowerCase())}return ST.pbn[c]=L}
 // a weapon that is a bodygroup of the class model itself (the Gunslinger: player_bodygroups rightarm 1 on engineer.mdl), no model of its own
 function armOnly(e,cl){if(!e||e.k!='wep'||(cl&&!usedBy(e.r,clsKey(cl))))return null;if(e.r.model_player||e.r.model_player_per_class)return null;const pb=(e.r.visuals||{}).player_bodygroups;if(!pb||typeof pb!='object')return null;
