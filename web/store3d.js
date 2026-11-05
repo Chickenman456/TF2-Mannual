@@ -1308,7 +1308,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // shader immediately; otherwise, value 0 requires a bump texture, while value 1 does not.
  // Materials that fall back to VertexLitGeneric must not receive the skin shader's Phong/rim pass.
  const baseAlphaPhongMask=flag(k.$basemapalphaphongmask);
- const skin=!!phong&&(!!lw||baseAlphaPhongMask===1||!!P.bump);
+ const skin=!!phong&&(!!lw||baseAlphaPhongMask===1||!!bm);
  P.skinShader=skin;
  // $envmap follows the mask rules of the selected shader: skin uses base alpha (or normal alpha with
  // $normalmapalphaenvmapmask); vertexlit_and_unlit_generic uses its texture / alpha-mask controls.
