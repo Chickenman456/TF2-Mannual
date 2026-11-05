@@ -102,7 +102,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  function tf2(m,warp,o){mkLight();o=o||{};const nm=m.name;const P=o.P||VMT[o.key]||VMT[nm]||VMT.body;const fr=P.fres;
   const u={map:{value:m.map},normalMap:{value:(o.normal===false?null:(o.normal||m.normalMap))||BLANK()},hasNormal:{value:(o.normal===false?null:(o.normal||m.normalMap))?1:0},normalScale:{value:new THREE.Vector2(1,1)},
    expMap:{value:o.exp||BLANK()},hasExp:{value:o.exp?1:0},expFactor:{value:P.expFactor||0},cExp:{value:P.exp||0},maskMode:{value:P.mask??0},albTint:{value:P.albTint||0},rimMaskOn:{value:P.rimMask||0},
-   boost:{value:P.boost??1},rimBoost:{value:P.rimBoost??1},rimExp:{value:P.rimExp??4},rimOn:{value:(P.rim===0||P.skinShader===false)?0:1},hlOn:{value:P.halfL?1:0},specOn:{value:(P.spec===0||P.phong===0||P.skinShader===false)?0:1},fres:{value:fr?new THREE.Vector3((fr[1]-fr[0])*2,fr[1],(fr[2]-fr[1])*2):new THREE.Vector3(1,.5,1)},
+   boost:{value:P.boost??1},rimBoost:{value:P.rimBoost??1},rimExp:{value:P.rimExp??4},rimOn:{value:P.rim===0?0:1},hlOn:{value:P.phong===0&&!P.halfL?0:1},specOn:{value:(P.spec===0||P.phong===0)?0:1},fres:{value:fr?new THREE.Vector3((fr[1]-fr[0])*2,fr[1],(fr[2]-fr[1])*2):new THREE.Vector3(1,.5,1)},
    warp:{value:P.warp?getWarp(P.warp):warp},pWarp:{value:P.pwarp||(P.warp?getWarp(P.warp):warp)},pWarpOn:{value:P.pwarp?1:0},warpOn:{value:P.nowarp?0:1},tint:{value:new THREE.Color(...(o.tint||P.tintBase||[1,1,1])).convertSRGBToLinear()},
    uvXf:{value:new THREE.Matrix3()},frames:{value:1},frame:{value:0},siOn:{value:P.si?1:0},siTint:{value:new THREE.Vector3(...(P.siTint||[1,1,1]))},siMask:{value:P.siMask?(P.siMask.isTexture?P.siMask:texLoad('models/'+P.siMask)):BLANK()},hasSiMask:{value:P.siMask?1:0},
    siFresOn:{value:P.siFres?1:0},siFres:{value:FRES(P.siFres||[0,1,1])},envOn:{value:P.env?1:0},envTint:{value:new THREE.Vector3(...(P.env||[0,0,0]))},envMap:{value:P.env?(P.envCube||ECUBE()):null},envMask:{value:P.envMask||0},envSkin:{value:P.envSkin?1:0},envFres:{value:P.envFres||0},envCon:{value:P.envCon||0},envSat:{value:P.envSat??1},hasEnvMask:{value:P.envMaskTex?1:0},envMaskMap:{value:P.envMaskTex||BLANK()},
@@ -110,10 +110,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
    aTest:{value:P.aTest?1:0},rimTint:{value:new THREE.Vector3(...(P.rimTint||[1,1,1]))},c2:{value:new THREE.Color(...((P.itemTint&&!P.tintA&&(o.tint||P.tintBase))||P.c2||[1,1,1])).convertSRGBToLinear()},tintA:{value:P.tintA?1:0},tintOver:{value:P.tintOver||0},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
   const t=new THREE.ShaderMaterial({name:nm,uniforms:u,vertexShader:VS,fragmentShader:FS,side:THREE.FrontSide,transparent:!!(P.translucent||P.additive),depthWrite:!(P.translucent||P.additive),blending:(P.translucent||P.additive)?THREE.CustomBlending:THREE.NormalBlending});
   if(P.translucent||P.additive){t.premultipliedAlpha=true;t.blendEquation=t.blendEquationAlpha=THREE.AddEquation;t.blendSrc=THREE.OneFactor;t.blendDst=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;t.blendSrcAlpha=P.additive?THREE.ZeroFactor:THREE.OneFactor;t.blendDstAlpha=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;
-   t.fragmentShader=FS.replace('gl_FragColor=vec4(max(col,vec3(0.)),1.);','float zA=clamp(opac*(useBA>.5?base.a:1.),0.,1.);gl_FragColor=vec4(max(col,vec3(0.)),zA);').replace('#include <encodings_fragment>
-}','#include <encodings_fragment>
-gl_FragColor.rgb*=zA;'+(P.additive?'gl_FragColor.a=0.;':'')+'
-}')}
+   t.fragmentShader=FS.replace('gl_FragColor=vec4(max(col,vec3(0.)),1.);','float zA=clamp(opac*(useBA>.5?base.a:1.),0.,1.);gl_FragColor=vec4(max(col,vec3(0.)),zA);').replace('#include <encodings_fragment>\n}','#include <encodings_fragment>\ngl_FragColor.rgb*=zA;'+(P.additive?'gl_FragColor.a=0.;':'')+'\n}')}
   if(P.nocull)t.side=THREE.DoubleSide;t.extensions.derivatives=true;
   Object.defineProperty(t,'map',{get:()=>u.map.value,set:v=>{u.map.value=v}});if(P.prox)PROX.add(t,P,u);return t}
 
@@ -188,8 +185,7 @@ void main(){vec3 d=vWPos-org;vec3 lft=normalize(eU),up=normalize(eV);
  window.ZLINR=window.ZLINR||(()=>{const S=new WeakMap();
   // every shader's output clamped to 0..1 as the engine's 8-bit framebuffer stores it (a float target would keep negative / >1 light)
   let patched=false;
-  return (r,sc,cam)=>{if(!patched){patched=true;if(!/zclamp/.test(THREE.ShaderChunk.encodings_fragment))THREE.ShaderChunk.encodings_fragment+='
-gl_FragColor=clamp(gl_FragColor,0.,1.);// zclamp'}
+  return (r,sc,cam)=>{if(!patched){patched=true;if(!/zclamp/.test(THREE.ShaderChunk.encodings_fragment))THREE.ShaderChunk.encodings_fragment+='\ngl_FragColor=clamp(gl_FragColor,0.,1.);// zclamp'}
    let o=S.get(r);const sz=r.getDrawingBufferSize(new THREE.Vector2());
    if(!o){const rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType,samples:r.capabilities.isWebGL2?4:0,stencilBuffer:true}/* depth24+stencil: a plain target's 16-bit depth z-fights */);rt.texture.encoding=THREE.LinearEncoding;
     const mat=new THREE.ShaderMaterial({uniforms:{t:{value:rt.texture}},depthTest:false,depthWrite:false,blending:THREE.NoBlending,
@@ -334,7 +330,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   meshes.forEach(x=>x.visible=false);m.wpend=(m.wpend||0)+1;await texWait(meshes,6000);m.wpend--;
   if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
   var wh=null;if(/^live:/.test(key)&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!wh;const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
+  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!(wh&&wh.part=='righthand');const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
   if(/^live:/.test(key)&&ZLIVE.autoplay&&extra.length)ZLIVE.autoplay(lname,c,new Set(extra.map(b=>b.name))).then(L=>{if(m.wname!==wk||m.wmesh!==meshes||!L.length)return;const X=new THREE.AnimationMixer(m.o);L.forEach(cl=>X.clipAction(cl).play());m.wmx=X}).catch(()=>{});
   m._pl=null;if(/^live:/.test(key)&&ZLIVE.poseLayers)ZLIVE.poseLayers(lname,c).then(r=>{if(m.wname===wk)m._pl=r}).catch(()=>{})}
 
@@ -1047,8 +1043,7 @@ const VPKS=['tf2_misc','tf2_textures','tf2_sound_misc','tf2_sound_vo_english','h
 function KV(t,esc,multi){let i=0;const n=t.length;
  const tok=()=>{for(;;){while(i<n&&t.charCodeAt(i)<=32)i++;if(t.charCodeAt(i)===47&&t.charCodeAt(i+1)===47){while(i<n&&t.charCodeAt(i)!==10)i++;continue}break}
   if(i>=n)return null;const c=t[i];if(c==='{'||c==='}'){i++;return c}
-  if(c==='"'){const s=++i;if(esc){let v='';while(i<n&&t[i]!=='"'){if(t[i]==='\\'&&i+1<n){const d=t[i+1];v+=d==='n'?'
-':d==='t'?'\t':d;i+=2;continue}v+=t[i++]}i++;return{s:v}}while(i<n&&t[i]!=='"')i++;const v=t.slice(s,i);i++;return{s:v}}
+  if(c==='"'){const s=++i;if(esc){let v='';while(i<n&&t[i]!=='"'){if(t[i]==='\\'&&i+1<n){const d=t[i+1];v+=d==='n'?'\n':d==='t'?'\t':d;i+=2;continue}v+=t[i++]}i++;return{s:v}}while(i<n&&t[i]!=='"')i++;const v=t.slice(s,i);i++;return{s:v}}
   const s=i;while(i<n&&t.charCodeAt(i)>32&&t[i]!=='{'&&t[i]!=='}'&&t[i]!=='"')i++;return{s:t.slice(s,i)}};
  const cond=v=>!!(v&&v.s!=null&&/^\[!?\$/.test(v.s)&&v.s.slice(-1)===']');
  const block=()=>{const o={};for(;;){let k=tok();if(k===null||k==='}')return o;if(k==='{'){block();continue}
@@ -1179,11 +1174,7 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
      for(let j=0;j<nb;j++){if(F(wl+j*4)>0&&A.bones[j]&&A.bones[j].parent>=0)out[BN[j]]=[f.Q[j],f.P[j]]}break}}
    if(Object.keys(out).length)break}
   return Object.keys(out).length?out:null})()}
-async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};
- // Heavy's fist weapons use the Heavy model's hands bodygroup (state 1 = no hands). These weapons supply their own gloves,
- // but items_game does not consistently expose this as wm_bodygroup_override, so mirror the in-game bodygroup behavior.
- if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(String(n||'').toLowerCase().replace(/^the\s+/,'').replace(/[^a-z0-9]/g,'')))return{part:'hands',st:1};
- const wo=wmOv(e);if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
+async function wmHide(n,cl){const e=entry(n);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&clsKey(cl)=='pyro')return{part:'righthand',st:1};const wo=wmOv(e);if(!wo)return null;const L=await pbNames(clsKey(cl));return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
 function wmOv(e){const V=e&&e.r.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return i>-1&&st>-1?{i,st}:null}
@@ -1312,17 +1303,10 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
  if(k.$phongwarptexture){const t=await tex(k.$phongwarptexture,false,256).catch(()=>null);if(t){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;P.pwarp=t}}
  // $envmap (+ $envmaptint, masks): the cubemap read from the install, like the game samples it for these props
- // Match WantsSkinShader() in Valve's vertexlitgeneric_dx9_helper.cpp. The SDK declares
- // $basemapalphaphongmask as an integer defaulting to 0. A diffuse warp selects the skin
- // shader immediately; otherwise, value 0 requires a bump texture, while value 1 does not.
- // Materials that fall back to VertexLitGeneric must not receive the skin shader's Phong/rim pass.
- const baseAlphaPhongMask=flag(k.$basemapalphaphongmask);
- const skin=!!phong&&(!!lw||baseAlphaPhongMask===1||!!bm);
- P.skinShader=skin;
- // $envmap follows the mask rules of the selected shader: skin uses base alpha (or normal alpha with
- // $normalmapalphaenvmapmask); vertexlit_and_unlit_generic uses its texture / alpha-mask controls.
- // env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
- const em=k.$envmap;if(em){P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
+ // WantsSkinShader: phong with a lightwarp, a base-alpha phong mask or a bump map is drawn by the skin shader (its envmap mask is the base
+ // alpha unless $normalmapalphaenvmapmask); everything else by vertexlit_and_unlit_generic ($envmapmask texture, 1 - base alpha for
+ // $basealphaenvmapmask, contrast / saturation). env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
+ const em=k.$envmap;if(em){const skin=phong&&(!!k.$lightwarptexture||!!num(k.$basemapalphaphongmask,0)||!!bm);P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
   const nma=num(k.$normalmapalphaenvmapmask,0),bae=num(k.$basealphaenvmapmask,0)||num(k.$basemapalphaenvmapmask,0);
   P.envMask=skin?(nma?2:1):(nma?2:bae?3:0);P.envFres=num(k.$envmapfresnel,0);P.envCon=num(k.$envmapcontrast,0);P.envSat=num(k.$envmapsaturation,1);
   if(!skin&&k.$envmapmask)P.envMaskTex=await tex(k.$envmapmask,false).catch(()=>null);
@@ -1772,11 +1756,9 @@ const WTRANS={tf_weapon_shotgun:{soldier:'tf_weapon_shotgun_soldier',heavy:'tf_w
  tf_weapon_parachute:{soldier:'tf_weapon_parachute_secondary',demoman:'tf_weapon_parachute_primary'}};
 let RRP=null;
 function rrules(){return RRP||(RRP=(async()=>{const crit={},resp={},rules=[];
- for(const f of ['scripts/talker/response_rules.txt','scripts/talker/tf.txt']){const b=await read(f);if(!b)continue;const t=text(b).replace(/\/\/[^
-]*/g,'');
+ for(const f of ['scripts/talker/response_rules.txt','scripts/talker/tf.txt']){const b=await read(f);if(!b)continue;const t=text(b).replace(/\/\/[^\n]*/g,'');
   // criterion "name" "key" "value" ["required"] [weight N]
-  for(const ln of t.split('
-')){const T=[...ln.matchAll(/"([^"]*)"|(\S+)/g)].map(m=>m[1]!=null?m[1]:m[2]);if(!T.length||T[0].toLowerCase()!=='criterion'||T.length<4)continue;
+  for(const ln of t.split('\n')){const T=[...ln.matchAll(/"([^"]*)"|(\S+)/g)].map(m=>m[1]!=null?m[1]:m[2]);if(!T.length||T[0].toLowerCase()!=='criterion'||T.length<4)continue;
    const c={key:T[2].toLowerCase(),val:T[3],req:false,w:1};for(let i=4;i<T.length;i++){const x=T[i].toLowerCase();if(x=='required')c.req=true;else if(x=='weight'&&T[i+1]!=null)c.w=+T[++i]||1}crit[T[1].toLowerCase()]=c}
   const T=[...t.matchAll(/"([^"]*)"|([{}])|([^\s{}"]+)/g)].map(m=>m[1]!=null?m[1]:(m[2]||m[3]));
   for(let i=0;i<T.length;i++){const k=String(T[i]).toLowerCase();
@@ -1864,26 +1846,18 @@ function qcOf(b,path){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
  for(let i=0;i<I(336);i++){const o=I(340)+i*8;L.push('$includemodel '+q(cstr(b,o+I(o+4))))}
  const ncd=I(212);for(let i=0;i<ncd;i++)L.push('$cdmaterials '+q(cstr(b,I(I(216)+i*4))));
  const sp=cstr(b,I(308));if(sp)L.push('$surfaceprop '+q(sp));
- const nbp=I(232),refs=new Set();for(let i=0;i<nbp;i++){const o=I(236)+i*16,nm=I(o+4),mi=I(o+12);L.push('','$bodygroup '+q(cstr(b,o+I(o)))+'
-{');
+ const nbp=I(232),refs=new Set();for(let i=0;i<nbp;i++){const o=I(236)+i*16,nm=I(o+4),mi=I(o+12);L.push('','$bodygroup '+q(cstr(b,o+I(o)))+'\n{');
   for(let j=0;j<nm;j++){const mo=o+mi+j*148;const mn=cstr(b,mo);for(let k=0;k<I(mo+72);k++)refs.add(I(mo+I(mo+76)+k*116));L.push(mn&&I(mo+72)>0?'\tstudio '+q(mn):'\tblank')}L.push('}')}
  const nt=I(204),T=[];for(let i=0;i<nt;i++){const o=I(208)+i*64;T.push(cstr(b,o+I(o)))}
  const nr=I(220),nf=I(224),si=I(228);if(nf>1){const S=[];for(let f=0;f<nf;f++){const r=[];for(let k=0;k<nr;k++)r.push(dv.getInt16(si+(f*nr+k)*2,true));S.push(r)}
-  const cols=[...Array(nr).keys()].filter(k=>S.some(r=>r[k]!==S[0][k]));if(cols.length){L.push('','$texturegroup "skinfamilies"
-{');for(const r of S)L.push('\t{ '+cols.map(k=>q(T[r[k]]||'')).join(' ')+' }');L.push('}')}}
+  const cols=[...Array(nr).keys()].filter(k=>S.some(r=>r[k]!==S[0][k]));if(cols.length){L.push('','$texturegroup "skinfamilies"\n{');for(const r of S)L.push('\t{ '+cols.map(k=>q(T[r[k]]||'')).join(' ')+' }');L.push('}')}}
  const na=I(240);if(na)L.push('');for(let i=0;i<na;i++){const o=I(244)+i*92;const m=k=>F(o+12+k*4);
   const rot=Math.abs(m(0)-1)>1e-4||Math.abs(m(5)-1)>1e-4||Math.abs(m(10)-1)>1e-4;
   L.push('$attachment '+q(cstr(b,o+I(o)))+' '+q(bone(I(o+8)))+' '+n4(m(3))+' '+n4(m(7))+' '+n4(m(11))+(rot?' // plus a rotation, not written out here':''))}
  const ns=I(188);if(ns){L.push('','// '+ns+' sequence'+(ns>1?'s':'')+' (their animation files aren’t kept in the model):');for(let i=0;i<ns;i++){const o=I(192)+i*212;const act=cstr(b,o+I(o+8));L.push('// $sequence '+q(cstr(b,o+I(o+4)))+(act?' activity '+act:''))}}
- const kv=I(316)>0?cstr(b,I(312)):'';if(kv.trim())L.push('','$keyvalues
-{
-'+kv.replace(/^\s+|\s+$/g,'').split('
-').map(x=>'\t'+x.trim()).join('
-')+'
-}');
+ const kv=I(316)>0?cstr(b,I(312)):'';if(kv.trim())L.push('','$keyvalues\n{\n'+kv.replace(/^\s+|\s+$/g,'').split('\n').map(x=>'\t'+x.trim()).join('\n')+'\n}');
  L.push('','// '+bn+' bone'+(bn==1?'':'s')+': '+[...Array(bn).keys()].map(bone).join(', '));
- return{text:L.join('
-'),tex:T,cds:[...Array(ncd).keys()].map(i=>cstr(b,I(I(216)+i*4))),refs:[...refs].sort((a,b)=>a-b),skins:{nr,nf,si,get:(f,k)=>dv.getInt16(si+(f*nr+k)*2,true)}}}
+ return{text:L.join('\n'),tex:T,cds:[...Array(ncd).keys()].map(i=>cstr(b,I(I(216)+i*4))),refs:[...refs].sort((a,b)=>a-b),skins:{nr,nf,si,get:(f,k)=>dv.getInt16(si+(f*nr+k)*2,true)}}}
 async function source(n,cl,si){const e=entry(n);if(!e)throw new Error('This item isn’t in your TF2 files.');if(e.ws&&e.ws.load)await e.ws.load();
  const cand=cl?[cl]:Object.keys(e.r.used_by_classes||{}).concat(['scout']);let mp=null;for(const c of cand){mp=mdlFor(e,c,si||0);if(mp)break}
  const ams=bk=>{const am=bk&&bk.attached_models,o=[];if(am&&typeof am=='object')for(const k in am){const x=am[k]&&am[k].model&&String(am[k].model).replace(/\\/g,'/').toLowerCase();if(x&&has(x))o.push(x)}return o};
