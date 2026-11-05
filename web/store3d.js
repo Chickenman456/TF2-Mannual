@@ -1174,7 +1174,7 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
      for(let j=0;j<nb;j++){if(F(wl+j*4)>0&&A.bones[j]&&A.bones[j].parent>=0)out[BN[j]]=[f.Q[j],f.P[j]]}break}}
    if(Object.keys(out).length)break}
   return Object.keys(out).length?out:null})()}
-async function wmHide(n,cl){const e=entry(n);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&clsKey(cl)=='pyro')return{part:'righthand',st:1};const wo=wmOv(e);if(!wo)return null;const L=await pbNames(clsKey(cl));return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
+async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};\n // Heavy's fist weapons use the Heavy model's hands bodygroup (state 1 = no hands). These weapons supply their own gloves,\n // but items_game does not consistently expose this as wm_bodygroup_override, so mirror the in-game bodygroup behavior.\n if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(String(n||'').toLowerCase().replace(/[^a-z0-9]/g,'')))return{part:'hands',st:1};\n const wo=wmOv(e);if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
 function wmOv(e){const V=e&&e.r.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return i>-1&&st>-1?{i,st}:null}
