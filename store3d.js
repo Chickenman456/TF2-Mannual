@@ -1235,10 +1235,10 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  P.map=bt&&anim?await texStrip(bt,true).catch(()=>null):null;if(P.map)P._frames=P.map.userData.frames;if(!P.map)P.map=bt?await tex(bt,true):null;
  // UnlitTwoTexture (the flamethrower pilot light): $basetexture x $texture2, additive
  if(String(sh).toLowerCase()=='unlittwotexture'&&k.$texture2)P.map2=await tex(k.$texture2,true).catch(()=>null);
- const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;// an unset $phongexponent is 0 in the skin shader (DrawSkin_DX9 only reads a defined one), so the exponent comes from the white map: 150 (the Business Casual's tie)
+ const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;// Source SDK VertexLitGeneric defaults $phongexponent to 5. Keep that default when the VMT omits it; zero incorrectly falls through to the white exponent map (150).
  // a positive $phongexponent overrides the exponent map's red channel even when the vmt has one (skin_dx9_helper: "Nonzero value in material
  // overrides map channel"); the map still gives the albedo tint (green) and the rim mask (alpha)
- P.exp=Math.max(0,num(k.$phongexponent,0));
+ P.exp=Math.max(0,num(k.$phongexponent,5));
  P.albTint=num(k.$phongalbedotint,0);P.rimMask=num(k.$rimmask,0);P.boost=num(k.$phongboost,1);P.fres=vec(k.$phongfresnelranges,[0,.5,1]);
  P.rim=phong?flag(k.$rimlight):0;P.halfL=flag(k.$halflambert);P.rimExp=num(k.$rimlightexponent,4);P.rimBoost=num(k.$rimlightboost,1);P.mask=flag(k.$basemapalphaphongmask);
  const bm=k.$bumpmap;P.bump=bm?await tex(bm,false):null;
