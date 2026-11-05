@@ -170,8 +170,7 @@ void main(){vec3 d=vWPos-org;vec3 lft=normalize(eU),up=normalize(eV);
  let ECB=null;const ECUBE=()=>ECB||(ECB=(()=>{const t=new THREE.CubeTextureLoader().load([0,1,4,5,3,2].map(i=>'models/eye_env'+i+'.png'));t.encoding=THREE.sRGBEncoding;return t})());
  function eyeMat(m,root){mkLight();const E=m.userData.eye;const u={iris:{value:eTex('eye_iris_'+(E.irisTex||'blue')+'.webp',true)},ao:{value:eTex('eye_ao.png')},cornea:{value:eTex('eye_cornea.png')},env:{value:ECUBE()},warp:{value:getWarp('eye')},
    org:{value:new THREE.Vector3()},eU:{value:new THREE.Vector3()},eV:{value:new THREE.Vector3()},eF:{value:new THREE.Vector3()},iS:{value:E.iris},sS:{value:.43/E.radius},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
-  // EyeRefract eyeballs sit flush against the head surface; a small negative depth bias prevents z-fighting.
-  const t=new THREE.ShaderMaterial({name:m.name,uniforms:u,vertexShader:EVS,fragmentShader:EFS,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+  const t=new THREE.ShaderMaterial({name:m.name,uniforms:u,vertexShader:EVS,fragmentShader:EFS});
   let bone=null;root.traverse(n=>{if(n.isBone&&n.name==E.bone)bone=n});
   const tc=new THREE.Vector3(),qa=new THREE.Quaternion(),QI=new THREE.Quaternion(),MAXA=.42;const o0=new THREE.Vector3(...E.org),up0=new THREE.Vector3(...E.up),f0=new THREE.Vector3(...E.fwd),up=new THREE.Vector3(),f=new THREE.Vector3(),l=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3();
   // R_StudioEyeballPosition: forward = look dir (straight out of the head), left = forward x up, up = left x forward, then shift by zoffset (the eyes' slight outward angle)
