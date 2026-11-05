@@ -102,7 +102,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  function tf2(m,warp,o){mkLight();o=o||{};const nm=m.name;const P=o.P||VMT[o.key]||VMT[nm]||VMT.body;const fr=P.fres;
   const u={map:{value:m.map},normalMap:{value:(o.normal===false?null:(o.normal||m.normalMap))||BLANK()},hasNormal:{value:(o.normal===false?null:(o.normal||m.normalMap))?1:0},normalScale:{value:new THREE.Vector2(1,1)},
    expMap:{value:o.exp||BLANK()},hasExp:{value:o.exp?1:0},expFactor:{value:P.expFactor||0},cExp:{value:P.exp||0},maskMode:{value:P.mask??0},albTint:{value:P.albTint||0},rimMaskOn:{value:P.rimMask||0},
-   boost:{value:P.boost??1},rimBoost:{value:P.rimBoost??1},rimExp:{value:P.rimExp??4},rimOn:{value:P.rim===0?0:1},hlOn:{value:P.phong===0&&!P.halfL?0:1},specOn:{value:(P.spec===0||P.phong===0)?0:1},fres:{value:fr?new THREE.Vector3((fr[1]-fr[0])*2,fr[1],(fr[2]-fr[1])*2):new THREE.Vector3(1,.5,1)},
+   boost:{value:P.boost??1},rimBoost:{value:P.rimBoost??1},rimExp:{value:P.rimExp??4},rimOn:{value:(P.rim===0||P.skinShader===false)?0:1},hlOn:{value:P.phong===0&&!P.halfL?0:1},specOn:{value:(P.spec===0||P.phong===0||P.skinShader===false)?0:1},fres:{value:fr?new THREE.Vector3((fr[1]-fr[0])*2,fr[1],(fr[2]-fr[1])*2):new THREE.Vector3(1,.5,1)},
    warp:{value:P.warp?getWarp(P.warp):warp},pWarp:{value:P.pwarp||(P.warp?getWarp(P.warp):warp)},pWarpOn:{value:P.pwarp?1:0},warpOn:{value:P.nowarp?0:1},tint:{value:new THREE.Color(...(o.tint||P.tintBase||[1,1,1])).convertSRGBToLinear()},
    uvXf:{value:new THREE.Matrix3()},frames:{value:1},frame:{value:0},siOn:{value:P.si?1:0},siTint:{value:new THREE.Vector3(...(P.siTint||[1,1,1]))},siMask:{value:P.siMask?(P.siMask.isTexture?P.siMask:texLoad('models/'+P.siMask)):BLANK()},hasSiMask:{value:P.siMask?1:0},
    siFresOn:{value:P.siFres?1:0},siFres:{value:FRES(P.siFres||[0,1,1])},envOn:{value:P.env?1:0},envTint:{value:new THREE.Vector3(...(P.env||[0,0,0]))},envMap:{value:P.env?(P.envCube||ECUBE()):null},envMask:{value:P.envMask||0},envSkin:{value:P.envSkin?1:0},envFres:{value:P.envFres||0},envCon:{value:P.envCon||0},envSat:{value:P.envSat??1},hasEnvMask:{value:P.envMaskTex?1:0},envMaskMap:{value:P.envMaskTex||BLANK()},
@@ -1303,12 +1303,12 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
  if(k.$phongwarptexture){const t=await tex(k.$phongwarptexture,false,256).catch(()=>null);if(t){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;P.pwarp=t}}
  // $envmap (+ $envmaptint, masks): the cubemap read from the install, like the game samples it for these props
- // Match VertexLitGeneric_DX9_helper.cpp: WantsSkinShader selects the skin shader path; it does NOT
- // enable or disable Phong itself. VertexLitGeneric still handles $phong when this returns false.
- // A diffuse warp qualifies immediately. Otherwise, a defined $basemapalphaphongmask value other than 1
- // requires a bump texture; an absent mask parameter (or value 1) does not.
- const hasBaseAlphaPhongMask=k.$basemapalphaphongmask!=null&&Math.trunc(num(k.$basemapalphaphongmask,0))!==1;
- const skin=!!phong&&(!!lw||!hasBaseAlphaPhongMask||!!P.bump);
+ // Match WantsSkinShader() in Valve's vertexlitgeneric_dx9_helper.cpp. The SDK declares
+ // $basemapalphaphongmask as an integer defaulting to 0. A diffuse warp selects the skin
+ // shader immediately; otherwise, value 0 requires a bump texture, while value 1 does not.
+ // Materials that fall back to VertexLitGeneric must not receive the skin shader's Phong/rim pass.
+ const baseAlphaPhongMask=flag(k.$basemapalphaphongmask);
+ const skin=!!phong&&(!!lw||baseAlphaPhongMask===1||!!P.bump);
  P.skinShader=skin;
  // $envmap follows the mask rules of the selected shader: skin uses base alpha (or normal alpha with
  // $normalmapalphaenvmapmask); vertexlit_and_unlit_generic uses its texture / alpha-mask controls.
