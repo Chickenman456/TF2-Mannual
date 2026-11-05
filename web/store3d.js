@@ -1303,10 +1303,17 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
  if(k.$phongwarptexture){const t=await tex(k.$phongwarptexture,false,256).catch(()=>null);if(t){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;P.pwarp=t}}
  // $envmap (+ $envmaptint, masks): the cubemap read from the install, like the game samples it for these props
- // WantsSkinShader: phong with a lightwarp, a base-alpha phong mask or a bump map is drawn by the skin shader (its envmap mask is the base
- // alpha unless $normalmapalphaenvmapmask); everything else by vertexlit_and_unlit_generic ($envmapmask texture, 1 - base alpha for
- // $basealphaenvmapmask, contrast / saturation). env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
- const em=k.$envmap;if(em){const skin=phong&&(!!k.$lightwarptexture||!!num(k.$basemapalphaphongmask,0)||!!bm);P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
+ // Match VertexLitGeneric_DX9_helper.cpp: WantsSkinShader selects the skin shader path; it does NOT
+ // enable or disable Phong itself. VertexLitGeneric still handles $phong when this returns false.
+ // A diffuse warp qualifies immediately. Otherwise, a defined $basemapalphaphongmask value other than 1
+ // requires a bump texture; an absent mask parameter (or value 1) does not.
+ const hasBaseAlphaPhongMask=k.$basemapalphaphongmask!=null&&Math.trunc(num(k.$basemapalphaphongmask,0))!==1;
+ const skin=!!phong&&(!!lw||!hasBaseAlphaPhongMask||!!P.bump);
+ P.skinShader=skin;
+ // $envmap follows the mask rules of the selected shader: skin uses base alpha (or normal alpha with
+ // $normalmapalphaenvmapmask); vertexlit_and_unlit_generic uses its texture / alpha-mask controls.
+ // env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
+ const em=k.$envmap;if(em){P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
   const nma=num(k.$normalmapalphaenvmapmask,0),bae=num(k.$basealphaenvmapmask,0)||num(k.$basemapalphaenvmapmask,0);
   P.envMask=skin?(nma?2:1):(nma?2:bae?3:0);P.envFres=num(k.$envmapfresnel,0);P.envCon=num(k.$envmapcontrast,0);P.envSat=num(k.$envmapsaturation,1);
   if(!skin&&k.$envmapmask)P.envMaskTex=await tex(k.$envmapmask,false).catch(()=>null);
