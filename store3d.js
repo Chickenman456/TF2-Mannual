@@ -328,7 +328,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(window.ZJIG&&/^live:/.test(key)&&(man[key]||{})._jig)ZJIG.add(m,bm,man[key]._jig);
   meshes.forEach(x=>x.visible=false);m.wpend=(m.wpend||0)+1;await texWait(meshes,6000);m.wpend--;
   if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  var wh=null;if(/^live:/.test(key)&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
+  var wh=null;if(window.ZLIVE&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
   wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!wh;const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh||null;wmBG(m);if(window.ZLIVE&&ZLIVE.ready)lodBody(c);
   if(/^live:/.test(key)&&ZLIVE.autoplay&&extra.length)ZLIVE.autoplay(lname,c,new Set(extra.map(b=>b.name))).then(L=>{if(m.wname!==wk||m.wmesh!==meshes||!L.length)return;const X=new THREE.AnimationMixer(m.o);L.forEach(cl=>X.clipAction(cl).play());m.wmx=X}).catch(()=>{});
   m._pl=null;if(/^live:/.test(key)&&ZLIVE.poseLayers)ZLIVE.poseLayers(lname,c).then(r=>{if(m.wname===wk)m._pl=r}).catch(()=>{})}
