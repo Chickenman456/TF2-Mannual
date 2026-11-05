@@ -334,7 +334,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   meshes.forEach(x=>x.visible=false);m.wpend=(m.wpend||0)+1;await texWait(meshes,6000);m.wpend--;
   if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
   var wh=null;if(/^live:/.test(key)&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!(wh&&wh.part=='righthand');const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
+  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!wh;const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
   if(/^live:/.test(key)&&ZLIVE.autoplay&&extra.length)ZLIVE.autoplay(lname,c,new Set(extra.map(b=>b.name))).then(L=>{if(m.wname!==wk||m.wmesh!==meshes||!L.length)return;const X=new THREE.AnimationMixer(m.o);L.forEach(cl=>X.clipAction(cl).play());m.wmx=X}).catch(()=>{});
   m._pl=null;if(/^live:/.test(key)&&ZLIVE.poseLayers)ZLIVE.poseLayers(lname,c).then(r=>{if(m.wname===wk)m._pl=r}).catch(()=>{})}
 
@@ -1182,7 +1182,7 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
 async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};
  // Heavy's fist weapons use the Heavy model's hands bodygroup (state 1 = no hands). These weapons supply their own gloves,
  // but items_game does not consistently expose this as wm_bodygroup_override, so mirror the in-game bodygroup behavior.
- if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(String(n||'').toLowerCase().replace(/[^a-z0-9]/g,'')))return{part:'hands',st:1};
+ if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(String(n||'').toLowerCase().replace(/^the\s+/,'').replace(/[^a-z0-9]/g,'')))return{part:'hands',st:1};
  const wo=wmOv(e);if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
