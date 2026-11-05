@@ -131,7 +131,7 @@
       if ('showDirectoryPicker' in window && topLevel()) {
         let h;
         try { h = await window.showDirectoryPicker({id: 'tf2-folder', mode: 'read'}); }
-        catch (e) { if (e && e.name === 'AbortError') return false; h = null; }
+        catch (e) { h = null; }
         if (h) {
           const tf = await tfFolder(h); if (!tf) throw new Error(NOTF2);
           // the whole Team Fortress 2 folder also gives the hl2 folder next to tf (shared materials some unusual effects use)
