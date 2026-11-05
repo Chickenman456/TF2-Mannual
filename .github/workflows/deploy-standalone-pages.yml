@@ -3,7 +3,7 @@ name: Deploy standalone web version
 on:
   push:
     branches:
-      - gh-pages
+      - main
   workflow_dispatch:
 
 permissions:
