@@ -329,7 +329,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   meshes.forEach(x=>x.visible=false);m.wpend=(m.wpend||0)+1;await texWait(meshes,6000);m.wpend--;
   if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
   var wh=null;if(/^live:/.test(key)&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!(wh&&wh.part=='righthand');const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
+  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!wh;const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
   if(/^live:/.test(key)&&ZLIVE.autoplay&&extra.length)ZLIVE.autoplay(lname,c,new Set(extra.map(b=>b.name))).then(L=>{if(m.wname!==wk||m.wmesh!==meshes||!L.length)return;const X=new THREE.AnimationMixer(m.o);L.forEach(cl=>X.clipAction(cl).play());m.wmx=X}).catch(()=>{});
   m._pl=null;if(/^live:/.test(key)&&ZLIVE.poseLayers)ZLIVE.poseLayers(lname,c).then(r=>{if(m.wname===wk)m._pl=r}).catch(()=>{})}
 
@@ -1123,7 +1123,11 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
      for(let j=0;j<nb;j++){if(F(wl+j*4)>0&&A.bones[j]&&A.bones[j].parent>=0)out[BN[j]]=[f.Q[j],f.P[j]]}break}}
    if(Object.keys(out).length)break}
   return Object.keys(out).length?out:null})()}
-async function wmHide(n,cl){const e=entry(n);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&clsKey(cl)=='pyro')return{part:'righthand',st:1};const wo=wmOv(e);if(!wo)return null;const L=await pbNames(clsKey(cl));return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
+async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};
+ // Heavy fist weapons use Heavy's hands bodygroup, state 1 = no default hands. Their own glove meshes remain on the weapon.
+ const id=String(n||'').toLowerCase().replace(/^the\\s+/,'').replace(/[^a-z0-9]/g,'');
+ if(c=='heavy'&&new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(id))return{part:'hands',st:1};
+ const wo=wmOv(e);if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
 function wmOv(e){const V=e&&e.r.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return i>-1&&st>-1?{i,st}:null}
@@ -1250,7 +1254,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // Source SDK WantsSkinShader: Phong plus a diffuse warp selects Skin; otherwise it needs
  // $basemapalphaphongmask 1 or a real $bumpmap. The generic VertexLitGeneric path has no rim-light pass.
  const skin=phong&&(!!lw||num(k.$basemapalphaphongmask,0)===1||!!bm);
- P.skinShader=skin?1:0;if(!skin)P.rim=0;
+ P.skinShader=skin?1:0;if(!skin){P.phong=0;P.rim=0;}
  if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
   if(KNOWNWARP.has(n))P.warp=n;else{const t=await tex(lw,false,256);if(t&&window.ZWARPSET){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;ZWARPSET('live_'+n,t);P.warp='live_'+n}else P.warp='weapon'}}
  else{P.warp='weapon';P.nowarp=1}// DiffuseTerm: no $lightwarptexture is the squared half-lambert (the Balloonicorn), not a warp
