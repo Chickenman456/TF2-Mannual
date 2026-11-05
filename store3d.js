@@ -46,8 +46,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  vec3 N=normalize((vec4(nV,0.)*viewMatrix).xyz);vec3 V=normalize(cameraPosition-vWPos);
  // SpecExponentSampler is TEXTURE_WHITE when the vmt has no $phongexponenttexture
  vec4 ex=hasExp>.5?texture2D(expMap,tUv):vec4(1.);
- // Source SDK Skin shader: absent an explicit exponent, read the normal map's alpha; an exponent texture uses its red channel.
- float sExp=clamp(expFactor>0.?1.+expFactor*ex.r:(cExp>0.?cExp:1.+149.*(hasExp>.5?ex.r:nt.a)),1.,255.);
+ float sExp=clamp(expFactor>0.?1.+expFactor*ex.r:(cExp>0.?cExp:1.+149.*ex.r),1.,255.);
  float mask=maskMode<.5?nt.a:(maskMode<1.5?base.a:1.);           // normal.a | $basemapalphaphongmask | flat
  float rimMask=rimMaskOn>.5?ex.a:1.;vec3 tint=albTint>.5?mix(vec3(1.),albedo,ex.g):vec3(1.);
  float f=clamp(1.-dot(N,V),0.,1.);float f2=f*f-.5;float fR=fres.y+(f2>=0.?fres.z:fres.x)*f2;float f4=f*f*f*f;
@@ -239,7 +238,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
       if(mm&&fs){let W={};try{const S=LOX.ls(c);W=S.P[S.pre].w||{}}catch(e){}if(!mm._tslot0&&mm._wbase)mm._tslot0={slot:mm._wbase.slot,name:W[mm._wbase.slot]||null};mm._tforce=1;
        if(!mm._wbase||mm._wbase.slot!==fs)setWeapon(c,fs,W[fs]||null)}
       else if(mm&&!tn&&mm._tslot0){const b0=mm._tslot0;mm._tslot0=null;mm._tforce=0;setWeapon(c,b0.slot,b0.name)}
-      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@scene:/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);const oldOff=mm._wmOff;mm._wmOff=hw;wmBG(mm);if(oldOff!==hw&&window.ZLIVE&&ZLIVE.ready)lodBody(c);
+      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@scene:/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);mm._wmOff=hw;wmBG(mm);
       tauntProp(mm,c,n)}}return true};
    const st0={idle:'stand_PRIMARY'};mx.addEventListener('finished',e=>{if(e&&e.action&&e.action._zg)return;play(st0.idle)});// a firing gesture ends on its own
    // team skins: RED maps ship with the model, BLU maps (models/<class>_<part>_blu.jpg) load on demand
@@ -322,7 +321,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   const fest=/(^|\s)festivized\s/i.test(String(name||''))&&FEST[key];const wk=key+(fest?'#fest':'');
   if(m.wname===wk)return;m.wname=wk;
   const wdrop=()=>{if(m.wmx){m.wmx.stopAllAction();m.wmx=null}if(m.wmesh){m.wmesh.forEach(x=>x.parent&&x.parent.remove(x));(m.wextra||[]).forEach(b=>b.parent&&b.parent.remove(b));m.wmesh=null}};
-  if(!key){wdrop();m._wmHide=null;m._keepW=false;wmBG(m);if(window.ZLIVE&&ZLIVE.ready)lodBody(c);m._wdone=1;return}let src,man,fsrc=null;try{[src,man]=/^live:/.test(key)?await ZLIVE.load(key):await Promise.all([wload(key),wman()]);if(fest)fsrc=await wload(fest).catch(()=>null)}catch(e){if(/^live:/.test(key))console.warn('[ZLIVE]',key,e);if(/^live:/.test(key)&&bkey){try{[src,man]=await Promise.all([wload(bkey),wman()]);key=bkey}catch(e2){m._wdone=1;return}}else{m._wdone=1;return}}if(m.wname!==wk)return;
+  if(!key){wdrop();m._wmHide=null;wmBG(m);m._wdone=1;return}let src,man,fsrc=null;try{[src,man]=/^live:/.test(key)?await ZLIVE.load(key):await Promise.all([wload(key),wman()]);if(fest)fsrc=await wload(fest).catch(()=>null)}catch(e){if(/^live:/.test(key))console.warn('[ZLIVE]',key,e);if(/^live:/.test(key)&&bkey){try{[src,man]=await Promise.all([wload(bkey),wman()]);key=bkey}catch(e2){m._wdone=1;return}}else{m._wdone=1;return}}if(m.wname!==wk)return;
   const pb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx&&!pb[n.name])pb[n.name]=n});const extra=[];const team=ZTEAM(c);const bm={};
   const pbl={};for(const k in pb)pbl[k.toLowerCase()]=pb[k];const mk=b=>{if(bm[b.name])return bm[b.name];const pm=pb[b.name]||pbl[b.name.toLowerCase()];if(pm&&!/^c_weapon|^vm_/.test(b.name))return bm[b.name]=pm;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):(pb.weapon_bone||m.o);par.add(nb);extra.push(nb);return bm[b.name]=nb};
   // festivized: the item's attached_models_festive model (strings of lights) bonemerged onto the weapon's own bones
@@ -330,8 +329,8 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(window.ZJIG&&/^live:/.test(key)&&(man[key]||{})._jig)ZJIG.add(m,bm,man[key]._jig);
   meshes.forEach(x=>x.visible=false);m.wpend=(m.wpend||0)+1;await texWait(meshes,6000);m.wpend--;
   if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  var wh=null;if(window.ZLIVE&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!wh;const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh||null;wmBG(m);if(window.ZLIVE&&ZLIVE.ready)lodBody(c);
+  var wh=null;if(/^live:/.test(key)&&ZLIVE.wmHide){try{wh=await ZLIVE.wmHide(lname,c)}catch(e){}}if(m.wname!==wk){meshes.forEach(x=>x.parent&&x.parent.remove(x));extra.forEach(b=>b.parent&&b.parent.remove(b));return}
+  wdrop();m.wmesh=meshes;m.wextra=extra;m.wteam=team;m._wdone=1;m._keepW=!!(wh&&wh.part=='righthand');const tn=(/^taunt/.test(m.cn||'')||(/^live:/.test(m.cn||'')&&!m._tforce))&&!m._keepW;m._wmOff=tn;meshes.forEach(x=>x.visible=!tn);m._wmHide=wh&&wh.part||null;wmBG(m);
   if(/^live:/.test(key)&&ZLIVE.autoplay&&extra.length)ZLIVE.autoplay(lname,c,new Set(extra.map(b=>b.name))).then(L=>{if(m.wname!==wk||m.wmesh!==meshes||!L.length)return;const X=new THREE.AnimationMixer(m.o);L.forEach(cl=>X.clipAction(cl).play());m.wmx=X}).catch(()=>{});
   m._pl=null;if(/^live:/.test(key)&&ZLIVE.poseLayers)ZLIVE.poseLayers(lname,c).then(r=>{if(m.wname===wk)m._pl=r}).catch(()=>{})}
 
@@ -343,9 +342,9 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
  const cnorm=n=>String(n||'').toLowerCase().replace(/^(self-made|strange|unique|vintage|genuine|unusual|haunted|collector's|decorated|festive|the) /g,'').replace(/^(self-made|strange|unusual|haunted|the) /g,'').trim();
  // wm_bodygroup_override (C_TFWeaponBase: pOwner->SetBodygroup while it's the active weapon): the Short Circuit blanks the Engineer's
  // rightarm, the Gunslinger's robot arm included, and only while it's out
- function wmBG(m){if(!m)return;const h=m._wmOff?null:m._wmHide,part=typeof h=='string'?h:String(h&&h.part||'').toLowerCase(),state=typeof h=='string'?1:(h?Number(h.st)||0:0);if(m.BG)for(const k in m.BG)m.BG[k].visible=!((m._cbg&&m._cbg.has(k))||(part===String(k).toLowerCase()&&state!==0));
-   if(part=='rightarm'&&state>0)(m.cmesh||[]).forEach(r=>r.meshes.forEach(x=>{if(/^live_arm/.test(x.name))x.visible=false}));else (m.cmesh||[]).forEach(r=>r.meshes.forEach(x=>{if(/^live_arm/.test(x.name))x.visible=true}))}
-// wearable animation players: per frame, the item's own sequence on its own (non-merged) bones
+ function wmBG(m){if(!m)return;const h=m._wmOff?null:m._wmHide;if(m.BG)for(const k in m.BG)m.BG[k].visible=!((m._cbg&&m._cbg.has(k))||k===h);
+  if(h=='rightarm')(m.cmesh||[]).forEach(r=>r.meshes.forEach(x=>{if(/^live_arm/.test(x.name))x.visible=false}));else (m.cmesh||[]).forEach(r=>r.meshes.forEach(x=>{if(/^live_arm/.test(x.name))x.visible=true}))}
+ // wearable animation players: per frame, the item's own sequence on its own (non-merged) bones
  const IANIM=[];let iq=null,iq2=null;
  function ianimTick(m,t){if(!iq){iq=new THREE.Quaternion();iq2=new THREE.Quaternion()}for(let i=IANIM.length-1;i>=0;i--){const E=IANIM[i];const any=Object.values(E.B)[0];if(!any||!any.parent){IANIM.splice(i,1);continue}if(E.m!==m)continue;
    const tn=/^(taunt|live:)/.test(m.cn||'');const A=tn?(E.ia.taunt||E.ia.idle):(E.ia.idle||E.ia.taunt);// an item whose only motion is its taunt one (the Orchestrina's music box) shows it in the preview too
@@ -504,7 +503,7 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   if(m.ctok!==tok){res.forEach(j=>j&&drop(j.r));return}
   (m.cmesh||[]).forEach(drop);m.cmesh=[];Object.values(m.BG||{}).forEach(n=>n.visible=true);
   res.forEach(j=>{if(!j)return;(j.bg||[]).forEach(b=>{if(m.BG&&m.BG[b])m.BG[b].visible=false});if(j.r){j.r.meshes.forEach(x=>x.visible=true);m.cmesh.push(j.r);if(window.ZFACE)ZFACE.attach(c,m,j.key,j.r.meshes)}});
-  m._cbg=new Set(res.flatMap(j=>(j&&j.bg)||[]));wmBG(m);if(window.ZLIVE&&ZLIVE.ready)lodBody(c);
+  m._cbg=new Set(res.flatMap(j=>(j&&j.bg)||[]));wmBG(m);if(window.ZLIVE&&ZLIVE.lod>0)lodBody(c);
   // the bundled soul meshes take the zombie body's .vmt values; souls read from the install already carry their own
   res.forEach(j=>{if(!j||!j.r||!(j.zo||(/_zombie$/.test(j.key)&&!/^live/.test(j.key))))return;j.r.meshes.forEach(x=>{const U=x.material&&x.material.uniforms;if(!U)return;
    if(U.boost)U.boost.value=0;if(U.rimExp)U.rimExp.value=15;if(U.rimBoost)U.rimBoost.value=.25;if(U.rimTint)U.rimTint.value.set(...ZRIM)})});
@@ -693,10 +692,8 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
  const eyes=m._eyeMesh||(m._eyeMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&x.userData.zeye)L.push(x)});return L})());eyes.forEach(x=>x.layers.set(bot&&ZLIVE.ready?31:0));
  const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
- const bg={};for(const k of (m._cbg||[]))bg[String(k).toLowerCase()]=1;
- const h=m._wmOff?null:m._wmHide;if(h){const part=typeof h=='string'?h:h.part,state=typeof h=='string'?1:Number(h.st);if(part&&Number.isInteger(state)&&state>=0)bg[String(part).toLowerCase()]=state}
- const needBody=n>0||bot||Object.keys(bg).length>0;
- if(!needBody||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
+ if((n<=0&&!bot)||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
+ const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
  const sig=n+'|'+(m._robot||'')+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
  try{const [src,man]=await ZLIVE.body(c,bg,m._robot||false);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
@@ -704,7 +701,8 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
   const xb=[];const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];if(!bot)return null;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||m.o).add(nb);xb.push(nb);return pb[k]=nb};
   const meshes=src.map(s=>{if(!bot&&/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
-  drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}// the robot's animations (bot_<class>_animations.mdl: stiffer stand_ / run_ loops), in place of the class's while it's shown as the robot
+  drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
+// the robot's animations (bot_<class>_animations.mdl: stiffer stand_ / run_ loops), in place of the class's while it's shown as the robot
 async function robotAnims(c){const m=M[c];if(!m||!m.A||!m.mx||!window.ZLIVE||!ZLIVE.setRobot)return;const on=m._robot;const tok=m._rtok=(m._rtok||0)+1;
  const path=on?(/^models\//.test(String(on))?on:'models/bots/'+String(KEY[c]||'').toLowerCase()+'/bot_'+String(KEY[c]||'').toLowerCase()+'.mdl'):null;
  ZLIVE.setRobot(c,path);
@@ -1176,15 +1174,10 @@ const PLYR={};async function poseLayers(n,cl){const e=entry(n);const pp=e&&e.r.v
      for(let j=0;j<nb;j++){if(F(wl+j*4)>0&&A.bones[j]&&A.bones[j].parent>=0)out[BN[j]]=[f.Q[j],f.P[j]]}break}}
    if(Object.keys(out).length)break}
   return Object.keys(out).length?out:null})()}
-async function wmHide(n,cl){const e=entry(n),c=clsKey(cl);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&c=='pyro')return{part:'righthand',st:1};
-  // Heavy fist weapons select the model's hands bodygroup state that removes the bare hands; their glove meshes remain on the weapon.
-  // Loadouts can pass a display name or an item ID (#123); match the canonical items_game display name too.
-  const ids=[n,e&&e.dn,e&&e.r&&e.r.name].map(v=>String(v||'').toLowerCase().replace(/^(?:(?:self-made|strange|unique|vintage|genuine|unusual|haunted|collector's|decorated|festive|the)\s+)+/,'').replace(/[^a-z0-9]/g,''));
-  if(c=='heavy'&&ids.some(id=>new Set(['fistsofsteel','breadbite','killingglovesofboxing','holidaypunch','glovesofrunningurgently','apocofists']).has(id)))return{part:'hands',st:1};
-  const wo=wmOv(e,ZTEAM(c));if(!wo)return null;const L=await pbNames(c);return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
+async function wmHide(n,cl){const e=entry(n);if(e&&/^tf_weapon_slap$/i.test(String(e.r.item_class||''))&&clsKey(cl)=='pyro')return{part:'righthand',st:1};const wo=wmOv(e);if(!wo)return null;const L=await pbNames(clsKey(cl));return L&&L[wo.i]?{part:L[wo.i],st:wo.st}:null}
 // visuals wm_bodygroup_override / _state_override: set on the OWNER's model (CEconEntity / CTFPlayerModelPanel: pOwner->SetBodygroup) —
 // the Short Circuit puts the Engineer's rightarm bodygroup (index 2) in state 2, the empty one
-function wmOv(e,team){const R=e&&e.r;if(!R)return null;const V=(team=='BLU'?R.visuals_blu:R.visuals_red)||R.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return Number.isInteger(i)&&Number.isInteger(st)&&i>-1&&st>-1?{i,st}:null}
+function wmOv(e){const V=e&&e.r.visuals;if(!V||V.wm_bodygroup_override==null||V.wm_bodygroup_state_override==null)return null;const i=+V.wm_bodygroup_override,st=+V.wm_bodygroup_state_override;return i>-1&&st>-1?{i,st}:null}
 ST.pbn={};async function pbNames(c){if(ST.pbn[c])return ST.pbn[c];const b=await read('models/player/'+SHORT[c]+'.mdl');if(!b)return ST.pbn[c]=[];const M=new DataView(b.buffer,b.byteOffset,b.byteLength),I=o=>M.getInt32(o,true);
  const nbp=I(232),bpi=I(236),L=[];for(let i=0;i<nbp;i++){const o=bpi+i*16;L.push(cstr(b,o+I(o)).toLowerCase())}return ST.pbn[c]=L}
 // a weapon that is a bodygroup of the class model itself (the Gunslinger: player_bodygroups rightarm 1 on engineer.mdl), no model of its own
@@ -1287,8 +1280,9 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  P.map=bt&&anim?await texStrip(bt,true).catch(()=>null):null;if(P.map)P._frames=P.map.userData.frames;if(!P.map)P.map=bt?await tex(bt,true):null;
  // UnlitTwoTexture (the flamethrower pilot light): $basetexture x $texture2, additive
  if(String(sh).toLowerCase()=='unlittwotexture'&&k.$texture2)P.map2=await tex(k.$texture2,true).catch(()=>null);
- const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;
- // Source SDK Skin shader: without a positive $phongexponent, use normal-map alpha (or exponent-texture red when present).
+ const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;// an unset $phongexponent is 0 in the skin shader (DrawSkin_DX9 only reads a defined one), so the exponent comes from the white map: 150 (the Business Casual's tie)
+ // a positive $phongexponent overrides the exponent map's red channel even when the vmt has one (skin_dx9_helper: "Nonzero value in material
+ // overrides map channel"); the map still gives the albedo tint (green) and the rim mask (alpha)
  P.exp=Math.max(0,num(k.$phongexponent,0));
  P.albTint=num(k.$phongalbedotint,0);P.rimMask=num(k.$rimmask,0);P.boost=num(k.$phongboost,1);P.fres=vec(k.$phongfresnelranges,[0,.5,1]);
  P.rim=phong?flag(k.$rimlight):0;P.halfL=flag(k.$halflambert);P.rimExp=num(k.$rimlightexponent,4);P.rimBoost=num(k.$rimlightboost,1);P.mask=flag(k.$basemapalphaphongmask);
@@ -1303,12 +1297,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
   if(mk||fr||(P.map&&P.map.userData.alpha)){P.si=1;P.tintA=0;P.siTint=vec(k.$selfillumtint,[1,1,1]);if(mk)P.siMask=mk;if(fr)P.siFres=vec(k.$selfillumfresnelminmaxexp,[0,1,1])}}
  {const X=xform(k.$basetexturetransform);if(X)P.xf=X}
  proxies(k,P);
- const lw=k.$lightwarptexture;
- // Source SDK WantsSkinShader: Phong plus a diffuse warp selects Skin; otherwise it needs
- // $basemapalphaphongmask 1 or a real $bumpmap. The generic VertexLitGeneric path has no rim-light pass.
- const skin=phong&&(!!lw||num(k.$basemapalphaphongmask,0)===1||!!bm);
- P.skinShader=skin?1:0;if(!skin){P.phong=0;P.rim=0;}
- if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
+ const lw=k.$lightwarptexture;if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
   if(KNOWNWARP.has(n))P.warp=n;else{const t=await tex(lw,false,256);if(t&&window.ZWARPSET){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;ZWARPSET('live_'+n,t);P.warp='live_'+n}else P.warp='weapon'}}
  else{P.warp='weapon';P.nowarp=1}// DiffuseTerm: no $lightwarptexture is the squared half-lambert (the Balloonicorn), not a warp
  // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
@@ -1317,7 +1306,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // WantsSkinShader: phong with a lightwarp, a base-alpha phong mask or a bump map is drawn by the skin shader (its envmap mask is the base
  // alpha unless $normalmapalphaenvmapmask); everything else by vertexlit_and_unlit_generic ($envmapmask texture, 1 - base alpha for
  // $basealphaenvmapmask, contrast / saturation). env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
- const em=k.$envmap;if(em){P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
+ const em=k.$envmap;if(em){const skin=phong&&(!!k.$lightwarptexture||!!num(k.$basemapalphaphongmask,0)||!!bm);P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
   const nma=num(k.$normalmapalphaenvmapmask,0),bae=num(k.$basealphaenvmapmask,0)||num(k.$basemapalphaenvmapmask,0);
   P.envMask=skin?(nma?2:1):(nma?2:bae?3:0);P.envFres=num(k.$envmapfresnel,0);P.envCon=num(k.$envmapcontrast,0);P.envSat=num(k.$envmapsaturation,1);
   if(!skin&&k.$envmapmask)P.envMaskTex=await tex(k.$envmapmask,false).catch(()=>null);
