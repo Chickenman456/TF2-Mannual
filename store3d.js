@@ -1246,7 +1246,12 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
   if(mk||fr||(P.map&&P.map.userData.alpha)){P.si=1;P.tintA=0;P.siTint=vec(k.$selfillumtint,[1,1,1]);if(mk)P.siMask=mk;if(fr)P.siFres=vec(k.$selfillumfresnelminmaxexp,[0,1,1])}}
  {const X=xform(k.$basetexturetransform);if(X)P.xf=X}
  proxies(k,P);
- const lw=k.$lightwarptexture;if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
+ const lw=k.$lightwarptexture;
+ // Source SDK WantsSkinShader: Phong plus a diffuse warp selects Skin; otherwise it needs
+ // $basemapalphaphongmask 1 or a real $bumpmap. The generic VertexLitGeneric path has no rim-light pass.
+ const skin=phong&&(!!lw||num(k.$basemapalphaphongmask,0)===1||!!bm);
+ P.skinShader=skin?1:0;if(!skin)P.rim=0;
+ if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
   if(KNOWNWARP.has(n))P.warp=n;else{const t=await tex(lw,false,256);if(t&&window.ZWARPSET){t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;ZWARPSET('live_'+n,t);P.warp='live_'+n}else P.warp='weapon'}}
  else{P.warp='weapon';P.nowarp=1}// DiffuseTerm: no $lightwarptexture is the squared half-lambert (the Balloonicorn), not a warp
  // $phongwarptexture (skin shader PHONGWARPTEXTURE): the specular term times the warp at (specular, fresnel): the War on Smissmas Battle Socks' red sheen
@@ -1255,7 +1260,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // WantsSkinShader: phong with a lightwarp, a base-alpha phong mask or a bump map is drawn by the skin shader (its envmap mask is the base
  // alpha unless $normalmapalphaenvmapmask); everything else by vertexlit_and_unlit_generic ($envmapmask texture, 1 - base alpha for
  // $basealphaenvmapmask, contrast / saturation). env_cubemap has no level here: the 2fort cubemap, as tf2-workbench uses.
- const em=k.$envmap;if(em){const skin=phong&&(!!k.$lightwarptexture||!!num(k.$basemapalphaphongmask,0)||!!bm);P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
+ const em=k.$envmap;if(em){P.env=vec(k.$envmaptint,[1,1,1]);P.envSkin=skin?1:0;
   const nma=num(k.$normalmapalphaenvmapmask,0),bae=num(k.$basealphaenvmapmask,0)||num(k.$basemapalphaenvmapmask,0);
   P.envMask=skin?(nma?2:1):(nma?2:bae?3:0);P.envFres=num(k.$envmapfresnel,0);P.envCon=num(k.$envmapcontrast,0);P.envSat=num(k.$envmapsaturation,1);
   if(!skin&&k.$envmapmask)P.envMaskTex=await tex(k.$envmapmask,false).catch(()=>null);
