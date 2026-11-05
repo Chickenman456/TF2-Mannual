@@ -1,4 +1,4 @@
-name: Deploy standalone web version
+name: Deploy standalone web version # redeploy standalone site after gh-pages updates
 
 on:
   push:
