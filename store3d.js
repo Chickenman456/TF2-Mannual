@@ -1287,6 +1287,8 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  P.albTint=num(k.$phongalbedotint,0);P.rimMask=num(k.$rimmask,0);P.boost=num(k.$phongboost,1);P.fres=vec(k.$phongfresnelranges,[0,.5,1]);
  P.rim=phong?flag(k.$rimlight):0;P.halfL=flag(k.$halflambert);P.rimExp=num(k.$rimlightexponent,4);P.rimBoost=num(k.$rimlightboost,1);P.mask=flag(k.$basemapalphaphongmask);
  const bm=k.$bumpmap;P.bump=bm?await tex(bm,false):null;
+ // WantsSkinShader: $phong reaches the skin shader only with a lightwarp, a base-alpha phong mask or a bump map; without one (the Warrior's Spirit claws) it is plain vertex-lit: no phong, no rim light
+ if(phong&&!k.$lightwarptexture&&!num(k.$basemapalphaphongmask,0)&&!bm&&!et){P.phong=0;P.rim=0}
  P.tintA=flag(k.$blendtintbybasealpha);P.tintOver=num(k.$blendtintcoloroverbase,0);if(k.$colortint_base)P.tintBase=vec(k.$colortint_base,null);
  if(k.proxies&&Object.keys(k.proxies).some(x=>x=='itemtintcolor'))P.itemTint=1;
  if(flag(k.$translucent))P.translucent=1;if(flag(k.$additive))P.additive=1;if(flag(k.$alphatest))P.aTest=1;
