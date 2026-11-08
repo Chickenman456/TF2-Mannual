@@ -1031,12 +1031,12 @@ async function openVpk(src,base){const f=await src.get(base+'_dir.vpk');if(!f)re
  return{base,E,async read(p){const e=E.get(p.toLowerCase().replace(/\\/g,'/'));if(!e)return null;const out=new Uint8Array(e.pre+e.len);out.set(b.subarray(e.po,e.po+e.pre),0);
   if(e.len){if(e.ai===0x7fff)out.set(b.subarray(data+e.off,data+e.off+e.len),e.pre);else{const af=await arc(e.ai);if(!af)throw new Error('missing '+base+'_'+e.ai+'.vpk');out.set(new Uint8Array(await af.slice(e.off,e.off+e.len).arrayBuffer()),e.pre)}}
   return out},has:p=>E.has(p.toLowerCase().replace(/\\/g,'/'))}}
-async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');{const o=OV.get(p);if(o)return o}if(PAKS.size){const b=await pakRead(p);if(b)return b}{const b=await keptRead(p);if(b)return b}for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
+async function read(p){p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');{const o=OV.get(p);if(o)return o}{const F=window.ZVMTFIX&&ZVMTFIX[p];if(F!=null)return new TextEncoder().encode(F)}if(PAKS.size){const b=await pakRead(p);if(b)return b}{const b=await keptRead(p);if(b)return b}for(const k of VPKS){const v=ST.vpk[k];if(v&&v.has(p))return v.read(p)}
  if(ST.src&&ST.src.kind=='dir'){// loose files under tf/ (custom content is skipped; this is only for files Valve ships loose)
   try{let h=ST.src.handle;const parts=p.split('/');for(let i=0;i<parts.length-1;i++)h=await h.getDirectoryHandle(parts[i]);const f=await (await h.getFileHandle(parts[parts.length-1])).getFile();return new Uint8Array(await f.arrayBuffer())}catch(e){}}
  if(ST.src&&ST.src.path){const f=await ST.src.path(p);if(f)return new Uint8Array(await f.arrayBuffer())}
  return null}
-const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return OV.has(p)||PAKZ.some(k=>k.Z.has(p))||(ST.kept&&ST.kept.has(p))||VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
+const has=p=>{p=p.toLowerCase().replace(/\\/g,'/').replace(/\/+/g,'/');return OV.has(p)||!!(window.ZVMTFIX&&ZVMTFIX[p]!=null)||PAKZ.some(k=>k.Z.has(p))||(ST.kept&&ST.kept.has(p))||VPKS.some(k=>ST.vpk[k]&&ST.vpk[k].has(p))};
 
 // TF2's own archives first, then the Half-Life 2 content it also mounts (shared particle materials)
 const VPKS=['tf2_misc','tf2_textures','tf2_sound_misc','tf2_sound_vo_english','hl2_misc','hl2_textures'];

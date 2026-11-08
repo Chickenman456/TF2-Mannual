@@ -23,7 +23,12 @@
     {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     {id: 'saxton', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
-      where: ['Versus Saxton Hale: the vsh_ maps (vsh_distillery, vsh_maul, vsh_nucleus, vsh_outburst, vsh_skirmish, vsh_tinyrock)']},
+      where: ['Versus Saxton Hale: Distillery, Nucleus, Skirmish and Tinyrock (vsh_distillery, vsh_nucleus, vsh_skirmish, vsh_tinyrock)']},
+    // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
+    {id: 'santa_hale', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp',
+      where: ['Versus Saxton Hale: Maul (vsh_maul), the Smissmas map']},
+    {id: 'hell_hale', name: 'Hell Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
+      where: ['Versus Saxton Hale: Outburst (vsh_outburst), the Halloween map']},
     {id: 'toastmaster', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
   ];
   // the merc cards from Chickenman's TF2 UI redesign (Items > Mercs), the same markup and styles: class render cropped to head and
@@ -69,7 +74,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
