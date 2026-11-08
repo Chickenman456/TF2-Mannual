@@ -5,7 +5,7 @@
   'use strict';
   const NOTF2 = 'That folder doesn\u2019t have TF2\u2019s game files in it. Pick your Team Fortress 2 folder (or the "tf" folder inside it).';
   // only what the preview reads: the VPKs, plus the loose item schema, English strings and choreo scenes
-  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(f.webkitRelativePath || '');
+  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|maps\/(?:koth_synthetic_event|vsh_nucleus)\.bsp|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(f.webkitRelativePath || '');
 
   // ---- remembering a folder handle (only where the browser gives the page one) ----
   const idb = () => new Promise(res => { try { const r = indexedDB.open('tf2-catalog-game', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
@@ -70,6 +70,7 @@
   const MISSING = 'not in the saved copy of your TF2 files';
   function caching(src, sig) {
     const D = /_dir\.vpk$/i;
+    const KP = cget(sig + '|pakidx').then(a => new Set(a || []));
     return {kind: 'list',
       async get(n) {
         const f = await src.get(n); if (!f) return null;
@@ -91,6 +92,10 @@
       },
       // a map's .bsp from the app's server, read a slice at a time and not kept
       async map(n) { return src.map ? src.map(n) : null; },
+      // files the preview read out of a map's pakfile (the Toastmaster, Saxton Hale), kept so they load again without the map
+      keep(p, b) { cput(sig + '|pak|' + p, b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); KP.then(a => { a.add(p); cput(sig + '|pakidx', [...a]); }); },
+      async kept(p) { return cget(sig + '|pak|' + p); },
+      async keptList() { return (await cget(sig + '|pakidx')) || []; },
       // a folder's file list (the Workshop importer's zips), kept with the saved copy
       async list(dir) { const L = src.list ? await src.list(dir) : null; if (L) cput(sig + '|ls|' + dir, L); return L; }};
   }
@@ -102,6 +107,8 @@
           slice: (a, b) => ({arrayBuffer: async () => { const v = await cget(sig + '|' + n + '|' + a + '|' + b); if (!v) throw new Error(MISSING); return v; }})};
       },
       async path(p) { const b = await cget(sig + '|/' + p); return b ? new Blob([b]) : null; },
+      async kept(p) { return cget(sig + '|pak|' + p); },
+      async keptList() { return (await cget(sig + '|pakidx')) || []; },
       async list(dir) { return (await cget(sig + '|ls|' + dir)) || null; }};
   }
   async function signature(src) { const f = await src.get('tf2_misc_dir.vpk'); return f ? 'v' + f.size + '-' + (f.lastModified || 0) : null; }

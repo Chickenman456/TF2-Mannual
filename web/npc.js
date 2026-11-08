@@ -14,14 +14,14 @@
     ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM, where: ['Every map and game mode']})),
     ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM, where: MVM})),
     ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM, where: MVM})),
-    {id: 'sentry_buster', name: 'Sentry Buster', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl', idle: 'stand_melee', skins: TEAM, where: MVM},
+    {id: 'sentry_buster', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl', where: MVM},
     {id: 'tank', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', where: MVM},
     {id: 'hhh', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl',
       where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone, Graveyard, Bloodwater, Carnival of Carnage, Slasher and Bonesaw']},
     {id: 'monoculus', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
     {id: 'merasmus', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
-    {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, skins: TEAM, where: ['Helltower (Scream Fortress 2013)']},
-    {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, where: ['Helltower (Scream Fortress 2013)']},
+    {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Helltower (Scream Fortress 2013)']},
+    {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     {id: 'saxton', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
       where: ['Versus Saxton Hale: the vsh_ maps (vsh_distillery, vsh_maul, vsh_nucleus, vsh_outburst, vsh_skirmish, vsh_tinyrock)']},
     {id: 'toastmaster', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
@@ -38,7 +38,7 @@
   const CNAME = Object.fromEntries(CLS.map(([s, n]) => [s, n]));
   const CARD = f => (window.ZCARDS && ZCARDS[f]) || 'ui/cards/' + f;
   function card(n) {
-    const c = n.cls ? CNAME[n.cls] : null; let art = '';
+    const c = n.cls && !n.noart ? CNAME[n.cls] : null; let art = '';
     if (c) {
       const q = CARDP[c], [w0, h0] = ZCR[c];
       let src = CARD(c.toLowerCase() + '.webp'), w = w0, h = h0;
@@ -47,12 +47,14 @@
       if (src) art = `<img src="${src}" alt="" style="left:${p[0]}px;top:${p[1]}px;width:${w * p[2]}px;height:${h * p[2]}px">`;
     }
     const em = CARD('emb_' + (c ? c.toLowerCase() : 'all') + '.svg');
-    return `<button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button>`;
+    return `<div class="npcc"><button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button></div>`;
   }
   const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const css = document.createElement('style');
   css.textContent = `
-.npcgrid{display:grid;grid-template-columns:repeat(auto-fill,356px);gap:34px 44px;justify-content:center;padding:8px 0 26px}
+.npcgrid{display:grid;grid-template-columns:repeat(auto-fill,196px);gap:16px 18px;justify-content:center;padding:8px 0 22px}
+.npcc{position:relative;width:196px;height:99px}
+.npcgrid .zcc{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(.55)}
 .npcgrid .zcc{position:relative;width:356px;height:179px;border:0;padding:0;background:center/100% 100% no-repeat;cursor:pointer;border-radius:10px}
 .npcgrid .zcc:hover{box-shadow:0 0 0 3px #ffb84d;filter:brightness(1.12)}
 .npcgrid .zcard{padding:0;border:3px solid #c9bfae;border-radius:8px;overflow:hidden;background:linear-gradient(160deg,#4a423c,#2F2C29 70%)!important;cursor:pointer}
@@ -65,7 +67,7 @@
 .npcgrid .zcard .zvem{background:#f5e5c1!important;filter:none!important;opacity:.06!important;-webkit-mask:var(--em) center/contain no-repeat;mask:var(--em) center/contain no-repeat}
 .npcgrid .zcard img{transform:translate(calc(var(--px,0)*-9px),calc(var(--py,0)*-6px)) scale(var(--ps,1));transition:transform .18s ease-out}
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
-@media (max-width:420px){.npcgrid{grid-template-columns:356px;transform-origin:top center}}`;
+`;
   document.head.appendChild(css);
   const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale'};
   window.NPCVIEW = {
