@@ -693,7 +693,7 @@
         const keep = def.keep ? seqs.filter(def.keep) : seqs;
         const pri = (def.idle ? [new RegExp('^' + def.idle + '$', 'i')] : []).concat([/^stand_primary$/i, /^stand_melee$/i, /^stand_item1$/i, /^idle/i, /^stand/i, /idle|stand/i]);
         let idle = null; for (const re of pri) { idle = keep.find(q => re.test(q.name)); if (idle) break; } idle = idle || keep[0];
-        const run = keep.find(q => /^run/i.test(q.name)) || keep.find(q => /^walk/i.test(q.name)) || keep.find(q => /run|walk/i.test(q.name));
+        const run = (def.run && keep.find(q => q.name.toLowerCase() === def.run)) || keep.find(q => /^run/i.test(q.name)) || keep.find(q => /^walk/i.test(q.name)) || keep.find(q => /run|walk/i.test(q.name));
         idleQ = idle && idle.name; runQ = run && run.name;
         if (idleQ) Store3D.npc.play(idleQ); else Store3D.npc.refit();
         sizeFig(f);
