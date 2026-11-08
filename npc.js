@@ -12,6 +12,9 @@
   const SKEL = q => (/skeleton_sniper/.test(q.file) && !/layer/i.test(q.name)) || /^ACT_MP_(STAND|JUMP_START|JUMP_FLOAT|JUMP_LAND)_MELEE$/.test(q.act || '');
   const NPCS = [
     ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM, where: ['Every map and game mode']})),
+    // Zombie Infection (the zi_ maps): the class with its Voodoo-Cursed soul and no weapon in hand (lo.js), card art from the main menu's zombie renders
+    ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp',
+      where: ['Zombie Infection: Atoll, Blazehattan, Devastation, Murky, Sanitarium and Woods (the zi_ maps)']})),
     ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM, where: MVM})),
     ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM, where: MVM})),
     {id: 'sentry_buster', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl', where: MVM},
@@ -66,7 +69,7 @@
     }
     if (n.card) art = `<img src="${CARD(n.card)}" alt="" style="left:0;top:0;width:356px;height:179px">`;
     const em = CARD('emb_' + (c ? c.toLowerCase() : 'all') + '.svg');
-    return `<div class="npcc"><button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button></div>`;
+    return `<div class="npcc"><button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot && !n.zombie ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button></div>`;
   }
   const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const css = document.createElement('style');
@@ -88,7 +91,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
@@ -99,7 +102,7 @@
     open(id){
       const n = NPCS.find(x => x.id === id); if (!n) return;
       // a mercenary opens the game's class loadout screen (lo.js); the robots and the others the character viewer
-      if (n.cls && !n.bot && window.LOADOUT) { LOADOUT.open(CNAME[n.cls]); return; }
+      if (n.cls && !n.bot && window.LOADOUT) { LOADOUT.open(CNAME[n.cls], {zombie: !!n.zombie}); return; }
       if (!window.ItemPreview || !ItemPreview.openNpc) return;
       const snd = typeof sfx === 'function' ? sfx : () => {};
       snd('panel_open');
