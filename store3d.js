@@ -214,7 +214,7 @@ void main(){vec3 d=vWPos-org;vec3 lft=normalize(eU),up=normalize(eV);
   const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(26,W/H,1,5000);sc.add(new THREE.HemisphereLight(0xd8d2cc,0x4a3f38,.62));const d=new THREE.DirectionalLight(0xfff4e6,1.25);d.position.set(70,110,150);sc.add(d);
   // faint contact/drop shadow on an invisible floor (shadow-only material), cast by the key light
   r.shadowMap.enabled=true;r.shadowMap.type=THREE.VSMShadowMap;const sl=new THREE.DirectionalLight(0xffffff,0);sl.position.set(45,230,70);sc.add(sl);sl.castShadow=true;sl.shadow.mapSize.set(1024,1024);Object.assign(sl.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:50,far:500});sl.shadow.radius=12;sl.shadow.blurSamples=20;sl.shadow.bias=-.0008;
-  {const fl=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.ShadowMaterial({opacity:.22}));fl.rotation.x=-Math.PI/2;fl.position.y=0;fl.receiveShadow=true;sc.add(fl)}
+  {const fl=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.ShadowMaterial({opacity:.22,depthWrite:false})/* the floor only darkens: it hides nothing behind or under it (the MONOCULUS spell, all additive, floats half below it) */);fl.rotation.x=-Math.PI/2;fl.position.y=0;fl.receiveShadow=true;fl.renderOrder=-1;sc.userData.floor=fl;sc.add(fl)}
 const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);sc.add(d2);
   const warp=getWarp('pyro');
   const fit=42/Math.tan(cam.fov*Math.PI/360)*1.22;cam.position.set(0,43,fit);
@@ -737,6 +737,8 @@ const TCTL={replay:(c,clip)=>{const m=M[c];const n=clip||m&&m.cn;if(m&&n&&m.play
 // the NPC viewer: the character on the page's own renderer, with no merc on screen
 const NPC={};
 async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+1;npcDrop();
+ // a character that floats in the air (MONOCULUS) has no floor under it to shadow
+ {const F=V&&V.sc.userData.floor;if(F)F.visible=!def.nofloor}
  el.appendChild(V.r.domElement);V.r.domElement.style.opacity='';{const w=el.clientWidth||620,h=el.clientHeight||620;V.r.setSize(w,h);V.cam.aspect=w/h;V.cam.updateProjectionMatrix();V.cam.clearViewOffset()}
  if(el.classList.contains('zspfig')){if(!V.storeCam)V.storeCam={fov:V.cam.fov,pos:V.cam.position.clone(),tgt:V.ctl.target.clone(),zoomed:V.zoomed};V.storeZoom=false;V.storeZf=0;V._zfT=0;V.storePan={x:0,y:0};V.cam.fov=40;V.cam.updateProjectionMatrix();V.ctl.enabled=false;spinCtl()}
  else{if(V.storeCam){const S=V.storeCam;V.storeCam=null;if(S.md!=null)V.ctl.minDistance=S.md;V.cam.fov=S.fov;V.cam.updateProjectionMatrix();V.zoomed=S.zoomed}V.ctl.enabled=true}NPC.fr=null;
@@ -763,7 +765,7 @@ function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=n
 async function npcPlay(name){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
  const a=NPC.mx.clipAction(r.clip);a.reset();a.setLoop(THREE.LoopRepeat);if(NPC.act&&NPC.act!==a)a.crossFadeFrom(NPC.act,.2,false);a.play();const first=!NPC.act;NPC.act=a;if(first){NPC.mx.update(0);npcFit()}return true}
 function npcTeam(team){(NPC.meshes||[]).forEach(wm=>{if(wm.userData.eyeE)return;const MI=wm.userData.mi||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P)})}
-function npcDrop(){if(NPC.pfx&&window.ZPFX){ZPFX.unkeep(NPC.pfx);NPC.pfx=null}if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null}
+function npcDrop(){if(NPC.pfx&&window.ZPFX){ZPFX.unkeep(NPC.pfx);NPC.pfx=null}if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null;{const F=typeof V!='undefined'&&V&&V.sc.userData.floor;if(F)F.visible=true}}
 window.Store3D={show:f=>show(f),npc:{show:npcShow,play:npcPlay,team:npcTeam,close:()=>{NPC.tok=(NPC.tok||0)+1;npcDrop()},refit:()=>npcFit(),pause:p=>{if(NPC.act)NPC.act.paused=!!p},_:NPC,state:()=>!NPC.act?'none':NPC.act.paused?'paused':'playing',replay:()=>{if(NPC.act){NPC.act.reset();NPC.act.paused=false;NPC.act.play()}},turn:d=>{if(NPC.g)NPC.g.rotation.y+=d},hasBlu:()=>(NPC.meshes||[]).some(w=>w.userData.mi&&w.userData.mi.blu)},init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;if(isBuster(m))setWeapon(c,'melee',null);lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),nowep:(c,on)=>{const m=M[c];on=!!on;if(!m||!!m._nowep===on)return;m._nowep=on;if(on)setWeapon(c,'melee',null);else if(!isBuster(m)){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}},zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
@@ -1065,12 +1067,15 @@ function KV(t,esc,multi){let i=0;const n=t.length;
   if(c==='"'){const s=++i;if(esc){let v='';while(i<n&&t[i]!=='"'){if(t[i]==='\\'&&i+1<n){const d=t[i+1];v+=d==='n'?'\n':d==='t'?'\t':d;i+=2;continue}v+=t[i++]}i++;return{s:v}}while(i<n&&t[i]!=='"')i++;const v=t.slice(s,i);i++;return{s:v}}
   const s=i;while(i<n&&t.charCodeAt(i)>32&&t[i]!=='{'&&t[i]!=='}'&&t[i]!=='"')i++;return{s:t.slice(s,i)}};
  const cond=v=>!!(v&&v.s!=null&&/^\[!?\$/.test(v.s)&&v.s.slice(-1)===']');
- const block=()=>{const o={};for(;;){let k=tok();if(k===null||k==='}')return o;if(k==='{'){block();continue}
+ const block=pk=>{const o={};for(;;){let k=tok();if(k===null||k==='}')return o;if(k==='{'){block();continue}
   let v=tok();while(cond(v))v=tok();if(v===null)return o;
-  const key=k.s.toLowerCase();let val;if(v==='{')val=block();else if(v==='}'){return o}else val=v.s;
+  const key=k.s.toLowerCase();let val;if(v==='{')val=block(key);else if(v==='}'){return o}else val=v.s;
   // a trailing [$WIN32]-style tag after a value
   {const s0=i;const p=tok();if(!cond(p))i=s0}
-  if(!(key in o))o[key]=val;else if(typeof o[key]=='object'&&typeof val=='object'&&!Array.isArray(o[key]))Object.assign(o[key],val);else if(multi&&typeof val=='string')o[key]=[].concat(o[key],val)}};
+  if(!(key in o))o[key]=val;
+  // a material's Proxies list the same proxy more than once (the HHH's six Sines): each one kept, in order
+  else if(pk==='proxies'&&typeof val=='object')o[key]=[].concat(o[key],[val]);
+  else if(typeof o[key]=='object'&&typeof val=='object'&&!Array.isArray(o[key]))Object.assign(o[key],val);else if(multi&&typeof val=='string')o[key]=[].concat(o[key],val)}};
  return block()}
 const td=new TextDecoder('latin1');
 function text(u8){if(u8[0]===0xff&&u8[1]===0xfe)return new TextDecoder('utf-16le').decode(u8.subarray(2));if(u8[0]===0xef&&u8[1]===0xbb)return new TextDecoder('utf-8').decode(u8.subarray(3));try{return new TextDecoder('utf-8',{fatal:true}).decode(u8)}catch(e){return td.decode(u8)}}
@@ -1272,6 +1277,8 @@ function proxies(k,P){const X=k.proxies;if(!X||typeof X!='object')return;const o
  for(const [n,q] of L){if(!q||typeof q!='object')continue;const rv=String(q.resultvar||'').toLowerCase();
   if(n=='sine'&&rv)out.push({t:'sine',r:rv,p:num(q.sineperiod,1)||1,min:opd(q.sinemin,0),max:opd(q.sinemax,1),o:num(q.timeoffset,0)});
   else if(n=='equals'&&rv&&q.srcvar1!=null)out.push({t:'eq',a:opd(q.srcvar1,0),r:rv});
+  // BurnLevel: how much the entity is burning, 0 for one that isn't (the HHH's fire detail stays off)
+  else if(n=='burnlevel'&&rv)out.push({t:'eq',a:0,r:rv});
   else if(n=='lessorequal'&&rv)out.push({t:'le',a:opd(q.srcvar1,0),b:opd(q.srcvar2,0),le:opd(q.lessequalvar,0),gt:opd(q.greatervar,0),r:rv});
   else if(n=='linearramp'&&rv)out.push({t:'ramp',r:rv,rate:num(q.rate,1),init:num(q.initialvalue,0)});
   else if(n=='texturetransform'&&(!rv||rv=='$basetexturetransform'))out.push({t:'xf',c:String(q.centervar||'$center').toLowerCase(),s:String(q.scalevar||'$scale').toLowerCase(),a:String(q.rotatevar||'$angle').toLowerCase(),tr:String(q.translatevar||'$translate').toLowerCase()});

@@ -3,7 +3,6 @@
    openNpc). Where each appears: the TF2 Wiki and the Valve Developer Community's Halloween bosses page; the Toastmaster
    from koth_synthetic_event.bsp itself (its boss spawner, and its model packed into the map). */
 (() => {
-  const MVM = ['Mann vs. Machine: every MvM map (from the Mann vs. Machine update, 2012)'];
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demo', 'Demoman'], ['heavy', 'Heavy'], ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy']];
   const GIANT = new Set(['scout', 'soldier', 'pyro', 'demo', 'heavy']);
   const TEAM = [['RED', 'RED'], ['BLU', 'BLU']];
@@ -11,47 +10,40 @@
   // ground, swinging, flinching), plus the Sniper's that they borrow for standing and jumping with a melee weapon
   const SKEL = q => (/skeleton_sniper/.test(q.file) && !/layer/i.test(q.name)) || /^ACT_MP_(STAND|JUMP_START|JUMP_FLOAT|JUMP_LAND)_MELEE$/.test(q.act || '');
   const NPCS = [
-    ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM, where: ['Every map and game mode']})),
+    ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM})),
     // Zombie Infection (the zi_ maps): the class with its Voodoo-Cursed soul and no weapon in hand (lo.js), card art from the main menu's zombie renders
-    ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp',
-      where: ['Zombie Infection: Atoll, Blazehattan, Devastation, Murky, Sanitarium and Woods (the zi_ maps)']})),
-    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM, where: MVM})),
-    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM, where: MVM})),
-    {id: 'sentry_buster', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl', where: MVM},
-    {id: 'tank', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', where: MVM},
+    ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp'})),
+    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
+    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
+    {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
+    {id: 'tank', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl'},
     // the HHH carries his axe (c_bigaxe, bonemerged on weapon_bone as headless_hatman.cpp does) in a cloud of ghost_pumpkin; in Carnival of
     // Carnage (sd_doomsday_event) it's the big mallet, and Bonesaw (plr_hacksaw_event) packs its own burnt, headless Hellishly Hollow Horseman
     {id: 'hhh', card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
-      styles: [['Default', {}], ['Necro Smasher', {attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl']}]],
-      where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone and Slasher', 'With the Necro Smasher: Carnival of Carnage (sd_doomsday_event), in Bumper Car Soccer and Falling Platform']},
-    {id: 'hhh_hollow', name: 'Hellishly Hollow Horseman', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman_burnt.mdl', pak: 'plr_hacksaw_event.bsp', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
-      where: ['Bonesaw (plr_hacksaw_event), where the two carts cross']},
-    {id: 'monoculus', card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
+      styles: [['Default', {}], ['Necro Smasher', {attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl']}]]},
+    {id: 'hhh_hollow', card: 'npc_hhh_hollow.webp', name: 'Hellishly Hollow Horseman', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman_burnt.mdl', pak: 'plr_hacksaw_event.bsp', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin'},
+    {id: 'monoculus', nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']]},
     // the spellbook's MONOCULUS!: the same model on its team skins (families 2 and 3: the eye seen through halloween_demoeye_glass_add)
-    {id: 'monoculus_spell', card: 'npc_monoculus.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2, where: ['Summoned by the MONOCULUS! Halloween spell, on the Halloween maps']},
-    {id: 'merasmus', card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0, where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
-    {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Helltower (Scream Fortress 2013)']},
-    {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
+    {id: 'monoculus_spell', nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2},
+    {id: 'merasmus', card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0},
+    {id: 'skeleton', card: 'npc_skeleton.webp', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2},
+    {id: 'skeleton_king', card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2},
     // Spineyard's mobsters (pl_spineyard's mobster.nut): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
-    {id: 'skeleton_mobster', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name), fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Spineyard (pl_spineyard)']},
+    {id: 'skeleton_mobster', card: 'npc_skeleton_mobster.webp', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name), fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2},
     // Slime's Salmann (koth_slime's salmann.nut: salmann.mdl packed in the map, standing and running with stand_MELEE / run_MELEE)
-    {id: 'salmann', name: 'Salmann', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/props_brine/salmann.mdl', pak: 'koth_slime.bsp', idle: 'stand_melee', run: 'run_melee', where: ['Slime (koth_slime), out of the water once the point is captured']},
+    {id: 'salmann', card: 'npc_salmann.webp', name: 'Salmann', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/props_brine/salmann.mdl', pak: 'koth_slime.bsp', idle: 'stand_melee', run: 'run_melee'},
     // Farmageddon's scarecrows: reskinned skeletons, models/bots/farmageddon/scarecrow.mdl packed in pd_farmageddon
-    {id: 'scarecrow', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL, where: ['Farmageddon (pd_farmageddon), while the pumpkin is awake']},
+    {id: 'scarecrow', card: 'npc_scarecrow.webp', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL},
     // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
-    {id: 'ghost', name: 'Ghost', group: 'Halloween', level: 'Halloween Hazard', mdl: 'models/props_halloween/ghost.mdl', styles: [['Default', {}], ['Hatless', {mdl: 'models/props_halloween/ghost_no_hat.mdl'}]],
-      where: ['Harvest Event (Haunted Hallowe\u2019en Special, 2010), where ghosts first appeared', 'Also on many later Halloween maps: Eyeaduct, Ghost Fort, Hellstone, Helltower and others']},
-    {id: 'dutchman', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp', where: ['Cursed Cove (pd_cursed_cove_event): the giant green pirate ghost on the sunken ship, the map’s announcer, with the Flying Dutchman sailing past']},
+    {id: 'ghost', card: 'npc_ghost.webp', name: 'Ghost', group: 'Halloween', level: 'Halloween Hazard', mdl: 'models/props_halloween/ghost.mdl', styles: [['Default', {}], ['Hatless', {mdl: 'models/props_halloween/ghost_no_hat.mdl'}]]},
+    {id: 'dutchman', card: 'npc_dutchman.webp', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     // Krampus (Smissmas 2023): koth_krampus packs his model and the VScript that walks him round (krampus_idle, krampus_run)
-    {id: 'krampus', card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run', where: ['Krampus (koth_krampus)']},
-    {id: 'saxton', card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
-      where: ['Versus Saxton Hale: Distillery, Nucleus, Skirmish and Tinyrock (vsh_distillery, vsh_nucleus, vsh_skirmish, vsh_tinyrock)']},
+    {id: 'krampus', card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run'},
+    {id: 'saxton', card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp'},
     // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
-    {id: 'santa_hale', card: 'npc_santa_hale.webp', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp',
-      where: ['Versus Saxton Hale: Maul (vsh_maul), the Smissmas map']},
-    {id: 'hell_hale', card: 'npc_hell_hale.webp', name: 'Hellfire Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
-      where: ['Versus Saxton Hale: Outburst (vsh_outburst), the Halloween map']},
-    {id: 'toastmaster', card: 'npc_toastmaster.webp', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
+    {id: 'santa_hale', card: 'npc_santa_hale.webp', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp'},
+    {id: 'hell_hale', card: 'npc_hell_hale.webp', name: 'Hellfire Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp'},
+    {id: 'toastmaster', card: 'npc_toastmaster.webp', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL},
   ];
   // the merc cards from Chickenman's TF2 UI redesign (Items > Mercs), the same markup and styles: class render cropped to head and
   // shoulders (CARDP: left, top, scale fitted to the Figma cards), the class emblem behind, role top right, name bottom left.
@@ -66,10 +58,10 @@
   const W = 'https://wiki.teamfortress.com/wiki/';
   // each character's TF2 Wiki page and a line from it (Characters > a card > the right-hand details)
   const WIKI = {merc: c => W + CNAME[c], zombie: () => W + 'Zombie_Infection', bot: c => W + CNAME[c] + '_Robot', giant: () => W + 'Robots#Giant_Robots',
-    sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Bonesaw_(map)#Hellishly_Hollow_Horseman',
-    monoculus: W + 'MONOCULUS', monoculus_spell: W + 'Magic_spells', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
+    sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Horseless_Headless_Horsemann',
+    monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
     skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
-    santa_hale: W + 'Maul_(map)', hell_hale: W + 'Outburst', toastmaster: W + 'Sinthetic#Toastmaster'};
+    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster'};
   const DESC = {
     scout: 'A fast-running scrapper from Boston with a baseball bat and a snarky attitude: the fastest mercenary, with a double jump, but the lowest health.',
     soldier: 'A crazed patriot from the American Midwest who calls himself a military man despite being rejected by the US Army. Versatile, and able to rocket jump.',
@@ -103,10 +95,31 @@
     hell_hale: 'The Saxton Hale of Outburst, a Versus Saxton Hale map in a forest in hell: \u201cCEO of Hell\u201d.',
     toastmaster: 'A reskin of the Skeleton King with 5000 health, who appears on top of Sinthetic\u2019s main control point.',
   };
+  // where each appears: the maps, by the names the game gives them, each linked to its TF2 Wiki page (MAPW: the page's title when it isn't the
+  // map's name). From the wiki pages' infoboxes (the bosses, skeletons and ghosts) and the maps' own files (the map-packed characters)
+  const MAPW = {'Big Rock': 'Bigrock', 'Nucleus': 'Nucleus_VSH', 'Brimstone': 'Brimstone_(map)', 'Bonesaw': 'Bonesaw_(map)', 'Maul': 'Maul_(map)', 'All Halloween maps': 'Halloween_map'};
+  const SKMAPS = ['Bloodwater', 'Brimstone', 'Cauldron', 'Erebus', 'Ghoulpit', 'Gorge Event', 'Gravestone', 'Graveyard', 'Hassle Castle', 'Hellstone', 'Helltower', 'Los Muertos', 'Precipice', 'Slasher', 'Terror'];
+  const MVMMAPS = ['Big Rock', 'Coal Town', 'Decoy', 'Ghost Town', 'Mannhattan', 'Mannworks', 'Rottenburg'];
+  const WHERE = {
+    merc: ['All maps'], zombie: ['Atoll', 'Blazehattan', 'Devastation', 'Murky', 'Sanitarium', 'Woods'],
+    bot: MVMMAPS, giant: MVMMAPS, sentry_buster: MVMMAPS, tank: MVMMAPS.filter(m => m !== 'Mannhattan'),
+    hhh: ['Mann Manor', 'Carnival of Carnage', 'Hellstone', 'Brimstone', 'Gravestone', 'Slasher'], hhh_hollow: ['Bonesaw'],
+    monoculus: ['Eyeaduct', 'Hellstone', 'Brimstone', 'Gravestone', 'Slasher', 'Bloodwater'], monoculus_spell: ['All Halloween maps'],
+    merasmus: ['Ghost Fort', 'Brimstone', 'Gravestone', 'Slasher'],
+    // the wiki's list less the maps with their own reskins (Farmageddon's scarecrows, Sinthetic's Toastmaster, Slime's Salmann, Spineyard's mobsters);
+    // a King comes with a group of skeletons, so the same maps
+    skeleton: SKMAPS, skeleton_king: SKMAPS,
+    skeleton_mobster: ['Spineyard'], salmann: ['Slime'], scarecrow: ['Farmageddon'],
+    ghost: ['Harvest Event', 'Brimstone', 'Erebus', 'Eyeaduct', 'Gravestone', 'Ghoulpit', 'Ghost Fort', 'Hellstone', 'Helltower', 'Moonshine Event', 'Precipice', 'Slasher', 'Terror'],
+    dutchman: ['Cursed Cove'], krampus: ['Krampus'], saxton: ['Distillery', 'Nucleus', 'Skirmish', 'Tiny Rock'], santa_hale: ['Maul'], hell_hale: ['Outburst'], toastmaster: ['Sinthetic'],
+  };
+  const mapUrl = m => m === 'All maps' ? null : W + (MAPW[m] || m.replace(/ /g, '_'));
   NPCS.forEach(n => {
+    if (n.id === 'bot_engineer') n.card = 'npc_bot_engineer.webp';   // the main menu has no Engineer Robot render
     const k = n.id.startsWith('merc_') ? 'merc' : n.id.startsWith('zombie_') ? 'zombie' : n.id.startsWith('bot_') ? 'bot' : n.id.startsWith('giant_') ? 'giant' : n.id;
     const w = WIKI[k]; n.wiki = typeof w === 'function' ? w(n.cls) : w;
     n.desc = DESC[k === 'merc' ? n.cls : k];
+    n.where = (WHERE[k] || []).map(m => [m, mapUrl(m)]);
   });
   const CARD = f => (window.ZCARDS && ZCARDS[f]) || 'ui/cards/' + f;
   function card(n) {
@@ -125,6 +138,8 @@
   const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const css = document.createElement('style');
   css.textContent = `
+.spv-maps a{color:inherit;text-decoration:underline;text-decoration-color:#766B5E;text-underline-offset:2px}
+.spv-maps a:hover{color:#ffb84d;text-decoration-color:currentColor}
 .npcgrid{display:grid;grid-template-columns:repeat(auto-fill,196px);gap:16px 18px;justify-content:center;padding:8px 0 22px}
 .npcc{position:relative;width:196px;height:99px}
 .npcgrid .zcc{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(.55)}
