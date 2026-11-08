@@ -22,15 +22,14 @@
     // the HHH carries his axe (c_bigaxe, bonemerged on weapon_bone as headless_hatman.cpp does) in a cloud of ghost_pumpkin; in Carnival of
     // Carnage (sd_doomsday_event) it's the big mallet, and Bonesaw (plr_hacksaw_event) packs its own burnt, headless Hellishly Hollow Horseman
     {id: 'hhh', card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
-      where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone and Slasher']},
-    {id: 'hhh_mallet', card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann (Necro Smasher)', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl'], pfx: 'ghost_pumpkin',
-      where: ['Carnival of Carnage (sd_doomsday_event): Bumper Car Soccer and Falling Platform']},
+      styles: [['Default', {}], ['Necro Smasher', {attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl']}]],
+      where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone and Slasher', 'With the Necro Smasher: Carnival of Carnage (sd_doomsday_event), in Bumper Car Soccer and Falling Platform']},
     {id: 'hhh_hollow', name: 'Hellishly Hollow Horseman', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman_burnt.mdl', pak: 'plr_hacksaw_event.bsp', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
       where: ['Bonesaw (plr_hacksaw_event), where the two carts cross']},
     {id: 'monoculus', card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
     // the spellbook's MONOCULUS!: the same model on its team skins (families 2 and 3: the eye seen through halloween_demoeye_glass_add)
     {id: 'monoculus_spell', card: 'npc_monoculus.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2, where: ['Summoned by the MONOCULUS! Halloween spell, on the Halloween maps']},
-    {id: 'merasmus', card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
+    {id: 'merasmus', card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0, where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
     {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     // Spineyard's mobsters (pl_spineyard's mobster.nut): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
@@ -43,7 +42,7 @@
     // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
     {id: 'santa_hale', card: 'npc_santa_hale.webp', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp',
       where: ['Versus Saxton Hale: Maul (vsh_maul), the Smissmas map']},
-    {id: 'hell_hale', card: 'npc_hell_hale.webp', name: 'Hell Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
+    {id: 'hell_hale', card: 'npc_hell_hale.webp', name: 'Hellfire Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
       where: ['Versus Saxton Hale: Outburst (vsh_outburst), the Halloween map']},
     {id: 'toastmaster', card: 'npc_toastmaster.webp', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
   ];
@@ -57,6 +56,48 @@
   // the robot renders placed the same way: head near the card's middle, at the size the class's merc render is drawn
   const BOTP = {"scout": [-49.8, 6.0, 1.3362], "soldier": [-43.7, 6.0, 1.0265], "pyro": [-135.0, 6.0, 1.1404], "demo": [-99.2, 6.0, 1.16], "heavy": [-208.9, 6.0, 1.2684], "medic": [-3.7, 6.0, 1.0784], "sniper": [-18.7, 6.0, 0.9065], "spy": [36.0, 6.0, 1.0841]};
   const CNAME = Object.fromEntries(CLS.map(([s, n]) => [s, n]));
+  const W = 'https://wiki.teamfortress.com/wiki/';
+  // each character's TF2 Wiki page and a line from it (Characters > a card > the right-hand details)
+  const WIKI = {merc: c => W + CNAME[c], zombie: () => W + 'Zombie_Infection', bot: c => W + CNAME[c] + '_Robot', giant: () => W + 'Robots#Giant_Robots',
+    sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Bonesaw_(map)#Hellishly_Hollow_Horseman',
+    monoculus: W + 'MONOCULUS', monoculus_spell: W + 'Magic_spells', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
+    skeleton_mobster: W + 'Spineyard', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
+    santa_hale: W + 'Maul_(map)', hell_hale: W + 'Outburst', toastmaster: W + 'Sinthetic#Toastmaster'};
+  const DESC = {
+    scout: 'A fast-running scrapper from Boston with a baseball bat and a snarky attitude: the fastest mercenary, with a double jump, but the lowest health.',
+    soldier: 'A crazed patriot from the American Midwest who calls himself a military man despite being rejected by the US Army. Versatile, and able to rocket jump.',
+    pyro: 'A pyromaniac of indeterminate origin with a muffled voice, who fights up close with a homemade Flame Thrower and may see the world as Pyroland.',
+    demo: 'A scrumpy-swilling demolitions expert from Ullapool, Scotland, dealing explosive damage with his Grenade Launcher and Stickybomb Launcher.',
+    heavy: 'A towering man from the USSR, short for Heavy Weapons Guy: the most health and the Minigun\u2019s firepower, but the slowest class.',
+    engineer: 'A soft-spoken Texan from Bee Cave who builds and maintains the Sentry Gun, Dispenser and Teleporters for his team.',
+    medic: 'A German doctor of questionable practices from Stuttgart, and the only class with a steady source of healing, the Medi Gun.',
+    sniper: 'A crack-shot from New Zealand, raised in the Australian outback, who picks off targets from afar with headshots from his Sniper Rifle.',
+    spy: 'A Frenchman with sharp suits and sharper knives, who cloaks, feigns death and disguises as any class to get behind enemy lines.',
+    zombie: 'Zombie Infection is a community-made game mode in which the RED survivors hold out against BLU\u2019s undead hordes.',
+    bot: 'The robots are the enemies of Mann vs. Machine, built by Gray Mann to destroy everything made by Mann Co.',
+    giant: 'Giant Robots are larger, with far more health, but move at half speed and resist knockback.',
+    sentry_buster: 'A robot sent in Mann vs. Machine when a Sentry Gun has done too much damage: it heads for that Sentry and blows itself up.',
+    tank: 'A huge, durable bomb-carrying machine that travels its path to the bomb hatch in Mann vs. Machine. It can\u2019t attack.',
+    hhh: 'The undead form of Silas Mann: a neutral boss on the Halloween maps who hunts players from both teams. In Carnival of Carnage he carries the Necro Smasher.',
+    hhh_hollow: 'A burning version of the Horsemann that sometimes spawns on Bonesaw where both carts cross paths.',
+    monoculus: 'The RED Demoman\u2019s missing eye, haunted and grown to monstrous size by the Bombinomicon, summoned by Merasmus.',
+    monoculus_spell: 'A ghostly, team-coloured MONOCULUS summoned by the magic spell, which attacks the enemy team.',
+    merasmus: 'Merasmus the Magician, the Soldier\u2019s long-suffering former roommate: the boss of Ghost Fort and the host of Carnival of Carnage.',
+    skeleton: 'Skeletons spawn on the Halloween maps: green ones attack either team, team-coloured ones are summoned by a spell.',
+    skeleton_king: 'The crown-wearing Skeleton King, with 1000 health, drops a Rare Magic Spell when destroyed.',
+    skeleton_mobster: 'Spineyard\u2019s undead mafia: skeletons in fancy suits with Tommy guns, who shoot at both teams and drop a spell when defeated.',
+    dutchman: 'Davy Jones is the announcer of Cursed Cove.',
+    krampus: 'The boss of the Krampus map: he roams the town centre, and must be killed to unlock the control point.',
+    saxton: 'The daring Australian, former President and CEO of Mann Co., and the playable boss of Versus Saxton Hale.',
+    santa_hale: 'The holiday-themed Saxton Hale of Maul, a Versus Saxton Hale map set in a mall at Smissmas.',
+    hell_hale: 'The Saxton Hale of Outburst, a Versus Saxton Hale map in a forest in hell: \u201cCEO of Hell\u201d.',
+    toastmaster: 'A reskin of the Skeleton King with 5000 health, who appears on top of Sinthetic\u2019s main control point.',
+  };
+  NPCS.forEach(n => {
+    const k = n.id.startsWith('merc_') ? 'merc' : n.id.startsWith('zombie_') ? 'zombie' : n.id.startsWith('bot_') ? 'bot' : n.id.startsWith('giant_') ? 'giant' : n.id;
+    const w = WIKI[k]; n.wiki = typeof w === 'function' ? w(n.cls) : w;
+    n.desc = DESC[k === 'merc' ? n.cls : k];
+  });
   const CARD = f => (window.ZCARDS && ZCARDS[f]) || 'ui/cards/' + f;
   function card(n) {
     const c = n.cls && !n.noart ? CNAME[n.cls] : null; let art = '';
@@ -102,11 +143,11 @@
     open(id){
       const n = NPCS.find(x => x.id === id); if (!n) return;
       // a mercenary opens the game's class loadout screen (lo.js); the robots and the others the character viewer
-      if (n.cls && !n.bot && window.LOADOUT) { LOADOUT.open(CNAME[n.cls], {zombie: !!n.zombie}); return; }
+      if (n.cls && !n.bot && window.LOADOUT) { LOADOUT.open(CNAME[n.cls], {zombie: !!n.zombie, wiki: n.wiki, desc: n.desc, name: n.name}); return; }
       if (!window.ItemPreview || !ItemPreview.openNpc) return;
       const snd = typeof sfx === 'function' ? sfx : () => {};
       snd('panel_open');
-      ItemPreview.openNpc({name: n.name, level: n.level, where: n.where, def: n, esc: E, sfx: snd, close: () => snd('panel_close'),
+      ItemPreview.openNpc({name: n.name, level: n.level, where: n.where, wiki: n.wiki, desc: n.desc, def: n, esc: E, sfx: snd, close: () => snd('panel_close'),
         link: typeof linkGame === 'function' ? linkGame : null});
     },
   };

@@ -4,8 +4,10 @@
 // Coordinates follow vgui_controls/Panel.cpp (ComputeWide/ComputeTall/ComputePos) with proportional scaling
 // YRES(v) = v * screenTall / 480. Screen is the 1920x1080 stage.
 (function(){
-const SW=1920,SH=1080,K=SH/480;
+let SW=1920;const SH=1080,K=SH/480;
 const VG=window.VG={K,SW,SH,data:null};
+// the screen's width (the height stays 1080): a page laid out for a wider or narrower window than 16:9, as the game lays out its own
+VG.setScreenW=w=>{SW=VG.SW=w};
 const YRES=v=>v*K;VG.YRES=YRES;
 let SCH={c:{},f:{},b:{}},LOC={},IMG={};
 VG.load=async function(url){const d=await (await fetch(url)).json();VG.data=d;SCH=d.scheme;LOC=d.loc;IMG=d.img;return d};
@@ -114,16 +116,18 @@ P.prototype.layout=function(){
 function borderCss(name){const b=SCH.b[String(name||'').toLowerCase()];if(!b)return null;
  if(b.bordertype=='scalable_image'){const u=VG.imgUrl(b.image);if(!u)return null;const m=VG.imgMeta(b.image)||{w:256,h:256};
   const src=+b.src_corner_width||8,dw=YRES(+b.draw_corner_width||4);
-  return{img:u,slice:Math.round(src*(m.w>1024?1024/m.w:1)),w:dw,bg:b.backgroundtype=='2'}}
+  const tc=b.color?rgba(b.color):null;return{img:u,slice:Math.round(src*(m.w>1024?1024/m.w:1)),w:dw,bg:b.backgroundtype=='2',col:tc&&(tc[0]<255||tc[1]<255||tc[2]<255)?tc:null}}
  const side=k=>{const l=b[k];if(!l||!l.length)return null;return rgba(l[0].color)};
  return{lines:{l:side('left'),r:side('right'),t:side('top'),b:side('bottom')}}}
 VG.borderCss=borderCss;
 const NIMG={};const nimg=u=>NIMG[u]||(NIMG[u]=new Promise(ok=>{const im=new Image();im.onload=()=>ok(im);im.onerror=()=>ok(null);im.src=u}));
-function nine(cv,bc,w,h){if(w<=0||h<=0)return;const key=bc.img+'|'+w+'|'+h+'|'+bc.w+'|'+bc.slice+'|'+bc.bg;if(cv._k===key)return;cv._k=key;cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';
+function nine(cv,bc,w,h){if(w<=0||h<=0)return;const key=bc.img+'|'+w+'|'+h+'|'+bc.w+'|'+bc.slice+'|'+bc.bg+'|'+bc.col;if(cv._k===key)return;cv._k=key;cv.width=w;cv.height=h;cv.style.width=w+'px';cv.style.height=h+'px';
  nimg(bc.img).then(im=>{if(!im||cv._k!==key)return;const g=cv.getContext('2d');g.clearRect(0,0,w,h);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
   const k=im.naturalWidth/((VG.imgMeta&&0)||im.naturalWidth),S=bc.slice,iw=im.naturalWidth,ih=im.naturalHeight,s=Math.min(S,iw/2,ih/2),d=Math.max(1,Math.min(Math.round(bc.w),Math.floor(w/2),Math.floor(h/2)));
   const sx=[0,s,iw-s,iw],sy=[0,s,ih-s,ih],dx=[0,d,w-d,w],dy=[0,d,h-d,h];
-  for(let r=0;r<3;r++)for(let c=0;c<3;c++){if(r==1&&c==1&&!bc.bg)continue;const sw=sx[c+1]-sx[c],sh=sy[r+1]-sy[r],dw=dx[c+1]-dx[c],dh=dy[r+1]-dy[r];if(sw>0&&sh>0&&dw>0&&dh>0)g.drawImage(im,sx[c],sy[r],sw,sh,dx[c],dy[r],dw,dh)}})}
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++){if(r==1&&c==1&&!bc.bg)continue;const sw=sx[c+1]-sx[c],sh=sy[r+1]-sy[r],dw=dx[c+1]-dx[c],dh=dy[r+1]-dy[r];if(sw>0&&sh>0&&dw>0&&dh>0)g.drawImage(im,sx[c],sy[r],sw,sh,dx[c],dy[r],dw,dh)}
+  // a border's "color" (ScalableImageBorder m_Color) tints the image as DrawSetColor does: each pixel's colour times it, alpha kept
+  if(bc.col){const D=g.getImageData(0,0,w,h),q=D.data,c=bc.col;for(let i=0;i<q.length;i+=4){q[i]=q[i]*c[0]/255;q[i+1]=q[i+1]*c[1]/255;q[i+2]=q[i+2]*c[2]/255}g.putImageData(D,0,0)}})}
 P.prototype.fg=function(){const p=this.p,s=this.st;if(this.o.fg)return this.o.fg;
  if(this.isButton()){if(!s.enabled&&p.disabledfgcolor2_override)return rgba(p.disabledfgcolor2_override);
   if(s.depressed&&p.depressedfgcolor_override)return rgba(p.depressedfgcolor_override);

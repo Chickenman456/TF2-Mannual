@@ -76,12 +76,19 @@
   }
 
   // ---- the right-hand details (CTFStorePreviewItemPanel2::PreviewItem + the PlaceControl chain) ----
+  // a character's rows: its level, its line from the TF2 Wiki, where it appears, the keys, and its wiki page
+  function charRows(o, keys) {
+    const E = o.esc;
+    return (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
+      + (o.desc ? `<div class="spv-attrs big"><div>${E(o.desc)}</div></div>` : '')
+      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div>${(o.where || []).map(w => `<div>${E(w)}</div>`).join('')}</div>`
+      + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>${E(keys)}</div></div>`
+      + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '');
+  }
   function details() {
     const o = ST.o, E = o.esc, rows = [];
     if (ST.char) {   // a character: where it appears and the keys that play it, no item rows
-      ST.el.querySelector('.spv-rows').innerHTML = (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
-        + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div>${(o.where || []).map(w => `<div>${E(w)}</div>`).join('')}</div>`
-        + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>W run, Ctrl crouch, F fire, G taunt, 1-3 weapons</div></div>`;
+      ST.el.querySelector('.spv-rows').innerHTML = charRows(o, 'W run, Ctrl crouch, F fire, G taunt, 1-3 weapons');
       return;
     }
     const lab = (a, b, cls, extra) => `<div class="spv-row ${cls || ''}"><span class="k${extra || ''}">${a}</span><span class="v${extra || ''}">${b}</span></div>`;
@@ -427,7 +434,8 @@
     const old = ST.el.querySelector('.spv-menu'); if (old) old.remove();
     FS = {ov, f, ui: ov.querySelector('.ui')};
     ov.style.setProperty('--u', '2.6px');
-    ov.querySelector('[data-spv=options]').hidden = ST.state !== 'player' || !paintable();
+    ov.querySelector('[data-spv=options]').hidden = ST.npc || ST.state !== 'player' || !paintable();
+    if (ST.npc && !ST.el.querySelector('.spv-team')) ov.querySelectorAll('[data-spt]').forEach(b => b.remove());
     ST.el.querySelectorAll('.spv-styles').forEach(b => FS.ui.appendChild(b)); placeBars();
     const V = Store3D.V; if (V) { V.storeFS = true; V.storeApply(CNAME[ST.cls]); }
     sizeFig(f); requestAnimationFrame(() => { sizeFig(f); ov.classList.add('on'); });
@@ -444,7 +452,7 @@
     const mp = ST && ST.el.querySelector('.spv-model');
     if (mp) { mp.insertBefore(f, mp.querySelector('.spv-note')); sizeFig(f); } else f.remove();
     ov.remove();
-    const V = window.Store3D && Store3D.V; if (V) { V.storeFS = false; if (ST && ST.cls) V.storeApply(CNAME[ST.cls]); }
+    const V = window.Store3D && Store3D.V; if (V) { V.storeFS = false; if (ST && (ST.cls || ST.npc)) V.storeApply(CNAME[ST.cls]); }
   }
   function sizeFig(f) {
     const V = window.Store3D && Store3D.V; if (!V || !f.contains(V.r.domElement)) return;
@@ -475,7 +483,7 @@
     if (t.closest('.spv-styles')) return;
     const old = R().querySelector('.spv-menu'); if (old && !t.closest('[data-spv=options]')) old.remove();
     const tb = t.closest('[data-spt]');
-    if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); if (ST.state === 'player') dress(); return; }
+    if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); if (ST.npc) Store3D.npc.team(ST.team); else if (ST.state === 'player') dress(); return; }
     const c = t.closest('[data-spc]');
     if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = null; if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
     const a = t.closest('[data-spv]'); if (!a) return;
@@ -636,7 +644,7 @@
   // weapons, the keys: W runs, Ctrl crouches, F fires, G taunts, 1-3 switch weapons), with the robot body / giant / buster over it
   function openChar(o) {
     const d = o.def, cn = d.cls === 'demo' ? 'demoman' : d.cls;
-    open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, where: o.where, esc: o.esc, sfx: o.sfx, close: o.close,
+    open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
       robot: d.bot ? (d.robot || (/_boss\//.test(d.mdl) ? d.mdl : 'bot')) : false, wish: {on: () => false, toggle() {}}});
     ST.el.querySelectorAll('[data-spv=wish]').forEach(x => x.remove());
     return true;
@@ -651,17 +659,17 @@
     el.innerHTML = markup(o);
     document.body.appendChild(el);
     ST = {o, el, u: 2, npc: true, state: 'npc', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
-    ['.spv-icons', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=full]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
+    ['.spv-icons', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
     const sk = o.def.skins || null, teamUI = el.querySelector('.spv-team');
     if (!sk || !(sk[0][0] === 'RED' && sk[1] && sk[1][0] === 'BLU')) teamUI.remove();
     const E = o.esc;
-    el.querySelector('.spv-rows').innerHTML = (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
-      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div>${o.where.map(w => `<div>${E(w)}</div>`).join('')}</div>`
-      + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>W run</div></div>`;
+    el.querySelector('.spv-rows').innerHTML = charRows(o, 'W run');
     el.addEventListener('pointerdown', onDown);
     const bar = (cls, label) => { const b = document.createElement('label'); b.className = 'spv-styles pl ' + cls; b.innerHTML = `<span>${E(label)}</span><select aria-label="${E(label)}"></select>`; el.querySelector('.spv-frame').appendChild(b); return b.querySelector('select'); };
     let skin = null, fam = null;
     if (sk && !el.querySelector('.spv-team')) { skin = bar('', 'Skin'); skin.innerHTML = sk.map(([l, t]) => `<option value="${E(t)}">${E(l)}</option>`).join(''); skin.onchange = () => { o.sfx('buttonclick'); Store3D.npc.team(skin.value); }; }
+    let sty = null;
+    if (o.def.styles) { sty = bar('', 'Style'); sty.innerHTML = o.def.styles.map(([l], i) => `<option value="${i}">${E(l)}</option>`).join(''); }
     if (o.def.fam) { fam = bar('', 'Skin'); fam.innerHTML = o.def.fam.map(([l, i]) => `<option value="${i}">${E(l)}</option>`).join(''); fam.value = String(o.def.skin); }
     el.addEventListener('click', e => {
       if (!ST || ST.el !== el) return;
@@ -669,6 +677,7 @@
       const a = e.target.closest('[data-spv]'); if (!a) return; const k = a.dataset.spv;
       if (k === 'close') { close(); return; }
       o.sfx('buttonclick');
+      if (k === 'full') fullscreen();
     });
     addEventListener('keydown', onKey, true); addEventListener('resize', layout);
     teamSel(); layout(); setTimeout(layout, 60); placeBars();
@@ -699,7 +708,9 @@
         sizeFig(f);
       }).catch(e => { console.warn('[NPC]', e); if (ST === st0) setNote('Couldn’t load ' + o.name + ' from your TF2 files' + (e && e.message ? ': ' + e.message : '') + '.', true); });
     };
-    if (fam) fam.onchange = () => { o.sfx('buttonclick'); load({...o.def, skin: +fam.value}); };
+    const cur = () => ({...o.def, ...(sty ? o.def.styles[+sty.value][1] : {}), ...(fam ? {skin: +fam.value} : {})});
+    if (fam) fam.onchange = () => { o.sfx('buttonclick'); load(cur()); };
+    if (sty) sty.onchange = () => { o.sfx('buttonclick'); load(cur()); };
     load(o.def);
     return true;
   }
