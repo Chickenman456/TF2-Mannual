@@ -34,6 +34,13 @@
     {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     // Spineyard's mobsters (pl_spineyard's mobster.nut): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
     {id: 'skeleton_mobster', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name), fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Spineyard (pl_spineyard)']},
+    // Slime's Salmann (koth_slime's salmann.nut: salmann.mdl packed in the map, standing and running with stand_MELEE / run_MELEE)
+    {id: 'salmann', name: 'Salmann', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/props_brine/salmann.mdl', pak: 'koth_slime.bsp', idle: 'stand_melee', run: 'run_melee', where: ['Slime (koth_slime), out of the water once the point is captured']},
+    // Farmageddon's scarecrows: reskinned skeletons, models/bots/farmageddon/scarecrow.mdl packed in pd_farmageddon
+    {id: 'scarecrow', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL, where: ['Farmageddon (pd_farmageddon), while the pumpkin is awake']},
+    // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
+    {id: 'ghost', name: 'Ghost', group: 'Halloween', level: 'Halloween Hazard', mdl: 'models/props_halloween/ghost.mdl', styles: [['Default', {}], ['Hatless', {mdl: 'models/props_halloween/ghost_no_hat.mdl'}]],
+      where: ['Harvest Event (Haunted Hallowe\u2019en Special, 2010), where ghosts first appeared', 'Also on many later Halloween maps: Eyeaduct, Ghost Fort, Hellstone, Helltower and others']},
     {id: 'dutchman', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp', where: ['Cursed Cove (pd_cursed_cove_event): the giant green pirate ghost on the sunken ship, the map’s announcer, with the Flying Dutchman sailing past']},
     // Krampus (Smissmas 2023): koth_krampus packs his model and the VScript that walks him round (krampus_idle, krampus_run)
     {id: 'krampus', card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run', where: ['Krampus (koth_krampus)']},
@@ -61,7 +68,7 @@
   const WIKI = {merc: c => W + CNAME[c], zombie: () => W + 'Zombie_Infection', bot: c => W + CNAME[c] + '_Robot', giant: () => W + 'Robots#Giant_Robots',
     sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Bonesaw_(map)#Hellishly_Hollow_Horseman',
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'Magic_spells', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
-    skeleton_mobster: W + 'Spineyard', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
+    skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
     santa_hale: W + 'Maul_(map)', hell_hale: W + 'Outburst', toastmaster: W + 'Sinthetic#Toastmaster'};
   const DESC = {
     scout: 'A fast-running scrapper from Boston with a baseball bat and a snarky attitude: the fastest mercenary, with a double jump, but the lowest health.',
@@ -86,6 +93,9 @@
     skeleton: 'Skeletons spawn on the Halloween maps: green ones attack either team, team-coloured ones are summoned by a spell.',
     skeleton_king: 'The crown-wearing Skeleton King, with 1000 health, drops a Rare Magic Spell when destroyed.',
     skeleton_mobster: 'Spineyard\u2019s undead mafia: skeletons in fancy suits with Tommy guns, who shoot at both teams and drop a spell when defeated.',
+    salmann: 'The Salmann leave the water on Slime once either team captures the point, and attack every player, soaking them in slime.',
+    scarecrow: 'Reskinned skeletons that spawn on Farmageddon while the giant pumpkin is awake, and drop Weed Killer when they die.',
+    ghost: 'The haunting promised by Zepheniah Mann: a glowing sheeted ghost, often in a Ghastly Gibus, that drifts along set routes and scares players it gets close to.',
     dutchman: 'Davy Jones is the announcer of Cursed Cove.',
     krampus: 'The boss of the Krampus map: he roams the town centre, and must be killed to unlock the control point.',
     saxton: 'The daring Australian, former President and CEO of Mann Co., and the playable boss of Versus Saxton Hale.',
