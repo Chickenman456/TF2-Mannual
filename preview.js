@@ -79,12 +79,17 @@
   // a character's rows: its level, its line from the TF2 Wiki, where it appears, the keys, and its wiki page
   function charRows(o, keys) {
     const E = o.esc;
+    const maps = L => (L || []).map(w => { const [m, u] = Array.isArray(w) ? w : [w, null];
+      return u ? `<a href="${E(u)}" target="_blank" rel="noopener">${E(m)}</a>` : `<span>${E(m)}</span>`; }).join(', ');
+    // the description: an official quote, and whose words they are
+    const d = o.desc ? (Array.isArray(o.desc) ? o.desc : [o.desc, '']) : null;
     return (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
-      + (o.desc ? `<div class="spv-attrs big"><div>${E(o.desc)}</div></div>` : '')
-      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div><div class="spv-maps">${(o.where || []).map(w => { const [m, u] = Array.isArray(w) ? w : [w, null];
-        return u ? `<a href="${E(u)}" target="_blank" rel="noopener">${E(m)}</a>` : `<span>${E(m)}</span>`; }).join(', ')}</div></div>`
+      + (d ? `<div class="spv-attrs big"><div>\u201c${E(d[0])}\u201d</div>${d[1] ? `<div style="color:#766B5E">\u2014 ${E(d[1])}</div>` : ''}</div>` : '')
       + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>${E(keys)}</div></div>`
-      + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '');
+      + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '')
+      // the maps last, since a merc's list is every map in the game
+      + (o.first && o.first.length ? `<div class="spv-attrs big"><div style="color:#766B5E">First appearance:</div><div class="spv-maps">${maps(o.first)}</div></div>` : '')
+      + (o.where && o.where.length ? `<div class="spv-attrs big"><div style="color:#766B5E">${o.first && o.first.length ? 'Also appears in:' : 'Appears in:'}</div><div class="spv-maps">${maps(o.where)}</div></div>` : '');
   }
   function details() {
     const o = ST.o, E = o.esc, rows = [];
@@ -645,7 +650,7 @@
   // weapons, the keys: W runs, Ctrl crouches, F fires, G taunts, 1-3 switch weapons), with the robot body / giant / buster over it
   function openChar(o) {
     const d = o.def, cn = d.cls === 'demo' ? 'demoman' : d.cls;
-    open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
+    open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, first: o.first, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
       robot: d.bot ? (d.robot || (/_boss\//.test(d.mdl) ? d.mdl : 'bot')) : false, wish: {on: () => false, toggle() {}}});
     ST.el.querySelectorAll('[data-spv=wish]').forEach(x => x.remove());
     return true;
@@ -664,7 +669,8 @@
     const sk = o.def.skins || null, teamUI = el.querySelector('.spv-team');
     if (!sk || !(sk[0][0] === 'RED' && sk[1] && sk[1][0] === 'BLU')) teamUI.remove();
     const E = o.esc;
-    el.querySelector('.spv-rows').innerHTML = charRows(o, 'W run');
+    const keysOf = (run, fire, voice) => [run ? 'W run' : '', fire ? 'F attack' : '', voice ? 'V ' + (o.def.voice.snd ? 'voice' : 'idle') : ''].filter(Boolean).join(', ') || 'None';
+    el.querySelector('.spv-rows').innerHTML = charRows(o, keysOf(false, false, false));   // filled in once its sequences are read
     el.addEventListener('pointerdown', onDown);
     const bar = (cls, label) => { const b = document.createElement('label'); b.className = 'spv-styles pl ' + cls; b.innerHTML = `<span>${E(label)}</span><select aria-label="${E(label)}"></select>`; el.querySelector('.spv-frame').appendChild(b); return b.querySelector('select'); };
     let skin = null, fam = null;
@@ -688,12 +694,18 @@
     const mp = el.querySelector('.spv-model'), note = mp.querySelector('.spv-note');
     if (!live()) { setNote('Link your TF2 folder to see the characters. They load from the game’s own files.', true); return true; }
     const f = document.createElement('div'); f.id = 'zfig'; f.className = 'zspfig'; f.setAttribute('aria-label', o.name); mp.insertBefore(f, note);
-    const st0 = ST; let idleQ = null, runQ = null, running = false;
-    // W runs (again to stop), as for the mercenaries
+    const st0 = ST; let idleQ = null, runQ = null, running = false, fireQ = [], voiceQ = null, busy = 0;
+    // W runs (again to stop), as for the mercenaries; F attacks and V speaks (or plays its other idle), then back to standing or running
+    const back = () => Store3D.npc.play(running ? runQ : idleQ);
+    const once = (q, snd) => { if (snd) Store3D.npc.sound(snd); if (!q) return; const tk = ++busy;
+      Store3D.npc.play(q, true).then(d => { if (typeof d === 'number' && ST === st0) setTimeout(() => { if (ST === st0 && tk === busy) back(); }, d * 1000); }); };
     ST.npcKey = e => {
-      if (!ST || ST.el !== el || e.ctrlKey || e.altKey || e.metaKey || e.repeat || String(e.key).toLowerCase() !== 'w' || !runQ) return;
+      if (!ST || ST.el !== el || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
       const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
-      e.preventDefault(); running = !running; Store3D.npc.play(running ? runQ : idleQ);
+      const k = String(e.key).toLowerCase(), d = o.def;
+      if (k === 'w' && runQ) { e.preventDefault(); busy++; running = !running; back(); }
+      else if (k === 'f' && fireQ.length) { e.preventDefault(); once(fireQ[(Math.random() * fireQ.length) | 0], d.fireSnd); }
+      else if (k === 'v' && d.voice && (voiceQ || d.voice.snd)) { e.preventDefault(); once(voiceQ, d.voice.snd); }
     };
     addEventListener('keydown', ST.npcKey);
     const load = def => {
@@ -705,7 +717,12 @@
         let idle = null; for (const re of pri) { idle = keep.find(q => re.test(q.name)); if (idle) break; } idle = idle || keep[0];
         const run = (def.run && keep.find(q => q.name.toLowerCase() === def.run)) || keep.find(q => /^run/i.test(q.name)) || keep.find(q => /^walk/i.test(q.name)) || keep.find(q => /run|walk/i.test(q.name));
         idleQ = idle && idle.name; runQ = run && run.name;
+        const has = n => { const q = seqs.find(x => x.name.toLowerCase() === String(n).toLowerCase()); return q && q.name; };
+        fireQ = (def.fire || []).map(has).filter(Boolean); voiceQ = def.voice && def.voice.seq ? has(def.voice.seq) : null;
+        const rows = ST.el.querySelector('.spv-rows'); if (rows) rows.innerHTML = charRows(o, keysOf(!!runQ, fireQ.length, def.voice && (voiceQ || def.voice.snd)));
         if (idleQ) Store3D.npc.play(idleQ); else Store3D.npc.refit();
+        if (!st0.sndOn) { st0.sndOn = 1; if (def.open) Store3D.npc.sound(def.open); }
+        if (def.loop) Store3D.npc.sound(def.loop, true);   // a reload (a skin, a style) stopped it
         sizeFig(f);
       }).catch(e => { console.warn('[NPC]', e); if (ST === st0) setNote('Couldn’t load ' + o.name + ' from your TF2 files' + (e && e.message ? ': ' + e.message : '') + '.', true); });
     };
