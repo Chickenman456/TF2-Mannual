@@ -15,21 +15,27 @@
     ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM, where: MVM})),
     ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM, where: MVM})),
     {id: 'sentry_buster', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl', where: MVM},
-    {id: 'tank', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', where: MVM},
-    {id: 'hhh', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl',
-      where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone, Graveyard, Bloodwater, Carnival of Carnage, Slasher and Bonesaw']},
-    {id: 'monoculus', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
-    {id: 'merasmus', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
+    {id: 'tank', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', where: MVM},
+    // the HHH carries his axe (c_bigaxe, bonemerged on weapon_bone as headless_hatman.cpp does) in a cloud of ghost_pumpkin; in Carnival of
+    // Carnage (sd_doomsday_event) it's the big mallet, and Bonesaw (plr_hacksaw_event) packs its own burnt, headless Hellishly Hollow Horseman
+    {id: 'hhh', card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
+      where: ['Mann Manor (Scary Halloween Special, 2010), where he first appeared', 'Also on the Halloween maps Hellstone, Brimstone, Gravestone and Slasher']},
+    {id: 'hhh_mallet', card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann (Necro Smasher)', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl'], pfx: 'ghost_pumpkin',
+      where: ['Carnival of Carnage (sd_doomsday_event): Bumper Car Soccer and Falling Platform']},
+    {id: 'hhh_hollow', name: 'Hellishly Hollow Horseman', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman_burnt.mdl', pak: 'plr_hacksaw_event.bsp', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
+      where: ['Bonesaw (plr_hacksaw_event), where the two carts cross']},
+    {id: 'monoculus', card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']], where: ['Eyeaduct (Manniversary Update & Sale, 2011)', 'Hellstone']},
+    {id: 'merasmus', card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', where: ['Ghost Fort (Spectral Halloween Special, 2012)']},
     {id: 'skeleton', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Helltower (Scream Fortress 2013)']},
     {id: 'skeleton_king', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [3, -3, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2, where: ['Helltower (Scream Fortress 2013)']},
-    {id: 'saxton', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
+    {id: 'saxton', card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
       where: ['Versus Saxton Hale: Distillery, Nucleus, Skirmish and Tinyrock (vsh_distillery, vsh_nucleus, vsh_skirmish, vsh_tinyrock)']},
     // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
-    {id: 'santa_hale', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp',
+    {id: 'santa_hale', card: 'npc_santa_hale.webp', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp',
       where: ['Versus Saxton Hale: Maul (vsh_maul), the Smissmas map']},
-    {id: 'hell_hale', name: 'Hell Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
+    {id: 'hell_hale', card: 'npc_hell_hale.webp', name: 'Hell Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp',
       where: ['Versus Saxton Hale: Outburst (vsh_outburst), the Halloween map']},
-    {id: 'toastmaster', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
+    {id: 'toastmaster', card: 'npc_toastmaster.webp', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL, where: ['Synthetic (koth_synthetic_event), summoned as the map’s boss']},
   ];
   // the merc cards from Chickenman's TF2 UI redesign (Items > Mercs), the same markup and styles: class render cropped to head and
   // shoulders (CARDP: left, top, scale fitted to the Figma cards), the class emblem behind, role top right, name bottom left.
@@ -51,6 +57,7 @@
       if (n.bot) { const b = BOTART[n.cls]; if (b) { src = CARD('bot_' + n.cls + '.webp'); [w, h] = b; p = BOTP[n.cls]; } else src = null; }
       if (src) art = `<img src="${src}" alt="" style="left:${p[0]}px;top:${p[1]}px;width:${w * p[2]}px;height:${h * p[2]}px">`;
     }
+    if (n.card) art = `<img src="${CARD(n.card)}" alt="" style="left:0;top:0;width:356px;height:179px">`;
     const em = CARD('emb_' + (c ? c.toLowerCase() : 'all') + '.svg');
     return `<div class="npcc"><button class="zcc zcard" data-npc="${n.id}" aria-label="${E(n.name)}"><i class="zcem zvem" style="--em:url(${em})"></i>${art}<span class="zcr">${E(c && !n.bot ? ROLE[c] : n.level)}</span><b>${E(n.name.toUpperCase())}</b></button></div>`;
   }
