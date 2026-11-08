@@ -26,8 +26,16 @@
   let DB = {};
   try { DB = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { DB = {}; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} };
-  const cdb = c => DB[c] || (DB[c] = {pre: 0, P: [{}, {}, {}, {}]});
+  // a zombie (Zombie Infection) keeps its own loadouts beside the class's
+  const dkey = c => ST && ST.zombie ? c + '|zombie' : c;
+  const cdb = c => DB[dkey(c)] || (DB[dkey(c)] = {pre: 0, P: [{}, {}, {}, {}]});
   const cur = c => { const d = cdb(c); return d.P[d.pre] || (d.P[d.pre] = {}); };
+  // Zombie Infection (the zi_ maps' infection.nut): the zombie is the class wearing its Voodoo-Cursed soul (MDL_ZOMBIE_PLAYER_MODEL_*,
+  // models/player/items/<class>/<class>_zombie.mdl) with no weapon to show: bare hands, on the melee animations
+  function soul(cls) {
+    for (const id in ITEMS) { const it = ITEMS[id]; if (/^voodoo-cursed .* soul$/i.test(it.name) && it.classes.length === 1 && it.classes[0] === cls) return +id; }
+    return null;
+  }
 
   // ---- the items (index.html's catalog) ----
   const IT = id => (typeof ITEMS !== 'undefined' ? ITEMS[id] : null);
@@ -47,7 +55,7 @@
   }
   function fits(cls, slot, it) {
     if (!it || !it.classes.includes(cls) || it.expired) return false;
-    if (COSM.includes(slot)) return it.cat === 'c';
+    if (COSM.includes(slot)) return it.cat === 'c' && !(ST && ST.zombie && /^voodoo-cursed .* soul$/i.test(it.name));
     if (slot === 'action') return !!it.action;
     if (slot.startsWith('taunt')) return it.cat === 't';
     return false;
@@ -92,12 +100,13 @@
     const cls = ST.cls, src = VG.clone(VG.data.res.classloadoutpanel);
     const keep = new Set(['caratlabel', 'classlabel', 'tauntcaratlabel', 'tauntlabel', 'topline', 'classmodelpanel', 'taunthintlabel', 'characterloadoutbutton', 'tauntloadoutbutton']);
     const top = src.p, def = {n: 'class_loadout_panel', p: {xpos: '0', ypos: '0', wide: 'f0', tall: '386', bgcolor_override: top.bgcolor_override}, c: src.c.filter(k => keep.has(String(k.n).toLowerCase()))};
+    const Z = ST.zombie;
     const P = posOf(cls), L = cur(cls), xa = +top.item_xpos_offcenter_a, xb = +top.item_xpos_offcenter_b, y0 = +top.item_ypos, dy = +top.item_ydelta;
     const slots = Object.keys(P).filter(s => P[s] > 0 && (ST.taunt ? P[s] >= 9 : P[s] < 9));
     for (const s of slots) {
       let pos = P[s]; pos = ST.taunt ? pos - P.taunt1 : pos - 1;
       const col = Math.floor(pos / 4), row = pos % 4, off = col === 0 ? xa : xb + (col - 1) * 200;
-      def.c.push(itemDef('item_' + s, 'c' + (off < 0 ? off : '+' + off), String(y0 + dy * row), 140, 70, s, WEAPON.has(s) ? stock(cls, s) : L[s]));
+      def.c.push(itemDef('item_' + s, 'c' + (off < 0 ? off : '+' + off), String(y0 + dy * row), 140, 70, s, WEAPON.has(s) ? (Z ? null : stock(cls, s)) : L[s]));
     }
     // the preset buttons: the panel (150 x 25) centred at item_ypos, four 25 x 25 buttons XRES(2) apart
     const pw = 150, bw = 25, buf = 2 * (1920 / 640) / VG.K, sx = .5 * (pw - 4 * (bw + buf));
@@ -207,8 +216,9 @@
   }
   // the merc in classmodelpanel: the store preview's merc (store3d.js) in the loadout's dress
   function dress() {
-    const L = cur(ST.cls), cos = COSM.map(s => L[s]).filter(id => id != null && IT(id)).map(nm);
-    window.ZPREV = {cls: ST.cls, team: ST.team, cos, paint: '', wslot: null, wname: null, worn: [], taunt: null};
+    const L = cur(ST.cls), ids = COSM.map(s => L[s]).filter(id => id != null && IT(id));
+    if (ST.zombie) { const z = soul(ST.cls); if (z != null && !ids.includes(z)) ids.unshift(z); }
+    window.ZPREV = {cls: ST.cls, team: ST.team, cos: ids.map(nm), paint: '', wslot: ST.zombie ? 'melee' : null, wname: null, worn: [], taunt: null};
   }
   async function model() {
     const mp = ROOT.find('classmodelpanel'); if (!mp || !window.Store3D) return;
@@ -218,6 +228,7 @@
     const tok = ST.tok = (ST.tok || 0) + 1;
     try { await Store3D.show(f); } catch (e) { return; }
     if (!ST || tok !== ST.tok) return;
+    if (Store3D.nowep) Store3D.nowep(ST.cls, !!ST.zombie);
     Store3D.redress(ST.cls);
     if (!linked() && !OV.querySelector('.lonote')) { const n = document.createElement('div'); n.className = 'lonote'; n.textContent = 'Link your TF2 folder to see the cosmetics on the merc.'; OV.querySelector('.lostage').appendChild(n); }
   }
@@ -247,13 +258,14 @@
     if (!OV) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); command('back'); }
   }
-  async function open(cls, team) {
+  async function open(cls, opt) {
+    opt = opt || {};
     close();
     if (!window.VG) return false;
     try { await VG.ready(); } catch (e) { return false; }
     if (!window.ZSND) window.ZSND = n => snd(n);
-    ST = {cls, team: team || 'RED', taunt: false, sel: null, page: 0, find: ''};
-    OV = document.createElement('div'); OV.className = 'lov'; OV.setAttribute('role', 'dialog'); OV.setAttribute('aria-modal', 'true'); OV.setAttribute('aria-label', cls + ' loadout');
+    ST = {cls, team: opt.team || 'RED', zombie: !!opt.zombie, taunt: false, sel: null, page: 0, find: ''};
+    OV = document.createElement('div'); OV.className = 'lov'; OV.setAttribute('role', 'dialog'); OV.setAttribute('aria-modal', 'true'); OV.setAttribute('aria-label', (ST.zombie ? 'Zombie ' : '') + cls + ' loadout');
     OV.innerHTML = '<div class="lostage"></div>';
     document.body.appendChild(OV); fit(); addEventListener('resize', fit); addEventListener('keydown', onKey, true);
     snd('panel_open');
@@ -263,7 +275,7 @@
   function close() {
     if (!OV) return;
     removeEventListener('resize', fit); removeEventListener('keydown', onKey, true);
-    if (ST) { ST.tok = (ST.tok || 0) + 1; if (ST.fig) ST.fig.remove(); }
+    if (ST) { ST.tok = (ST.tok || 0) + 1; if (ST.fig) ST.fig.remove(); if (ST.zombie && window.Store3D && Store3D.nowep) Store3D.nowep(ST.cls, false); }
     if (window.ZPREV && ST && window.ZPREV.cls === ST.cls) window.ZPREV = null;
     OV.remove(); OV = null; ROOT = null; ST = null; snd('panel_close');
   }
