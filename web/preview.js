@@ -697,14 +697,15 @@
     const st0 = ST; let idleQ = null, runQ = null, running = false, fireQ = [], voiceQ = null, busy = 0;
     // W runs (again to stop), as for the mercenaries; F attacks and V speaks (or plays its other idle), then back to standing or running
     const back = () => Store3D.npc.play(running ? runQ : idleQ);
-    const once = (q, snd) => { if (snd) Store3D.npc.sound(snd); if (!q) return; const tk = ++busy;
-      Store3D.npc.play(q, true).then(d => { if (typeof d === 'number' && ST === st0) setTimeout(() => { if (ST === st0 && tk === busy) back(); }, d * 1000); }); };
+    // an attack layers over what it's doing when the game layers it (Store3D.npc.fire), else it plays in its place and then goes back
+    const once = (q, snd, fire) => { if (snd) Store3D.npc.sound(snd); if (!q) return; const tk = ++busy;
+      (fire ? Store3D.npc.fire(q) : Store3D.npc.play(q, true)).then(d => { if (typeof d === 'number' && ST === st0) setTimeout(() => { if (ST === st0 && tk === busy && Store3D.npc._.act && Store3D.npc._.act.loop === 2200) back(); }, d * 1000); }); };
     ST.npcKey = e => {
       if (!ST || ST.el !== el || e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
       const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
       const k = String(e.key).toLowerCase(), d = o.def;
       if (k === 'w' && runQ) { e.preventDefault(); busy++; running = !running; back(); }
-      else if (k === 'f' && fireQ.length) { e.preventDefault(); once(fireQ[(Math.random() * fireQ.length) | 0], d.fireSnd); }
+      else if (k === 'f' && (fireQ.length || d.fireSnd)) { if (!fireQ.length) { e.preventDefault(); Store3D.npc.sound(d.fireSnd); return; } e.preventDefault(); once(fireQ[(Math.random() * fireQ.length) | 0], d.fireSnd, true); }
       else if (k === 'v' && d.voice && (voiceQ || d.voice.snd)) { e.preventDefault(); once(voiceQ, d.voice.snd); }
     };
     addEventListener('keydown', ST.npcKey);
@@ -719,7 +720,7 @@
         idleQ = idle && idle.name; runQ = run && run.name;
         const has = n => { const q = seqs.find(x => x.name.toLowerCase() === String(n).toLowerCase()); return q && q.name; };
         fireQ = (def.fire || []).map(has).filter(Boolean); voiceQ = def.voice && def.voice.seq ? has(def.voice.seq) : null;
-        const rows = ST.el.querySelector('.spv-rows'); if (rows) rows.innerHTML = charRows(o, keysOf(!!runQ, fireQ.length, def.voice && (voiceQ || def.voice.snd)));
+        const rows = ST.el.querySelector('.spv-rows'); if (rows) rows.innerHTML = charRows(o, keysOf(!!runQ, fireQ.length || def.fireSnd, def.voice && (voiceQ || def.voice.snd)));
         if (idleQ) Store3D.npc.play(idleQ); else Store3D.npc.refit();
         if (!st0.sndOn) { st0.sndOn = 1; if (def.open) Store3D.npc.sound(def.open); }
         if (def.loop) Store3D.npc.sound(def.loop, true);   // a reload (a skin, a style) stopped it

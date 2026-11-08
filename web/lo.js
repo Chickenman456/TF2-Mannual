@@ -55,7 +55,8 @@
     const n = typeof NAMES !== 'undefined' ? NAMES[s[1].toLowerCase()] : null; return n != null && IT(n) ? +n : null;
   }
   // the weapon in a slot: the one picked, or the class's stock one
-  const wep = (cls, s) => { const L = cur(cls); return L[s] != null && IT(L[s]) ? L[s] : stock(cls, s); };
+  // a zombie's weapon slots start empty (bare hands, as Zombie Infection spawns them) and hold only what's picked
+  const wep = (cls, s) => { const L = cur(cls); return L[s] != null && IT(L[s]) ? L[s] : ST && ST.zombie ? null : stock(cls, s); };
   function fits(cls, slot, it) {
     if (!it || !it.classes.includes(cls) || it.expired) return false;
     if (COSM.includes(slot)) return it.cat === 'c' && !(ST && ST.zombie && /^voodoo-cursed .* soul$/i.test(it.name));
@@ -85,6 +86,12 @@
 .lov .loico .ph{display:none}
 .lov .lofig{position:absolute;inset:0}
 .lov .lofig canvas{display:block}
+.lov .lofsb{position:absolute;right:12px;top:12px;width:30px;height:30px;border:0;padding:0;background:#766B5E;-webkit-mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;opacity:.78;cursor:pointer;z-index:3}
+.lov .lofsb:hover{background:#807568;opacity:1}
+.lofs{position:fixed;inset:0;background:#000;z-index:95}
+.lofs .lofig{position:absolute;inset:0}
+.lofs .lofsx{position:absolute;right:24px;top:24px;width:44px;height:44px;border:0;padding:0;background:url(ui/store/exit_fullscreen.webp) center/contain no-repeat;cursor:pointer;z-index:3;opacity:.8}
+.lofs .lofsx:hover{opacity:1}
 .lov .lofind{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;padding:0 8px;box-sizing:border-box;background:rgb(251,235,202);color:rgb(117,107,94);font:inherit;font-size:28px;font-family:TF2Secondary,sans-serif;border-radius:5px}
 .lov .lonote{position:absolute;left:0;right:0;top:470px;text-align:center;color:#b8ab95;font:400 26px TF2Secondary,sans-serif;pointer-events:none}`;
   document.head.appendChild(css);
@@ -122,7 +129,7 @@
     for (const s of slots) {
       let pos = P[s]; pos = ST.taunt ? pos - P.taunt1 : pos - 1;
       const col = Math.floor(pos / 4), row = pos % 4, off = col === 0 ? xa : xb + (col - 1) * 200;
-      def.c.push(itemDef('item_' + s, 'c' + (off < 0 ? off : '+' + off), String(y0 + dy * row), 140, 70, s, WEAPON.has(s) ? (Z ? null : wep(cls, s)) : L[s]));
+      def.c.push(itemDef('item_' + s, 'c' + (off < 0 ? off : '+' + off), String(y0 + dy * row), 140, 70, s, WEAPON.has(s) ? wep(cls, s) : L[s]));
     }
     // the preset buttons: the panel (150 x 25) centred at item_ypos, four 25 x 25 buttons XRES(2) apart
     const pw = 150, bw = 25, buf = 2 * (1920 / 640) / VG.K, sx = .5 * (pw - 4 * (bw + buf));
@@ -153,6 +160,10 @@
       const t = it ? it.name : vgLoc(NOITEM[slot] || ''), ind = 5 * VG.SW / 640 / VG.K, tw = w - 2 * ind;
       const f = nameFont(t, VG.YRES(tw)), F = VG.font(f), tall = F ? Math.ceil(F.tall / VG.K) + 1 : 15;
       c = [{n: 'name', p: {controlname: 'CExLabel', xpos: String(ind), ypos: '54', zpos: '2', wide: String(tw), tall: String(tall), font: f, textalignment: 'north', centerwrap: '1', labeltext: t, fgcolor_override: qc, mouseinputenabled: '0'}}];
+    } else if (it) {
+      // the selection page names each item under its icon, in the smallest item font
+      const ind = 2, tw = w - 2 * ind, F = VG.font('ItemFontNameSmallest'), tall = F ? Math.ceil(F.tall / VG.K) + 1 : 10;
+      c = [{n: 'name', p: {controlname: 'CExLabel', xpos: String(ind), ypos: String(h - tall - 2), zpos: '2', wide: String(tw), tall: String(tall), font: 'ItemFontNameSmallest', textalignment: 'center', labeltext: it.name, fgcolor_override: qc, mouseinputenabled: '0'}}];
     }
     const bd = uq ? 'BackpackItemBorder_Unique' : small ? 'BackpackItemBorder' : 'EconItemBorder';
     const ba = uq ? 'BackpackItemMouseOverBorder_Unique' : small ? 'BackpackItemMouseOverBorder' : 'LoadoutItemMouseOverBorder';
@@ -173,7 +184,7 @@
     for (const k in ITEMS) { const it = ITEMS[k]; if (!fits(cls, slot, it)) continue; if (q && !it.name.toLowerCase().includes(q)) continue; out.push(+k); }
     const own = id => (typeof owns === 'function' ? owns(id) : 0) ? 0 : 1;
     out.sort((a, b) => own(a) - own(b) || ITEMS[a].name.localeCompare(ITEMS[b].name));
-    return WEAPON.has(slot) ? out : [null].concat(out);   // the first panel empties the slot (#SelectNoItemSlot); a weapon slot always holds one
+    return WEAPON.has(slot) && !(ST && ST.zombie) ? out : [null].concat(out);   // the first panel empties the slot (#SelectNoItemSlot); a weapon slot always holds one
   }
   function selectionDef() {
     const src = VG.clone(VG.data.res.itemselectionpanel), top = src.p;
@@ -194,6 +205,7 @@
   // ---- building and refreshing ----
   function vgLoc(k) { return VG.loc ? VG.loc(k) : k; }
   function build() {
+    if (ST.fs) fsOff();
     const host = OV.querySelector('.lostage'); host.innerHTML = '';
     ST.W = SWIDE(); VG.setScreenW(ST.W); host.style.width = ST.W + 'px';
     const fdef = frameDef(); if (ST.sel) fdef.c.push(selectionDef()); else fdef.c[4].c = [loadoutDef()];
@@ -278,12 +290,11 @@
     if (ST.zombie) { const z = soul(ST.cls); if (z != null && !ids.includes(z)) ids.unshift(z); }
     // what the merc holds: the item of the slot last changed (HoldItemInSlot), else his first weapon
     let wslot = null, wname = null, taunt = null; const h = ST.held;
-    if (ST.zombie) wslot = 'melee';
-    else {
-      if (h && h.startsWith('taunt') && L[h] != null && IT(L[h])) taunt = IT(L[h]).name;
-      const ws = h && WEAPON.has(h) ? [h] : ['primary', 'secondary', 'melee', 'pda', 'building'];
-      for (const s of ws) { if (!(posOf(ST.cls)[s] > 0)) continue; const id = wep(ST.cls, s); if (id != null) { wslot = s; wname = nm(id); break; } }
-    }
+    if (h && h.startsWith('taunt') && L[h] != null && IT(L[h])) taunt = IT(L[h]).name;
+    const ws = h && WEAPON.has(h) ? [h] : ['primary', 'secondary', 'melee', 'pda', 'building'];
+    for (const s of ws) { if (!(posOf(ST.cls)[s] > 0)) continue; const id = wep(ST.cls, s); if (id != null) { wslot = s; wname = nm(id); break; } }
+    // a zombie with nothing in hand stands bare-handed on the melee animations
+    ST.bare = !!ST.zombie && !wname; if (ST.bare) wslot = 'melee';
     ST.tauntName = taunt;
     window.ZPREV = {cls: ST.cls, team: ST.team, cos: ids.map(nm), paint: '', wslot, wname, worn: [], taunt};
   }
@@ -294,15 +305,34 @@
       if (m && cl) { if (m.cn !== cl) m.play(cl, true); } else if (++n < 80) setTimeout(go, 100); };
     setTimeout(go, 100);
   }
+  // the merc filling the window (CFullscreenStorePreviewItem's black panel), the exit button in its corner
+  function sizeR(f) { const V = window.Store3D && Store3D.V; if (!V || !f || !f.contains(V.r.domElement)) return; const w = f.clientWidth || 1, h = f.clientHeight || 1;
+    V.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); V.r.setSize(w, h); V.cam.aspect = w / h; V.cam.updateProjectionMatrix(); }
+  function fsOn() {
+    if (!ST || ST.fs || !ST.fig) return; const ov = document.createElement('div'); ov.className = 'lofs';
+    ov.innerHTML = '<button type="button" class="lofsx" aria-label="Exit full screen" title="Exit full screen"></button>';
+    document.body.appendChild(ov); ov.appendChild(ST.fig); ST.fs = ov;
+    ov.querySelector('.lofsx').addEventListener('click', e => { e.stopPropagation(); snd('buttonclick'); fsOff(); });
+    const V = Store3D.V; if (V) { V.storeFS = true; V.storeApply(ST.cls); } sizeR(ST.fig); requestAnimationFrame(() => sizeR(ST && ST.fig));
+  }
+  function fsOff() {
+    if (!ST || !ST.fs) return; const ov = ST.fs; ST.fs = null; const mp = ROOT && ROOT.find('classmodelpanel');
+    if (mp && ST.fig) mp.el.insertBefore(ST.fig, mp.el.querySelector('.lofsb')); ov.remove();
+    const V = window.Store3D && Store3D.V; if (V) { V.storeFS = false; V.storeApply(ST.cls); } sizeR(ST.fig);
+  }
+  addEventListener('resize', () => { if (ST && ST.fs) sizeR(ST.fig); });
   async function model() {
     const mp = ROOT.find('classmodelpanel'); if (!mp || !window.Store3D) return;
     let f = ST.fig;
     if (!f) { f = ST.fig = document.createElement('div'); f.className = 'lofig'; f.setAttribute('aria-label', ST.cls); }
     mp.el.appendChild(f); dress();
+    // full screen, as the store's preview has it (store_fullscreen in its corner)
+    if (!mp.el.querySelector('.lofsb')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'lofsb'; b.title = 'Full screen'; b.setAttribute('aria-label', 'Full screen');
+      b.addEventListener('click', e => { e.stopPropagation(); snd('buttonclick'); fsOn(); }); mp.el.appendChild(b); }
     const tok = ST.tok = (ST.tok || 0) + 1;
     try { await Store3D.show(f); } catch (e) { return; }
     if (!ST || tok !== ST.tok) return;
-    if (Store3D.nowep) Store3D.nowep(ST.cls, !!ST.zombie);
+    if (Store3D.nowep) Store3D.nowep(ST.cls, !!ST.bare);
     Store3D.redress(ST.cls);
     playTaunt(tok);
     if (!linked() && !OV.querySelector('.lonote')) { const n = document.createElement('div'); n.className = 'lonote'; n.textContent = 'Link your TF2 folder to see the cosmetics on the merc.'; OV.querySelector('.lostage').appendChild(n); }
@@ -314,16 +344,16 @@
     if (c === 'vguicancel') { ST.sel = null; build(); return true; }
     if (c === 'characterloadout' || c === 'tauntloadout') { ST.taunt = c === 'tauntloadout'; build(); return true; }
     let m = c.match(/^loadpreset_(\d)$/); if (m) { cdb(cls).pre = +m[1]; save(); build(); return true; }
-    m = c.match(/^change_(\w+)$/); if (m) { const s = m[1]; if (ST.zombie && WEAPON.has(s)) return true;   // a zombie has no weapons
+    m = c.match(/^change_(\w+)$/); if (m) { const s = m[1];
       ST.held = s; ST.sel = s; ST.page = 0; ST.find = ''; ST.focusFind = false; build(); return true; }
     if (c === 'prevpage' || c === 'nextpage') { const n = ST.pages || 1; ST.page = (ST.page + (c === 'nextpage' ? 1 : n - 1)) % n; build(); return true; }
     m = c.match(/^pick_(none|\d+)$/); if (m) { const L = cur(cls), s = ST.sel, id = m[1] === 'none' ? null : +m[1];
-      if (id == null) delete L[s];
+      if (id == null) delete L[s];   // (a zombie's weapon slot can be emptied again: bare hands)
       else {
         // one item in one slot; a cosmetic sharing an equip region with another one takes its place
         for (const k of Object.keys(L)) if (k !== s && L[k] === id && (COSM.includes(k) === COSM.includes(s))) delete L[k];
         if (COSM.includes(s)) { const r = regions(IT(id)); for (const k of COSM) if (k !== s && L[k] != null && regions(IT(L[k])).some(x => r.includes(x))) delete L[k]; }
-        if (WEAPON.has(s) && id === stock(cls, s)) delete L[s]; else L[s] = id;
+        if (WEAPON.has(s) && id === stock(cls, s) && !ST.zombie) delete L[s]; else L[s] = id;
       }
       save(); ST.sel = null; build(); return true; }
     return false;
@@ -331,7 +361,7 @@
 
   function onKey(e) {
     if (!OV) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); command('back'); }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (ST && ST.fs) fsOff(); else command('back'); }
   }
   async function open(cls, opt) {
     opt = opt || {};
@@ -350,7 +380,7 @@
   function close() {
     if (!OV) return;
     removeEventListener('resize', fit); removeEventListener('keydown', onKey, true); if (VG.setScreenW) VG.setScreenW(1920);
-    if (ST) { ST.tok = (ST.tok || 0) + 1; if (ST.fig) ST.fig.remove(); if (ST.zombie && window.Store3D && Store3D.nowep) Store3D.nowep(ST.cls, false); }
+    if (ST) { ST.tok = (ST.tok || 0) + 1; if (ST.fig) ST.fig.remove(); if (window.Store3D && Store3D.nowep) Store3D.nowep(ST.cls, false); if (ST.fs) fsOff(); }
     if (window.ZPREV && ST && window.ZPREV.cls === ST.cls) window.ZPREV = null;
     OV.remove(); OV = null; ROOT = null; ST = null; snd('panel_close');
   }
