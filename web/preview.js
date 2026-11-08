@@ -81,7 +81,8 @@
     const E = o.esc;
     return (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
       + (o.desc ? `<div class="spv-attrs big"><div>${E(o.desc)}</div></div>` : '')
-      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div>${(o.where || []).map(w => `<div>${E(w)}</div>`).join('')}</div>`
+      + `<div class="spv-attrs big"><div style="color:#766B5E">Appears in:</div><div class="spv-maps">${(o.where || []).map(w => { const [m, u] = Array.isArray(w) ? w : [w, null];
+        return u ? `<a href="${E(u)}" target="_blank" rel="noopener">${E(m)}</a>` : `<span>${E(m)}</span>`; }).join(', ')}</div></div>`
       + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>${E(keys)}</div></div>`
       + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '');
   }
