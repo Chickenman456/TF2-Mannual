@@ -5,7 +5,7 @@
   'use strict';
   const NOTF2 = 'That folder doesn\u2019t have TF2\u2019s game files in it. Pick your Team Fortress 2 folder (or the "tf" folder inside it).';
   // only what the preview reads: the VPKs, plus the loose item schema, English strings and choreo scenes
-  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|maps\/(?:koth_synthetic_event|vsh_nucleus|vsh_maul|vsh_outburst|plr_hacksaw_event|pd_cursed_cove_event|pl_spineyard)\.bsp|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(f.webkitRelativePath || '');
+  const WANT = f => (/\.vpk$/i.test(f.name) && !/(^|\/)(custom|download)\//i.test(f.webkitRelativePath || '')) || /(^|\/)(scripts\/items\/items_game\.txt|resource\/tf_english\.txt|scenes\/scenes\.image|maps\/(?:koth_synthetic_event|vsh_nucleus|vsh_maul|vsh_outburst|plr_hacksaw_event|pd_cursed_cove_event|pl_spineyard|koth_krampus)\.bsp|scripts\/protodefs\/proto_defs\.vpd|resource\/tf_proto_obj_defs_english\.txt|workshop\/import_source\/[^/]+\.zip)$/i.test(f.webkitRelativePath || '');
 
   // ---- remembering a folder handle (only where the browser gives the page one) ----
   const idb = () => new Promise(res => { try { const r = indexedDB.open('tf2-catalog-game', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });

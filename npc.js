@@ -33,6 +33,8 @@
     // Spineyard's mobsters (pl_spineyard's mobster.nut): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
     {id: 'skeleton_mobster', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name), fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2, where: ['Spineyard (pl_spineyard)']},
     {id: 'dutchman', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp', where: ['Cursed Cove (pd_cursed_cove_event): the giant green pirate ghost on the sunken ship, the map’s announcer, with the Flying Dutchman sailing past']},
+    // Krampus (Smissmas 2023): koth_krampus packs his model and the VScript that walks him round (krampus_idle, krampus_run)
+    {id: 'krampus', card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run', where: ['Krampus (koth_krampus)']},
     {id: 'saxton', card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp',
       where: ['Versus Saxton Hale: Distillery, Nucleus, Skirmish and Tinyrock (vsh_distillery, vsh_nucleus, vsh_skirmish, vsh_tinyrock)']},
     // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
@@ -86,7 +88,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
