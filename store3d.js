@@ -33,7 +33,7 @@ void main(){vUv=uv;
 #include <project_vertex>
 vViewPosition=-mvPosition.xyz;vNormalV=normalize(transformedNormal);vWPos=(modelMatrix*vec4(transformed,1.)).xyz;}`;
  const FS=`uniform mat3 uvXf;uniform float frames,frame,siOn,hasSiMask,siFresOn,envOn,aTest;uniform vec3 rimTint;uniform vec3 siTint,c2,envTint;uniform vec4 siFres;uniform sampler2D siMask;uniform samplerCube envMap;uniform float envMask;uniform float envSkin,envFres,envCon,envSat,hasEnvMask,aRef,useBA,opac;uniform sampler2D envMaskMap;
-uniform sampler2D map,normalMap,expMap,warp,pWarp;uniform float pWarpOn,warpOn;uniform vec2 normalScale;uniform vec3 tint;uniform float tintA,tintOver;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
+uniform sampler2D map,normalMap,expMap,warp,pWarp,detMap;uniform float detOn,detMode,detBlend,detScale;uniform float pWarpOn,warpOn;uniform vec2 normalScale;uniform vec3 tint;uniform float tintA,tintOver;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
 varying vec2 vUv;varying vec3 vViewPosition;varying vec3 vNormalV;varying vec3 vWPos;
 #include <common>
 vec3 ambCube(vec3 n){vec3 n2=n*n;return n2.x*(n.x>=0.?amb[0]:amb[1])+n2.y*(n.y>=0.?amb[2]:amb[3])+n2.z*(n.z>=0.?amb[4]:amb[5]);}
@@ -62,7 +62,9 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  vec3 col=spec*tint+dc;if(envOn>.5){vec3 ec=textureCube(envMap,vec3(-R.x,R.y,R.z)).rgb;
   // skin_ps20b: mask = base alpha (or the normal alpha), scaled by $envmapfresnel; vertexlit_and_unlit_generic: normal alpha | 1-base alpha | 1, times $envmapmask, contrast + saturation
   if(envSkin>.5){float em=envMask>1.5?nt.a:base.a;col+=mix(1.,fR,envFres)*em*ec*envTint;}
-  else{float em=envMask>2.5?1.-base.a:envMask>1.5?nt.a:envMask>.5?base.a:1.;vec3 emk=hasEnvMask>.5?texture2D(envMaskMap,tUv).rgb:vec3(1.);vec3 e=ec*em*emk*envTint;e=mix(e,e*e,envCon);float g=dot(e,vec3(.299,.587,.114));e=mix(vec3(g),e,envSat);col+=e;}}if(any(isnan(col)))col=albedo*diff;gl_FragColor=vec4(max(col,vec3(0.)),1.);
+  else{float em=envMask>2.5?1.-base.a:envMask>1.5?nt.a:envMask>.5?base.a:1.;vec3 emk=hasEnvMask>.5?texture2D(envMaskMap,tUv).rgb:vec3(1.);vec3 e=ec*em*emk*envTint;e=mix(e,e*e,envCon);float g=dot(e,vec3(.299,.587,.114));e=mix(vec3(g),e,envSat);col+=e;}}// $detail with $detailblendmode 5 (unlit additive: + detail*blend after the lighting) or 6 (unlit additive threshold fade), as vertexlitgeneric / skin do it
+ if(detOn>.5){vec3 dcl=texture2D(detMap,vUv*detScale).rgb;if(detMode<5.5)col+=dcl*detBlend;else{float fM=detBlend>=.5?1./max(detBlend,1e-4):4.*detBlend;float fA=detBlend>=.5?1.-fM:-.5*fM;col+=clamp(fM*dcl+fA,0.,1.);}}
+ if(any(isnan(col)))col=albedo*diff;gl_FragColor=vec4(max(col,vec3(0.)),1.);
 #include <encodings_fragment>
 }`;
  // the game's model-panel lighting (CPotteryWheelPanel::CreateDefaultLights, used by CTFPlayerModelPanel / CBaseModelPanel): a flat
@@ -89,15 +91,25 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  // material proxies (Source materialsystem proxies the cosmetic .vmts use): Sine, LinearRamp, TextureTransform, AnimatedTexture
  const PROX=(()=>{let L=[];const vec=x=>Array.isArray(x)?x.slice():[x];
   return {add(mat,P,u){L.push({mat,P,u});if(L.length>160)L=L.slice(-120)},
-   tick(t){for(const e of L){const P=e.P,u=e.u,X=P.xf||{};const vars={'$center':vec(X.center||[.5,.5]),'$scale':vec(X.scale||[1]),'$angle':[X.angle||0],'$translate':vec(X.translate||[0,0]),'$selfillumtint':vec(P.siTint||[1,1,1]),'$selfillumfresnelminmaxexp':vec(P.siFres||[0,1,1])};
-    const set=(r,val)=>{const m=r.match(/^(\$[a-z0-9_]+)(?:\[(\d)\])?$/);if(!m)return;const k=m[1];if(!vars[k])vars[k]=[val];if(m[2]!=null)vars[k][+m[2]]=val;else vars[k]=vars[k].map(()=>val)};
-    for(const p of P.prox){if(p.t=='sine')set(p.r,p.min+(p.max-p.min)*(Math.sin(2*Math.PI*(t-p.o)/p.p)*.5+.5));
+   // material vars kept per material between frames (Source's proxies read and write them in order: Sine, LinearRamp, Equals, LessOrEqual),
+   // and the ones the shader has a uniform for pushed each frame: the HHH's pulsing self-illum fresnel, phong and rim light
+   tick(t){for(const e of L){const P=e.P,u=e.u,X=P.xf||{};
+    let V=e.V;if(!V){V=e.V={'$center':vec(X.center||[.5,.5]),'$scale':vec(X.scale||[1]),'$angle':[X.angle||0],'$translate':vec(X.translate||[0,0]),'$selfillumtint':vec(P.siTint||[1,1,1]),'$selfillumfresnelminmaxexp':vec(P.siFres||[0,1,1]),
+     '$phongboost':[P.boost??1],'$rimlightexponent':[P.rimExp??4],'$rimlightboost':[P.rimBoost??1],'$detailblendfactor':[P.detBlend??1]};for(const k in (P.pv||{}))if(!(k in V))V[k]=P.pv[k].slice()}
+    const RX=/^(\$[a-z0-9_]+)(?:\[(\d)\])?$/;
+    const get=x=>{if(typeof x=='number')return x;const m=String(x).match(RX);if(!m)return 0;const a=V[m[1]];return a?(+a[m[2]!=null?+m[2]:0]||0):0};
+    const set=(r,val)=>{const m=r.match(RX);if(!m)return;const k=m[1];if(!V[k])V[k]=[val];if(m[2]!=null)V[k][+m[2]]=val;else V[k]=V[k].map(()=>val)};
+    for(const p of P.prox){if(p.t=='sine'){const lo=get(p.min),hi=get(p.max);set(p.r,lo+(hi-lo)*(Math.sin(2*Math.PI*(t-p.o)/p.p)*.5+.5))}
      else if(p.t=='ramp')set(p.r,p.rate*t+p.init);
+     else if(p.t=='eq'){const a=typeof p.a=='string'?p.a.match(RX):null;const r=p.r.match(RX);if(a&&r&&a[2]==null&&r[2]==null&&V[a[1]])V[r[1]]=V[a[1]].slice();else set(p.r,get(p.a))}
+     else if(p.t=='le')set(p.r,get(p.a)<=get(p.b)?get(p.le):get(p.gt));
      else if(p.t=='anim')u.frames.value=p.n,u.frame.value=Math.floor(t*p.fps)%p.n;
-     else if(p.t=='xf'){const c=vars[p.c]||[.5,.5],sc=vars[p.s]||[1],a=((vars[p.a]||[0])[0])*Math.PI/180,tr=vars[p.tr]||[0,0];const sx=sc[0],sy=sc.length>1?sc[1]:sc[0];const cs=Math.cos(a),sn=Math.sin(a);
+     else if(p.t=='xf'){const c=V[p.c]||[.5,.5],sc=V[p.s]||[1],a=((V[p.a]||[0])[0])*Math.PI/180,tr=V[p.tr]||[0,0];const sx=sc[0],sy=sc.length>1?sc[1]:sc[0];const cs=Math.cos(a),sn=Math.sin(a);
       // uv' = T(center+translate) * Rz(angle) * S(scale) * T(-center)  (CTextureTransformProxy)
       const M=new THREE.Matrix3().set(1,0,-c[0],0,1,-c[1],0,0,1).premultiply(new THREE.Matrix3().set(sx,0,0,0,sy,0,0,0,1)).premultiply(new THREE.Matrix3().set(cs,-sn,0,sn,cs,0,0,0,1)).premultiply(new THREE.Matrix3().set(1,0,c[0]+(tr[0]||0),0,1,c[1]+(tr.length>1?tr[1]:tr[0]||0),0,0,1));u.uvXf.value.copy(M)}}
-    const st=vars['$selfillumtint'];u.siTint.value.set(st[0],st.length>1?st[1]:st[0],st.length>2?st[2]:st[0]);if(P.siFres)u.siFres.value.copy(FRES(vars['$selfillumfresnelminmaxexp']))}}}})();
+    const st=V['$selfillumtint'];u.siTint.value.set(st[0],st.length>1?st[1]:st[0],st.length>2?st[2]:st[0]);if(P.siFres)u.siFres.value.copy(FRES(V['$selfillumfresnelminmaxexp']));
+    const W=P.proxW||[];if(W.includes('$phongboost'))u.boost.value=get('$phongboost');if(W.includes('$rimlightexponent'))u.rimExp.value=get('$rimlightexponent');if(W.includes('$rimlightboost'))u.rimBoost.value=get('$rimlightboost');
+    if(W.includes('$detailblendfactor')&&u.detBlend)u.detBlend.value=get('$detailblendfactor')}}}})();
  window.ZPROX=PROX;
  function tf2(m,warp,o){mkLight();o=o||{};const nm=m.name;const P=o.P||VMT[o.key]||VMT[nm]||VMT.body;const fr=P.fres;
   const u={map:{value:m.map},normalMap:{value:(o.normal===false?null:(o.normal||m.normalMap))||BLANK()},hasNormal:{value:(o.normal===false?null:(o.normal||m.normalMap))?1:0},normalScale:{value:new THREE.Vector2(1,1)},
@@ -106,7 +118,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
    warp:{value:P.warp?getWarp(P.warp):warp},pWarp:{value:P.pwarp||(P.warp?getWarp(P.warp):warp)},pWarpOn:{value:P.pwarp?1:0},warpOn:{value:P.nowarp?0:1},tint:{value:new THREE.Color(...(o.tint||P.tintBase||[1,1,1])).convertSRGBToLinear()},
    uvXf:{value:new THREE.Matrix3()},frames:{value:1},frame:{value:0},siOn:{value:P.si?1:0},siTint:{value:new THREE.Vector3(...(P.siTint||[1,1,1]))},siMask:{value:P.siMask?(P.siMask.isTexture?P.siMask:texLoad('models/'+P.siMask)):BLANK()},hasSiMask:{value:P.siMask?1:0},
    siFresOn:{value:P.siFres?1:0},siFres:{value:FRES(P.siFres||[0,1,1])},envOn:{value:P.env?1:0},envTint:{value:new THREE.Vector3(...(P.env||[0,0,0]))},envMap:{value:P.env?(P.envCube||ECUBE()):null},envMask:{value:P.envMask||0},envSkin:{value:P.envSkin?1:0},envFres:{value:P.envFres||0},envCon:{value:P.envCon||0},envSat:{value:P.envSat??1},hasEnvMask:{value:P.envMaskTex?1:0},envMaskMap:{value:P.envMaskTex||BLANK()},
-   aRef:{value:P.aRef||.5},useBA:{value:P.useBA==null?1:P.useBA},opac:{value:P.opac??1},
+   aRef:{value:P.aRef||.5},detMap:{value:P.det||BLANK()},detOn:{value:P.det?1:0},detMode:{value:P.detMode||5},detBlend:{value:P.detBlend??1},detScale:{value:P.detScale??4},useBA:{value:P.useBA==null?1:P.useBA},opac:{value:P.opac??1},
    aTest:{value:P.aTest?1:0},rimTint:{value:new THREE.Vector3(...(P.rimTint||[1,1,1]))},c2:{value:new THREE.Color(...((P.itemTint&&!P.tintA&&(o.tint||P.tintBase))||P.c2||[1,1,1])).convertSRGBToLinear()},tintA:{value:P.tintA?1:0},tintOver:{value:P.tintOver||0},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
   const t=new THREE.ShaderMaterial({name:nm,uniforms:u,vertexShader:VS,fragmentShader:FS,side:THREE.FrontSide,transparent:!!(P.translucent||P.additive),depthWrite:!(P.translucent||P.additive),blending:(P.translucent||P.additive)?THREE.CustomBlending:THREE.NormalBlending});
   if(P.translucent||P.additive){t.premultipliedAlpha=true;t.blendEquation=t.blendEquationAlpha=THREE.AddEquation;t.blendSrc=THREE.OneFactor;t.blendDst=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;t.blendSrcAlpha=P.additive?THREE.ZeroFactor:THREE.OneFactor;t.blendDstAlpha=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;
@@ -217,7 +229,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
    ZLSP(r.domElement,!!curC&&(!m||(m.o.visible&&((!m._rdy&&performance.now()-(m._t0||0)>150)||(m._lp&&performance.now()-m._lp>150)))));if(m&&m.o.visible){if(((m._shf=(m._shf||0)+1)%30)==1)m.o.traverse(n=>{if(n.isMesh&&!n.castShadow)n.castShadow=true});{const a=m.act,L=a&&!a.paused&&a.isRunning()&&a.getClip().zloop;if(L&&a.time+dt*a.timeScale>=L.to)a.time-=L.to-L.from}restoreBones(m);m.mx.update(dt);if(m.wmx)m.wmx.update(dt);if(m._tprop&&m._tprop.pa)propTick(m);tauntFx(m,curC);invisTick(m);whideTick(m);pfxSync(m);plantFeet(m);gestTick(m,dt);if(m.STATIC&&m.STATIC[m.cn])breathe(m,t);
      if(typeof ianimTick=='function')ianimTick(m,t);
      // player_poseparam layers (the Hot Hand's open slapping hand), on the sequences that autolayer them
-     if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick(m&&m.o.visible?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
+     if(m._pl&&/^(stand|run)_MELEE_ALLCLASS$/i.test(m.cn||'')){if(!m._plb){m._plb={};m.o.traverse(n=>{if(n.isBone&&!n.userData.zx)m._plb[n.name]=n})}for(const bn in m._pl){const B=m._plb[bn];if(!B)continue;const v=m._pl[bn];B.quaternion.set(v[0][0],v[0][1],v[0][2],v[0][3]);B.position.set(v[1][0],v[1][1],v[1][2])}}if(m.wmesh){const bare=m.st0.idle==='stand_MELEE_ZOMBIE';if(bare)m.wmesh.forEach(x=>x.visible=false);else if(m._bare)m.wmesh.forEach(x=>x.visible=!/^taunt/.test(m.cn||''));m._bare=bare}if(window.ZFACE)ZFACE.tick(m,dt);m.o.updateMatrixWorld(true);if(window.ZJIG&&ZJIG.tick(m,t))m.o.updateMatrixWorld(true);PROX.tick(t);if(m.eyes)m.eyes.forEach(e=>e())}if(m&&window.ZTFX)ZTFX(m,curC);if(window.ZCIG)ZCIG.tick(m,curC,m&&m.o.visible&&m._rdy&&!(m.zskin&&!m.zsolid)?dt:0,sc);if(window.ZGSMOKE)ZGSMOKE.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZHALO)ZHALO.tick(m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZAURA)ZAURA.tick(m,m&&m.o.visible&&m._rdy?dt:0,sc);if(window.ZPFX)ZPFX.tick((m&&m.o.visible)||NPC.g?dt:0,sc,cam);if(window.ZBOLT)ZBOLT.tick(m,dt,sc,cam,r.domElement);ctl.update();ZLINR(r,sc,cam)};
   const ZZ={Scout:20,Sniper:25,Soldier:20,Demoman:22,Medic:30,Heavy:30,Pyro:22,Spy:27,Engineer:20};
   V={r,sc,cam,ctl,fit,warp,storeApply:c=>{if(NPC.g&&NPC.fr&&!c){const F=NPC.fr,f=Math.min(V.storeZf||0,ZMAX)/ZMAX,P=V.storePan||(V.storePan={x:0,y:0}),lim=F.h*.6;P.x=Math.max(-lim,Math.min(lim,P.x));P.y=Math.max(-lim,Math.min(lim,P.y));const d=F.d*(1-.8*f);ctl.target.set(F.c.x+P.x,F.c.y+P.y,F.c.z);cam.position.set(F.c.x+P.x,F.c.y+P.y,F.c.z+d);if(V.storeCam&&V.storeCam.md==null)V.storeCam.md=ctl.minDistance;ctl.minDistance=0;ctl.update();return}const f=V.storeZf!=null?V.storeZf:(V.storeZoom?1:0),f1=Math.min(f,1),g=Math.max(0,f-1)/(ZMAX-1),b=V.storeFS?[221,42]:[190,36];let y=b[1]+f1*(ZZ[c]||20),d=b[0]-f1*100;
    // past the store's close-up the wheel keeps going, in to the merc's head (where hats and their effects sit)
@@ -736,6 +748,8 @@ async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+
    if(s.isSkinnedMesh)wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mkA),s.skeleton.boneInverses),new THREE.Matrix4());g.add(wm);meshes.push(wm)}}catch(e){console.warn('[NPC] attach',ap,e)}}
  NPC.eyes=[];try{const EY=await ZLIVE.npcEyes(def.mdl);if(NPC.tok!==tok)return null;const EM=meshes.filter(wm=>{const MI=wm.userData.mi||{};return MI.red&&/eyerefract/i.test(MI.red.shader||'')});EM.forEach((wm,k)=>{const E=EY[k];if(!E)return;
    const r=eyeMat({name:E.mat,userData:{eye:E}},g);if(E.irisLive)r.mat.uniforms.iris.value=E.irisLive;wm.material=r.mat;wm.userData.eyeE=1;NPC.eyes.push(r.tick)})}catch(e){console.warn('[NPC] eyes',e)}
+ // the character's own always-on effect (the HHH's ghost_pumpkin, which his client puts on him at his origin)
+ if(def.pfx&&window.ZPFX&&ZPFX.keep){const key='npc|'+def.pfx;NPC.pfx=key;ZPFX.keep(key,def.pfx,()=>NPC.g===g&&g.parent?{obj:g,merc:g,yup:true}:null,()=>{const v=new THREE.Vector3();g.getWorldScale(v);return v.y||1}).catch(()=>{})}
  g.scale.setScalar(def.scale||1);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
  return seqs}
 function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=new THREE.Box3();const v=new THREE.Vector3();g.traverse(x=>{if(x.isBone)B.expandByPoint(x.getWorldPosition(v))});try{B.union(new THREE.Box3().setFromObject(g))}catch(e){}
@@ -744,7 +758,7 @@ function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=n
 async function npcPlay(name){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
  const a=NPC.mx.clipAction(r.clip);a.reset();a.setLoop(THREE.LoopRepeat);if(NPC.act&&NPC.act!==a)a.crossFadeFrom(NPC.act,.2,false);a.play();const first=!NPC.act;NPC.act=a;if(first){NPC.mx.update(0);npcFit()}return true}
 function npcTeam(team){(NPC.meshes||[]).forEach(wm=>{if(wm.userData.eyeE)return;const MI=wm.userData.mi||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;if(P)wm.material=wmat(P)})}
-function npcDrop(){if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null}
+function npcDrop(){if(NPC.pfx&&window.ZPFX){ZPFX.unkeep(NPC.pfx);NPC.pfx=null}if(NPC.g){NPC.g.parent&&NPC.g.parent.remove(NPC.g);if(NPC.mx)NPC.mx.stopAllAction()}NPC.g=null;NPC.mx=null;NPC.act=null;NPC.meshes=null}
 window.Store3D={show:f=>show(f),npc:{show:npcShow,play:npcPlay,team:npcTeam,close:()=>{NPC.tok=(NPC.tok||0)+1;npcDrop()},refit:()=>npcFit(),pause:p=>{if(NPC.act)NPC.act.paused=!!p},_:NPC,state:()=>!NPC.act?'none':NPC.act.paused?'paused':'playing',replay:()=>{if(NPC.act){NPC.act.reset();NPC.act.paused=false;NPC.act.play()}},turn:d=>{if(NPC.g)NPC.g.rotation.y+=d},hasBlu:()=>(NPC.meshes||[]).some(w=>w.userData.mi&&w.userData.mi.blu)},init:()=>init(),taunt:TCTL,ctl:KCTL,lod:(c,n)=>setLod(c,n),robot:(c,on)=>{const m=M[c];on=on||false;if(!m||(m._robot||false)===on)return;if(m._robot&&/sentry_buster/i.test(m._robot)&&!m._wmOff){(m.wmesh||[]).forEach(x=>x.visible=true);(m.wextra||[]).forEach(x=>x.visible=true)}m._robot=on;if(isBuster(m))setWeapon(c,'melee',null);lodBody(c).then(()=>robotAnims(c))},get V(){return V},M,redress:c=>window.ZREDRESS(c),zoom:()=>{if(V)V.zoom()},turn:(c,d)=>{const m=M[c];if(m&&m.o)m.o.rotation.y+=d},paints:PAINTS,clipFor,
   // the loadout slot a class holds this bundled stock weapon in (the Shotgun: Soldier's secondary, Engineer's primary), or null
   stockSlot:(c,n)=>{const k=wkey(n);if(!k)return null;const key=BYNAME[k],S=STOCK[c]||{};for(const s in S)if(S[s]===key)return s;return null}};
@@ -1251,7 +1265,9 @@ async function texStrip(path,srgb,maxDim){if(!path)return null;let p=String(path
 // material proxies the loadout shader runs (index.html PROX): Sine, LinearRamp, TextureTransform, TextureScroll, AnimatedTexture on $basetexture
 function proxies(k,P){const X=k.proxies;if(!X||typeof X!='object')return;const out=[];const L=[];for(const n in X){const v=X[n];if(Array.isArray(v))v.forEach(x=>L.push([n,x]));else L.push([n,v])}
  for(const [n,q] of L){if(!q||typeof q!='object')continue;const rv=String(q.resultvar||'').toLowerCase();
-  if(n=='sine'&&rv)out.push({t:'sine',r:rv,p:num(q.sineperiod,1)||1,min:num(q.sinemin,0),max:num(q.sinemax,1),o:num(q.timeoffset,0)});
+  if(n=='sine'&&rv)out.push({t:'sine',r:rv,p:num(q.sineperiod,1)||1,min:opd(q.sinemin,0),max:opd(q.sinemax,1),o:num(q.timeoffset,0)});
+  else if(n=='equals'&&rv&&q.srcvar1!=null)out.push({t:'eq',a:opd(q.srcvar1,0),r:rv});
+  else if(n=='lessorequal'&&rv)out.push({t:'le',a:opd(q.srcvar1,0),b:opd(q.srcvar2,0),le:opd(q.lessequalvar,0),gt:opd(q.greatervar,0),r:rv});
   else if(n=='linearramp'&&rv)out.push({t:'ramp',r:rv,rate:num(q.rate,1),init:num(q.initialvalue,0)});
   else if(n=='texturetransform'&&(!rv||rv=='$basetexturetransform'))out.push({t:'xf',c:String(q.centervar||'$center').toLowerCase(),s:String(q.scalevar||'$scale').toLowerCase(),a:String(q.rotatevar||'$angle').toLowerCase(),tr:String(q.translatevar||'$translate').toLowerCase()});
   else if(n=='texturescroll'&&(!q.texturescrollvar||String(q.texturescrollvar).toLowerCase()=='$basetexturetransform')){const r=num(q.texturescrollrate,1),a=num(q.texturescrollangle,0)*Math.PI/180;
@@ -1259,7 +1275,16 @@ function proxies(k,P){const X=k.proxies;if(!X||typeof X!='object')return;const o
   else if(n=='animatedtexture'&&String(q.animatedtexturevar||'').toLowerCase()=='$basetexture'&&P._frames>1)out.push({t:'anim',n:P._frames,fps:num(q.animatedtextureframerate,15)})}
  // a static $basetexturetransform is a TextureTransform that never changes
  if(P.xf&&!out.some(x=>x.t=='xf'))out.push({t:'xf',c:'$center',s:'$scale',a:'$angle',tr:'$translate'});
- if(out.length)P.prox=out}
+ // keep the value proxies that end in a var the shader reads (directly or through the vars they feed), and the vmt's starting values of the vars they use
+ const base=x=>String(x).replace(/\[\d\]$/,''),need=new Set(['$selfillumtint','$selfillumfresnelminmaxexp','$phongboost','$rimlightexponent','$rimlightboost','$detailblendfactor','$center','$scale','$angle','$translate','$zscroll']);
+ const val=x=>x.t=='sine'||x.t=='eq'||x.t=='le'||x.t=='ramp';const reads=x=>[x.min,x.max,x.a,x.b,x.le,x.gt].filter(v=>typeof v=='string').map(base);
+ for(let g=0;g<8;g++){let ch=0;for(const x of out)if(val(x)&&need.has(base(x.r)))for(const v of reads(x))if(!need.has(v)){need.add(v);ch=1}if(!ch)break}
+ const keep=out.filter(x=>!val(x)||need.has(base(x.r)));
+ if(keep.some(x=>x.t=='eq'||x.t=='le'||typeof x.min=='string'||typeof x.max=='string')){P.pv={};for(const v of need){const w=k[v];if(w==null)continue;const s=String(w).trim();const a=/^[\[{]/.test(s)?vec(s,null):(isFinite(Number(s))&&s!==''?[Number(s)]:null);if(a&&a.length)P.pv[v]=a}}
+ P.proxW=[...new Set(keep.filter(val).map(x=>base(x.r)))];
+ if(keep.length)P.prox=keep}
+// a proxy operand: a material var ("$invulnfmaxoutput", "$selfillumfresnelminmaxexp[1]") or a number
+function opd(x,d){if(x==null)return d;const s=String(x).trim().toLowerCase();return s[0]=='$'?s:num(s,d)}
 function xform(v){if(!v)return null;const s=String(v).toLowerCase();const g=(k,n)=>{const m=s.match(new RegExp(k+'\\s+([-\\d.e]+)'+(n>1?'\\s+([-\\d.e]+)':'')));return m?(n>1?[+m[1],+m[2]]:[+m[1]]):null};
  const X={center:g('center',2)||[.5,.5],scale:g('scale',2)||[1,1],angle:(g('rotate',1)||[0])[0],translate:g('translate',2)||[0,0]};
  return (X.scale[0]==1&&X.scale[1]==1&&!X.angle&&!X.translate[0]&&!X.translate[1])?null:X}
@@ -1298,6 +1323,8 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  if(num(k.$selfillum,0)){const fr=num(k.$selfillumfresnel,0);const mk=k.$selfillummask?await tex(k.$selfillummask,false).catch(()=>null):null;
   // the shaders have no combo of $blendtintbybasealpha with $selfillum (both read the base alpha): a glowing item is tinted as a whole (Ivan the Inedible)
   if(mk||fr||(P.map&&P.map.userData.alpha)){P.si=1;P.tintA=0;P.siTint=vec(k.$selfillumtint,[1,1,1]);if(mk)P.siMask=mk;if(fr)P.siFres=vec(k.$selfillumfresnelminmaxexp,[0,1,1])}}
+ // $detail added after the lighting ($detailblendmode 5 and 6): the HHH pumpkin's glowing face (its Sine proxy pulses $detailblendfactor)
+ {const dm=num(k.$detailblendmode,0);if(k.$detail&&(dm==5||dm==6)){const dt=await tex(k.$detail,true).catch(()=>null);if(dt){P.det=dt;P.detMode=dm;P.detBlend=num(k.$detailblendfactor,1);P.detScale=num(k.$detailscale,4)}}}
  {const X=xform(k.$basetexturetransform);if(X)P.xf=X}
  proxies(k,P);
  const lw=k.$lightwarptexture;if(lw){const n=String(lw).replace(/\\/g,'/').split('/').pop().toLowerCase().replace(/_lightwarp$/,'');
