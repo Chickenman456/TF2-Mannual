@@ -97,7 +97,10 @@
         + '<p class="empty" style="padding:10px 0 30px">Characters load from your TF2 install. Link it under Settings &gt; Sync with your game.</p>';
     },
     open(id){
-      const n = NPCS.find(x => x.id === id); if (!n || !window.ItemPreview || !ItemPreview.openNpc) return;
+      const n = NPCS.find(x => x.id === id); if (!n) return;
+      // a mercenary opens the game's class loadout screen (lo.js); the robots and the others the character viewer
+      if (n.cls && !n.bot && window.LOADOUT) { LOADOUT.open(CNAME[n.cls]); return; }
+      if (!window.ItemPreview || !ItemPreview.openNpc) return;
       const snd = typeof sfx === 'function' ? sfx : () => {};
       snd('panel_open');
       ItemPreview.openNpc({name: n.name, level: n.level, where: n.where, def: n, esc: E, sfx: snd, close: () => snd('panel_close'),
