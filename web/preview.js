@@ -86,6 +86,7 @@
     return (o.level ? `<div class="spv-lvl">${E(o.level)}</div>` : '')
       + (d ? `<div class="spv-attrs big"><div>\u201c${E(d[0])}\u201d</div>${d[1] ? `<div style="color:#766B5E">\u2014 ${E(d[1])}</div>` : ''}</div>` : '')
       + `<div class="spv-attrs big"><div style="color:#766B5E">Keys:</div><div>${E(keys)}</div></div>`
+      + (live() && ZLIVE.mdlSource ? `<button type="button" class="spv-btn spv-wiki big" data-spv="src">Model &amp; Materials...</button>` : '')
       + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '')
       // the maps last, since a merc's list is every map in the game
       + (o.first && o.first.length ? `<div class="spv-attrs big"><div style="color:#766B5E">First appearance:</div><div class="spv-maps">${maps(o.first)}</div></div>` : '')
@@ -511,27 +512,58 @@
     else if (k === 'lod') { ST.lod = ((ST.lod || 0) + 1) % 3; lodLabel(); const cn = CNAME[ST.cls]; if (cn && window.Store3D && Store3D.lod) Store3D.lod(cn, ST.lod); }
   }
   // ---- Model & Materials: the item's QC (reconstructed from the compiled model, or the Workshop item's own) and its VMTs ----
+  // (a character's or a robot's model the same way). A VMT can be edited here and applied to what's shown, imported from a .vmt
+  // file, saved out as one, or put back; the edits last until the page is reloaded (ZLIVE.vmtEdit)
   async function srcView() {
     const old = ST.el.querySelector('.spv-src'); if (old) { old.remove(); return; }
     const st = ST, E = ST.o.esc, box = document.createElement('div');
     box.className = 'spv-src'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Model and materials');
-    box.innerHTML = `<div class="hd"><b>Model &amp; Materials</b><button type="button" class="x" data-srcx aria-label="Close">×</button></div><div class="bd"><p>Reading the item’s files…</p></div>`;
-    ST.el.querySelector('.spv-frame').appendChild(box);
-    box.addEventListener('click', e => {
+    box.innerHTML = `<div class="hd"><b>Model &amp; Materials</b><button type="button" class="x" data-srcx aria-label="Close">×</button></div><div class="bd"><p>Reading the ${st.npc || st.o.char ? 'character' : 'item'}’s files…</p></div>`;
+    (FS ? FS.ui : ST.el.querySelector('.spv-frame')).appendChild(box);
+    let F = [], cur = 0;
+    const ed = () => box.querySelector('textarea'), msg = t => { const n = box.querySelector('.vst'); if (n) n.textContent = t || ''; };
+    const mark = () => box.querySelectorAll('[data-srci]').forEach(b => { const f = F[+b.dataset.srci]; b.classList.toggle('ed', !!(f && f.kind === 'vmt' && ZLIVE.vmtEdited(f.path))); });
+    const show = i => { const f = F[i]; if (!f) return; cur = i; box.querySelectorAll('[data-srci]').forEach(b => b.classList.toggle('on', +b.dataset.srci === i));
+      box.querySelector('.pth').textContent = f.path + (f.kind === 'vmt' && ZLIVE.vmtEdited(f.path) ? '  (edited)' : '');
+      const v = f.kind === 'vmt', pre = box.querySelector('pre'), ta = ed();
+      pre.hidden = v; ta.hidden = !v; box.querySelectorAll('.vtool').forEach(b => { b.hidden = !v; });
+      if (v) { ta.value = f.text; ta.scrollTop = 0; } else { pre.textContent = f.text; pre.scrollTop = 0; } msg(''); };
+    // the edit put on the models shown: the cosmetics, weapons and bodies re-dressed, a character loaded again
+    const refresh = () => {
+      if (st !== ST) return;
+      if (st.npc && st.npcReload) st.npcReload();
+      else if (st.state === 'player' && st.cls && window.Store3D && Store3D.redress) { window.ZPREV = prevState(); Store3D.redress(CNAME[st.cls]); }
+    };
+    const apply = async (t, note) => { const f = F[cur]; if (!f || f.kind !== 'vmt') return; f.text = t; ZLIVE.vmtEdit(f.path, t); refresh(); mark(); show(cur); msg(note || 'Applied. It lasts until the page is reloaded.'); };
+    box.addEventListener('click', async e => {
       e.stopPropagation();
       if (e.target.closest('[data-srcx]')) { box.remove(); st.o.sfx('buttonclick'); return; }
       const t = e.target.closest('[data-srci]'); if (t) { show(+t.dataset.srci); st.o.sfx('buttonclick'); return; }
-      if (e.target.closest('[data-srccopy]')) { const pre = box.querySelector('pre'); if (pre && navigator.clipboard) navigator.clipboard.writeText(pre.textContent).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy'; }, 1200); }).catch(() => {}); }
+      const b = e.target.closest('[data-vt]'); const f = F[cur];
+      if (b && f) {
+        st.o.sfx('buttonclick'); const k = b.dataset.vt;
+        if (k === 'apply') apply(ed().value);
+        else if (k === 'revert') { const o = await ZLIVE.vmtOrig(f.path); ZLIVE.vmtEdit(f.path, null); f.text = o || ''; refresh(); mark(); show(cur); msg('Back to the game’s own.'); }
+        else if (k === 'export') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ed().value.replace(/\r?\n/g, '\r\n')], {type: 'text/plain'})); a.download = f.path.split('/').pop(); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+        else if (k === 'import') box.querySelector('input[type=file]').click();
+        return;
+      }
+      if (e.target.closest('[data-srccopy]')) { const v = F[cur] && F[cur].kind === 'vmt' ? ed().value : box.querySelector('pre').textContent; if (navigator.clipboard) navigator.clipboard.writeText(v).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy'; }, 1200); }).catch(() => {}); }
     });
-    let F = [];
-    const show = i => { const f = F[i]; if (!f) return; box.querySelectorAll('[data-srci]').forEach(b => b.classList.toggle('on', +b.dataset.srci === i));
-      box.querySelector('.pth').textContent = f.path; box.querySelector('pre').textContent = f.text; box.querySelector('pre').scrollTop = 0; };
+    // keys typed in the editor stay there (W, F, Esc... don't reach the merc or close the window)
+    box.addEventListener('keydown', e => { if (e.target.closest('textarea')) { e.stopPropagation(); if (e.key === 'Escape') e.target.blur(); if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') apply(e.target.value); } });
     try {
-      F = await ZLIVE.source(st.nm, st.state === 'player' && st.cls ? CNAME[st.cls] : null, st.style || 0);
+      if (st.npc) F = await ZLIVE.mdlSource([st.o.def.mdl].concat((st.npcDef || st.o.def).attach ? (st.npcDef || st.o.def).attach.map(a => typeof a === 'string' ? a : a.mdl) : []).concat(st.npcDef && st.npcDef.mdl !== st.o.def.mdl ? [st.npcDef.mdl] : []));
+      else if (st.o.char) {
+        const cn = CNAME[st.cls], r = st.o.robot, short = {Demoman: 'demo', Heavy: 'heavy'}[cn] || String(cn || '').toLowerCase();
+        F = await ZLIVE.mdlSource(r && /^models\//.test(r) ? [r] : r ? ['models/bots/' + short + '/bot_' + short + '.mdl'] : ['models/player/' + short + '.mdl']);
+      } else F = await ZLIVE.source(st.nm, st.state === 'player' && st.cls ? CNAME[st.cls] : null, st.style || 0);
       if (ST !== st || !box.isConnected) return;
       box.querySelector('.bd').innerHTML = `<div class="tabs">${F.map((f, i) => `<button type="button" data-srci="${i}">${E(f.path.split('/').pop())}<i>${f.kind === 'qc' ? 'QC' : 'VMT'}${f.note ? ' · ' + E(f.note) : ''}</i></button>`).join('')}</div>
-        <div class="pth"></div><pre tabindex="0"></pre><button type="button" class="cp" data-srccopy>Copy</button>`;
-      show(0);
+        <div class="pth"></div><pre tabindex="0"></pre><textarea class="vmted" spellcheck="false" aria-label="VMT" hidden></textarea>
+        <div class="vbar"><button type="button" class="cp" data-srccopy>Copy</button><button type="button" class="cp vtool" data-vt="apply" title="Draw the model with this VMT (Ctrl+Enter)">Apply</button><button type="button" class="cp vtool" data-vt="revert" title="Back to the game’s own VMT">Revert</button><button type="button" class="cp vtool" data-vt="import" title="Load a .vmt file into this material and apply it">Import .vmt</button><button type="button" class="cp vtool" data-vt="export" title="Save this VMT as a file">Export .vmt</button><span class="vst"></span><input type="file" accept=".vmt,text/plain" hidden></div>`;
+      box.querySelector('input[type=file]').addEventListener('change', async ev => { const fl = ev.target.files && ev.target.files[0]; if (!fl) return; const t = await fl.text(); ev.target.value = ''; apply(t, 'Imported ' + fl.name + ' and applied. It lasts until the page is reloaded.'); });
+      mark(); show(Math.max(0, F.findIndex(f => f.kind === 'vmt' && ZLIVE.vmtEdited(f.path))));
     } catch (e) { if (box.isConnected) box.querySelector('.bd').innerHTML = `<p>${E(e && e.message || String(e))}</p>`; }
   }
   // ---- playing the merc from the keyboard, as in game: 1-4 its weapons, W runs in place (again to stop), Ctrl crouches (again to stand),
@@ -619,7 +651,7 @@
     el.innerHTML = markup(o);
     document.body.appendChild(el);
     ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name, char: !!o.char, allow: o.allow || null, kslot: o.allow ? o.allow[0] : null, noteam: !!o.noteam};
-    if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
+    if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && ST.cosStyle && ST.cosStyle[n] != null ? ST.cosStyle[n] : ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
     el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown);
     addEventListener('keydown', onKey, true); addEventListener('keydown', onCtl); addEventListener('keyup', onCtlUp); addEventListener('blur', onCtlUp); addEventListener('resize', layout);
     teamSel(); cycleText(); wishLabel();
@@ -663,7 +695,7 @@
       const E = o.esc, b = document.createElement('label'); b.className = 'spv-styles pl'; b.innerHTML = `<span>Style</span><select aria-label="Style"></select>`;
       ST.el.querySelector('.spv-frame').appendChild(b); const sel = b.querySelector('select'), opts = [['Default', []]].concat(d.costumes);
       sel.innerHTML = opts.map(([l], i) => `<option value="${i}">${E(l)}</option>`).join(''); placeBars();
-      sel.onchange = () => { o.sfx('buttonclick'); const cn = CNAME[ST.cls]; ST.o.set = opts[+sel.value][1].map(nm => ({kind: 'c', nm})); window.ZPREV = prevState(); if (window.Store3D && Store3D.redress) Store3D.redress(cn); };
+      sel.onchange = () => { o.sfx('buttonclick'); const cn = CNAME[ST.cls]; ST.o.set = opts[+sel.value][1].map(x => ({kind: 'c', nm: Array.isArray(x) ? x[0] : x})); ST.cosStyle = Object.fromEntries(opts[+sel.value][1].filter(Array.isArray)); window.ZPREV = prevState(); if (window.Store3D && Store3D.redress) Store3D.redress(cn); };
     }
     return true;
   }
@@ -697,6 +729,7 @@
       if (k === 'close') { close(); return; }
       o.sfx('buttonclick');
       if (k === 'full') fullscreen();
+      else if (k === 'src') srcView();
     });
     addEventListener('keydown', onKey, true); addEventListener('resize', layout);
     teamSel(); layout(); setTimeout(layout, 60); placeBars();
@@ -722,7 +755,7 @@
     };
     addEventListener('keydown', ST.npcKey);
     const load = def => {
-      setNote('Loading ' + o.name + '…'); running = false; idleQ = runQ = null;
+      setNote('Loading ' + o.name + '…'); running = false; idleQ = runQ = null; st0.npcDef = def;
       Store3D.npc.show(f, def, ST.team).then(seqs => {
         if (ST !== st0 || !seqs) return; setNote('');
         const keep = def.keep ? seqs.filter(def.keep) : seqs;
@@ -740,6 +773,7 @@
       }).catch(e => { console.warn('[NPC]', e); if (ST === st0) setNote('Couldn’t load ' + o.name + ' from your TF2 files' + (e && e.message ? ': ' + e.message : '') + '.', true); });
     };
     const cur = () => ({...o.def, ...(sty ? o.def.styles[+sty.value][1] : {}), ...(fam ? {skin: +fam.value} : {})});
+    ST.npcReload = () => load(cur());   // an edited VMT (Model & Materials) put on the character
     if (fam) fam.onchange = () => { o.sfx('buttonclick'); load(cur()); };
     if (sty) sty.onchange = () => { o.sfx('buttonclick'); load(cur()); };
     load(o.def);
