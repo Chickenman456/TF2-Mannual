@@ -777,7 +777,9 @@ async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+
    const r=eyeMat({name:E.mat,userData:{eye:E}},g);if(E.irisLive)r.mat.uniforms.iris.value=E.irisLive;wm.material=r.mat;wm.userData.eyeE=1;NPC.eyes.push(r.tick)})}catch(e){console.warn('[NPC] eyes',e)}
  // the character's own always-on effect (the HHH's ghost_pumpkin, which his client puts on him at his origin)
  if(def.pfx&&window.ZPFX&&ZPFX.keep){const key='npc|'+def.pfx;NPC.pfx=key;ZPFX.keep(key,def.pfx,()=>NPC.g===g&&g.parent?{obj:g,merc:g,yup:true}:null,()=>{const v=new THREE.Vector3();g.getWorldScale(v);return v.y||1}).catch(()=>{})}
- g.scale.setScalar(def.scale||1);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
+ g.scale.setScalar(def.scale||1);
+ // rot: the angles the map gives it, where its model is made another way up (Bread Space's Big Mama: rolled 180 degrees)
+ if(def.rot)g.rotation.set(def.rot[0]*Math.PI/180,def.rot[1]*Math.PI/180,def.rot[2]*Math.PI/180);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
  // a prop the map parents to it (Laughter's crocodiles' Sydney Straw Boats: a prop_dynamic SetParentAttachmentMaintainOffset on the croc's splash
  // attachment): placed where the map puts it relative to the character (Source model space: x forward, y left, z up; pitch, yaw, roll in degrees),
  // the character posed as the map spawns it (its DefaultAnim's first frame), then carried by that attachment's bone
@@ -797,10 +799,16 @@ function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=n
  // the meshes where the pose puts them (a sample of each one's vertices, skinned), not where they sit unposed
  let sk=0;g.traverse(x=>{if(!x.isSkinnedMesh||!x.boneTransform||!x.visible)return;const P=x.geometry.attributes.position;if(!P)return;sk++;const st=Math.max(1,Math.floor(P.count/1500));x.skeleton.update();for(let i=0;i<P.count;i+=st){v.fromBufferAttribute(P,i);x.boneTransform(i,v);v.applyMatrix4(x.matrixWorld);B.expandByPoint(v)}});
  if(!sk){try{B.union(new THREE.Box3().setFromObject(g))}catch(e){}}
- const c=B.getCenter(new THREE.Vector3()),sz=B.getSize(new THREE.Vector3());c.y+=sz.y*.1;const h=Math.max(sz.y*1.45,sz.x*1.1,sz.z*.8,20);let d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.1;d+=Math.max(0,sz.z/2-h/4);// a long one (the Tank) stands back far enough for its near end
+ const c=B.getCenter(new THREE.Vector3()),sz=B.getSize(new THREE.Vector3());
+ // center: a character made away from its model's origin (Cachoeira's piranhas, a school round a point off to one side) brought to the
+ // middle, by its root bones (so it still turns about itself); with inplace, as nothing then moves them back
+ if(NPC.def&&NPC.def.center&&!g.userData.zc){g.userData.zc=1;const d=new THREE.Vector3(c.x,B.min.y,c.z);g.worldToLocal(d.add(g.getWorldPosition(new THREE.Vector3())));g.children.forEach(x=>{if(x.isBone)x.position.sub(d)});return npcFit()}
+ c.y+=sz.y*.1;const h=Math.max(sz.y*1.45,sz.x*1.1,sz.z*.8,20);let d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.1;d+=Math.max(0,sz.z/2-h/4);// a long one (the Tank) stands back far enough for its near end
  NPC.fr={c,h,d};if(V.storeCam){V.storeApply();return}V.ctl.target.copy(c);V.cam.position.set(c.x,c.y,c.z+d);V.ctl.minDistance=d*.25;V.ctl.maxDistance=d*3;V.ctl.update()}
 async function npcPlay(name,once){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
- const a=NPC.mx.clipAction(r.clip);a.reset();if(once){a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true}else a.setLoop(THREE.LoopRepeat);
+ // inplace: a bone whose travel is left out, so a character that swims a path round its map (Cachoeira's piranhas) swims where it stands
+ let clip=r.clip;if(def.inplace){clip=r.clip._inp||(r.clip._inp=new THREE.AnimationClip(r.clip.name,r.clip.duration,r.clip.tracks.filter(t=>t.name!==def.inplace+'.position')));Object.assign(clip,{zpfx:r.clip.zpfx})}
+ const a=NPC.mx.clipAction(clip);a.reset();if(once){a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true}else a.setLoop(THREE.LoopRepeat);
  NPC.sev=null;if(ZLIVE.npcSeqSounds)ZLIVE.npcSeqSounds(def.mdl,name).then(E=>{if(NPC.act===a&&E.length)NPC.sev={a,E,last:-1,dur:r.clip.duration}}).catch(()=>{});
  NPC.bge=null;if(def.allbg&&ZLIVE.npcSeqBg)ZLIVE.npcSeqBg(def.mdl,name).then(E=>{if(NPC.act===a&&E.length)NPC.bge={a,E,dur:r.clip.duration}}).catch(()=>{});if(NPC.act&&NPC.act!==a)a.crossFadeFrom(NPC.act,.2,false);a.play();const first=!NPC.act;NPC.act=a;if(first){NPC.mx.update(0);npcFit()}return once?r.clip.duration:true}
 // an attack: layered over the idle or run when the game layers it, else played once in its place; resolves to how long it lasts
