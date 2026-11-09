@@ -717,9 +717,10 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
  const bg={};for(const k of (m._cbg||[]))bg[String(k).toLowerCase()]=1;
  const h=m._wmOff?null:m._wmHide;if(h){const part=typeof h=='string'?h:h.part,state=typeof h=='string'?1:Number(h.st);if(part&&Number.isInteger(state)&&state>=0)bg[String(part).toLowerCase()]=state}
- const needBody=n>0||bot||Object.keys(bg).length>0;
+ const ped=ZLIVE.vmtEdited&&ZLIVE.vmtEdited().some(p=>/^materials\/models\/(player|bots)\//.test(p));
+ const needBody=n>0||bot||ped||Object.keys(bg).length>0;
  if(!needBody||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
- const sig=n+'|'+(m._robot||'')+'|'+JSON.stringify(bg);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
+ const sig=n+'|'+(m._robot||'')+'|'+JSON.stringify(bg)+'|'+(m._vrev||0);if(m._lbodySig===sig&&m._lbody)return;m._lbodySig=sig;const tok=m._lodTok=(m._lodTok||0)+1;
  try{const [src,man]=await ZLIVE.body(c,bg,m._robot||false);if(m._lodTok!==tok)return;const pb={};m.o.traverse(x=>{if(x.isBone&&!x.userData.zx)pb[x.name.toLowerCase()]=x});const team=ZTEAM(c);const MI0=man[Object.keys(man)[0]]||{};
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
   // a robot's own bones (its antennas, gears and plates): made under the merc bone their parent merged onto, at their rest pose
