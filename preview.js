@@ -70,8 +70,8 @@
       <button type="button" class="spv-close" data-spv="close" style="${box(461, 6, 14, 14)};--g:url(${IMG}close_button.webp)" aria-label="Close"></button>
       <button type="button" class="spv-btn spv-back" data-spv="close" style="${box(10, 255, 90, 22)}">&lt;&lt; Back</button>
       ${o.wish ? `<button type="button" class="spv-star" data-spv="wish" style="${box(441, 7, 13, 13)};--g:url(ui/gi_star.webp)"></button>` : ''}
-      ${o.buy ? `<a class="spv-btn spv-cart" href="${E(o.buy)}" target="_blank" rel="noopener" title="Buy it from the Mann Co. Store on Steam" style="${box(358, 256, 110, 20)}">Buy on Steam</a>` : ''}
-      ${o.market ? `<a class="spv-btn spv-mkt" href="${E(o.market)}" target="_blank" rel="noopener" style="${box(o.buy ? 238 : 358, 256, 110, 20)}">Steam Market</a>` : ''}
+      ${o.buy ? `<a class="spv-btn spv-cart" href="${E(o.buy)}" target="_blank" rel="noopener" title="${E(o.buyTitle || 'Buy it from the Mann Co. Store on Steam')}" style="${box(358, 256, 110, 20)}">${E(o.buyLabel || 'Buy on Steam')}</a>` : ''}
+      ${o.market ? `<a class="spv-btn spv-mkt" href="${E(o.market)}" target="_blank" rel="noopener"${o.marketTitle ? ` title="${E(o.marketTitle)}"` : ''} style="${box(o.buy ? 238 : 358, 256, 110, 20)}">${E(o.marketLabel || 'Steam Market')}</a>` : ''}
     </div>`;
   }
 
@@ -743,24 +743,40 @@
     load(o.def);
     return true;
   }
-  /* openMap({name, map:{f, n, m, d, u, s, w, b, e, t, ph}, photo, thumb, wiki, esc, sfx, close}): a map in the same window: its loading
-     screen's photos (materials/vgui/maps/menu_photos_<map>) where the store has the merc, and its details where the store has the item's */
+  /* openMap({name, map:{f, n, m, d, u, s, a, w, b, e, t, st, sb, lb, ph}, photo, shot, wiki, buy, leaderboard, esc, sfx, close}): a map in the
+     same window: its screenshot from the TF2 Wiki where the store has the merc (and, when the game has them, its loading screen's photos
+     under View), its details where the store has the item's; its Map Stamp from the Mann Co. Store and the stamp's Steam leaderboard
+     of top supporters where the store has Buy on Steam and Steam Market */
   function openMap(o) {
     close();
     const el = document.createElement('div'); el.className = 'spv spv-npc spv-map player';
-    el.innerHTML = markup(o);
+    el.innerHTML = markup({...o, buyLabel: 'Buy Map Stamp', buyTitle: 'Buy this map’s Map Stamp from the Mann Co. Store: the money goes to the map’s makers',
+      market: o.leaderboard, marketLabel: 'Top Supporters', marketTitle: 'The map’s Steam leaderboard of the players who bought the most of its Map Stamps'});
     document.body.appendChild(el);
     ST = {o, el, u: 2, state: 'map', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
     ['.spv-icons', '.spv-team', '.spv-rot', '.spv-tb', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=full]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
     const E = o.esc, m = o.map, mp = el.querySelector('.spv-model');
-    // the photos when the loading screen has them; a map without (most of the community maps added since) shows its menu thumbnail
-    mp.insertAdjacentHTML('afterbegin', `<img class="spv-mapimg${o.photo ? '' : ' thumb'}" src="${E(o.photo || o.thumb || '')}" alt="${E(o.name)}: loading screen">`);
+    mp.insertAdjacentHTML('afterbegin', `<img class="spv-mapimg shot" alt="${E(o.name)}: screenshot"><img class="spv-mapimg photo" alt="${E(o.name)}: loading screen" hidden>`);
+    const [im, ph] = mp.querySelectorAll('.spv-mapimg');
+    // the screenshot can still be on its way (maps.js reads them in the background): a spinner until it is
+    const setShot = u => { if (u) { im.src = u; mp.classList.remove('loading'); } else mp.classList.add('loading'); };
+    setShot(o.shot); ST.mapShot = setShot;
+    // the loading screen's photos, when the game has them for this map (they can arrive after the window opens: mapPhoto)
+    ST.mapPhoto = u => {
+      if (!u || ph.src) return; ph.src = u;
+      const b = document.createElement('label'); b.className = 'spv-styles pl'; b.innerHTML = `<span>View</span><select aria-label="View"><option value="0">Screenshot</option><option value="1">Loading Screen</option></select>`;
+      el.querySelector('.spv-frame').appendChild(b); const sel = b.querySelector('select');
+      sel.onchange = () => { o.sfx('buttonclick'); const L = sel.value === '1'; ph.hidden = !L; im.hidden = L; mp.classList.toggle('photo', L); };
+      placeBars(); if (FS) FS.ui.appendChild(b);
+    };
+    ST.mapPhoto(o.photo);
     const when = m.d ? new Date(m.d + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'}) : '';
     const row = (k, v) => v ? `<div class="spv-attrs big"><div style="color:#766B5E">${E(k)}</div><div>${E(v)}</div></div>` : '';
     el.querySelector('.spv-rows').innerHTML = `<div class="spv-lvl">${E(m.m)}</div>`
       + (m.b ? `<div class="spv-attrs big"><div>“${E(m.b[0])}”</div><div style="color:#766B5E">— ${E(m.b[1])}</div></div>` : '')
       + row('Released:', [when, m.u && m.u !== 'Launch' ? m.u : m.u === 'Launch' ? 'with the game' : ''].filter(Boolean).join(', '))
-      + row('Made by:', m.s === 'Valve' ? 'Valve' : 'The community (Steam Workshop)')
+      // the makers as the game credits them (tf_english <map>_authors), else Valve or the community
+      + row('Made by:', m.a ? m.a.split(/(?:\n|\\n)+/).map(x => x.trim()).filter(Boolean).join(', ') : m.s === 'Valve' ? 'Valve' : 'The community (Steam Workshop)')
       + row('Environment:', [m.e, m.t].filter(Boolean).join(' · '))
       + row('Map file:', m.f + '.bsp')
       + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '');
@@ -773,5 +789,8 @@
     layout(); setTimeout(layout, 60);
     return true;
   }
-  window.ItemPreview = {open, openNpc, openMap, close, isOpen: () => !!ST};
+  // maps.js: a screenshot that arrived after its map's window opened
+  function mapShot(f, u) { if (ST && ST.state === 'map' && ST.o.map.f === f && ST.mapShot) ST.mapShot(u); }
+  function mapPhoto(f, u) { if (ST && ST.state === 'map' && ST.o.map.f === f && ST.mapPhoto) ST.mapPhoto(u); }
+  window.ItemPreview = {open, openNpc, openMap, mapShot, mapPhoto, close, isOpen: () => !!ST};
 })();

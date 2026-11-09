@@ -64,18 +64,30 @@
 #mappop span{display:block;font:400 12px/1.35 TF2Secondary;color:#cbbfae;margin-top:3px}
 @media (hover:none){#mappop{display:none}}
 .spv-map .spv-mapimg{position:absolute;inset:4%;width:92%;height:92%;object-fit:contain;filter:drop-shadow(0 4px 8px #000a)}
-.spv-map .spv-mapimg.thumb{inset:22% 5%;width:90%;height:56%;object-fit:cover;border:3px solid #e9e1d2;border-radius:2px;box-sizing:border-box}
+.spv-map .spv-mapimg.shot{inset:22% 4%;width:92%;height:auto;aspect-ratio:16/9;object-fit:cover;border:3px solid #e9e1d2;border-radius:2px;box-sizing:border-box}
+.spv-map .spv-mapimg[hidden],.spv-map .loading .spv-mapimg.shot{display:none}
+@keyframes mapspin{to{transform:rotate(360deg)}}
+.mapc .mapi:not([style])::before,.spv-map .spv-model.loading::before,#mappop .ld::before{content:'';position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  border:3px solid #f5e5c133;border-top-color:#f5e5c1cc;animation:mapspin .8s linear infinite}
+.mapc .mapi:not([style])::before{top:34%}
+#mappop .ld{position:relative;display:block;width:100%;aspect-ratio:16/9;background:#3a342f}
 body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility 0s linear .25s}
 `;
   document.head.appendChild(css);
   // the map data is read the first time the Maps view is shown, then its screenshots (4 files), each put on the cards as it comes in
   let loading = false;
   const add = (src, done) => { const sc = document.createElement('script'); sc.src = src; sc.onload = done; sc.onerror = done; document.head.appendChild(sc); };
-  function fill() { document.querySelectorAll('.mapi[data-shot]:not([style])').forEach(el => { const s = window.ZMAPSHOT && ZMAPSHOT[el.dataset.shot]; if (s) el.style.backgroundImage = `url(${s})`; }); }
+  function fill() {
+    document.querySelectorAll('.mapi[data-shot]:not([style])').forEach(el => { const s = window.ZMAPSHOT && ZMAPSHOT[el.dataset.shot]; if (s) el.style.backgroundImage = `url(${s})`; });
+    if (window.ItemPreview && ItemPreview.mapShot && openF && window.ZMAPSHOT && ZMAPSHOT[openF]) ItemPreview.mapShot(openF, ZMAPSHOT[openF]);
+  }
+  // all five at once: the cards show a spinner until their screenshot's file is in
   function need() {
     if (window.ZMAPS || loading) return; loading = true;
-    add('mapdata.js', () => { if (typeof render === 'function') render(); for (let k = 1; k <= 4; k++) add('ui/maps/s' + k + '.js', fill); });
+    add('mapdata.js', () => { if (typeof render === 'function') render(); });
+    for (let k = 1; k <= 4; k++) add('ui/maps/s' + k + '.js', fill);
   }
+  let openF = null;
   window.MAPVIEW = {
     render() {
       if (!window.ZMAPS) { need(); return '<div class="empty"><h2>Loading the maps…</h2></div>'; }
@@ -93,11 +105,15 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       pop(null);
       const snd = typeof sfx === 'function' ? sfx : () => {};
       snd('panel_open');
-      const go = () => ItemPreview.openMap({name: m.n, map: m, photo: m.ph ? (window.ZMAPPHOTO || {})[m.f] || null : null, thumb: shot(m),
-        wiki: m.w ? W + encodeURIComponent(m.w.replace(/ /g, '_')).replace(/%2F/g, '/') : null, esc: E, sfx: snd, close: () => snd('panel_close')});
-      // the photos come in 8 files (ui/maps/p<n>.js); the one holding this map's is read the first time it's needed
-      if (!m.ph || (window.ZMAPPHOTO && ZMAPPHOTO[m.f])) { go(); return; }
-      add('ui/maps/p' + m.ph + '.js', go);
+      openF = m.f;
+      const go = () => ItemPreview.openMap({name: m.n, map: m, photo: m.ph ? (window.ZMAPPHOTO || {})[m.f] || null : null, shot: shot(m),
+        wiki: m.w ? W + encodeURIComponent(m.w.replace(/ /g, '_')).replace(/%2F/g, '/') : null,
+        // the map's stamp from the Mann Co. Store, and the Steam leaderboard of its top supporters (contributions_<map>)
+        buy: m.st && m.sb ? 'https://store.steampowered.com/buyitem/440/' + m.st : null, leaderboard: m.lb ? 'https://steamcommunity.com/stats/TF2/leaderboards/' + m.lb + '/' : null,
+        esc: E, sfx: snd, close: () => { openF = null; snd('panel_close'); }});
+      // the window opens on the screenshot; the photos come in 8 files (ui/maps/p<n>.js), the one holding this map's read the first time it's needed
+      go();
+      if (m.ph && !(window.ZMAPPHOTO && ZMAPPHOTO[m.f])) add('ui/maps/p' + m.ph + '.js', () => ItemPreview.mapPhoto && ItemPreview.mapPhoto(m.f, (window.ZMAPPHOTO || {})[m.f]));
     },
   };
   // hovering a card: its screenshot popped out bigger beside it, with its name, mode and update
@@ -110,7 +126,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       const m = ALL().find(x => x.f === c.dataset.map); if (!m || popFor !== c || !c.isConnected) return;
       if (!popEl) { popEl = document.createElement('div'); popEl.id = 'mappop'; popEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(popEl); }
       const s = shot(m);
-      popEl.innerHTML = `${s ? `<img src="${s}" alt="">` : ''}<div><b>${E(m.n.toUpperCase())}</b><span>${E(m.m)} · ${E(m.u === 'Launch' ? 'Launch' : m.u)}${m.d ? ' · ' + E(when(m)) : ''}</span></div>`;
+      popEl.innerHTML = `${s ? `<img src="${s}" alt="">` : '<span class="ld"></span>'}<div><b>${E(m.n.toUpperCase())}</b><span>${E(m.m)} · ${E(m.u === 'Launch' ? 'Launch' : m.u)}${m.d ? ' · ' + E(when(m)) : ''}</span></div>`;
       const r = c.getBoundingClientRect(), w = Math.min(400, innerWidth - 24), h = w * 9 / 16 + 52;
       let x = r.right + 14; if (x + w > innerWidth - 12) x = r.left - 14 - w; if (x < 12) x = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2));
       let y = r.top + r.height / 2 - h / 2; y = Math.max(12, Math.min(innerHeight - h - 12, y));
