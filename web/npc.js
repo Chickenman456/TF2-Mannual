@@ -20,6 +20,11 @@
     {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
     // the Tank (tank_boss.cpp): its treads and bomb mechanism are their own models, bonemerged on the tank_track_L / _R and turret_bone bones; it drives on 'movement'
     {id: 'tank', loop: 'MVM.TankEngineLoop', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', idle: 'movement', attach: ['models/bots/boss_bot/tank_track_l.mdl', 'models/bots/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl']},
+    // Robot Destruction's robots (rd_asteroid): A, B and C each their own model in models/bots/bot_worker, on four skins (RED, BLU, and
+    // each team's protected look); they greet with Robot.Greeting (game_sounds_vo_rd_robots.txt), and the A robot panics and runs
+    {id: 'rd_robot', voice: {snd: 'Robot.Greeting'}, card: 'npc_rd_robot.webp', name: 'Robot Destruction Robot', group: 'Robot Destruction', level: 'Map Objective', mdl: 'models/bots/bot_worker/bot_worker_a.mdl', idle: 'idle', run: 'panic',
+      styles: [['A: Frustum', {}], ['B: Sphere', {mdl: 'models/bots/bot_worker/bot_worker2.mdl'}], ['C: King', {mdl: 'models/bots/bot_worker/bot_worker3.mdl'}]],
+      fam: [['RED', 0], ['BLU', 1], ['RED (Protected)', 2], ['BLU (Protected)', 3]], skin: 0},
     // the HHH carries his axe (c_bigaxe, bonemerged on weapon_bone as headless_hatman.cpp does) in a cloud of ghost_pumpkin; in Carnival of
     // Carnage (sd_doomsday_event) it's the big mallet, and Bonesaw (plr_hacksaw_event) packs its own burnt, headless Hellishly Hollow Horseman
     {id: 'hhh', open: 'Halloween.HeadlessBossLaugh', fire: ['attackStand_ITEM1'], fireSnd: 'Halloween.HeadlessBossAttack', voice: {seq: 'boo', snd: 'Halloween.HeadlessBossBoo'}, card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
@@ -40,6 +45,8 @@
     {id: 'scarecrow', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], card: 'npc_scarecrow.webp', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL},
     // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
     {id: 'ghost', open: 'Halloween.GhostMoan', voice: {snd: 'Halloween.GhostBoo'}, card: 'npc_ghost.webp', name: 'Ghost', group: 'Halloween', level: 'Halloween Hazard', mdl: 'models/props_halloween/ghost.mdl', styles: [['Default', {}], ['Hatless', {mdl: 'models/props_halloween/ghost_no_hat.mdl'}]]},
+    // the Bombinomicon itself (props_halloween/bombonomicon.mdl, not the badge): idle, flipping its pages, its headbomb lines (Halloween.BombinomiconSpin)
+    {id: 'bombinomicon', voice: {seq: 'flip_stimulated', snd: 'Halloween.BombinomiconSpin'}, nofloor: 1, card: 'npc_bombinomicon.webp', name: 'Bombinomicon', group: 'Halloween', level: 'Announcer', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle'},
     {id: 'dutchman', fire: ['point', 'stomp'], card: 'npc_dutchman.webp', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     // Krampus (Smissmas 2023): koth_krampus packs his model and the VScript that walks him round (krampus_idle, krampus_run)
     {id: 'krampus', fire: ['krampus_attack', 'krampus_throw'], card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run'},
@@ -50,6 +57,10 @@
     {id: 'toastmaster', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_toastmaster.webp', name: 'Toastmaster', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/hwn_botler/hwn_botler_boss.mdl', pak: 'koth_synthetic_event.bsp', idle: 'stand_melee', keep: SKEL},
     // Selbyen's seal (pd_selbyen packs seal.mdl: idle, walk, and the three skins it picks from at random)
     {id: 'seal', voice: {seq: 'idlesleepy'}, card: 'npc_seal.webp', name: 'Seal', group: 'Summer', level: 'Map Character', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', run: 'walk', fam: [['Default', 0], ['Skin 1', 1], ['Skin 2', 2]], skin: 0},
+    // Aquarius's Megalodon (models/props_megalodon/megalodon.mdl, packed in pl_aquarius and in ctf_pressure, which packs its roars too)
+    {id: 'megalodon', voice: {seq: 'eatpayload', snd: ['ctf_pressure/megalodon_roar1.wav', 'ctf_pressure/megalodon_roar2.wav', 'ctf_pressure/megalodon_roar3.wav']}, fire: ['bite', 'swimbite'], nofloor: 1, card: 'npc_megalodon.webp', name: 'Megalodon', group: 'Summer', level: 'Map Character', mdl: 'models/props_megalodon/megalodon.mdl', pak: ['pl_aquarius.bsp', 'ctf_pressure.bsp'], idle: 'swim', run: 'swim_fast'},
+    // Applejack's chickens (ctf_applejack packs applejack_chicken.mdl: standing, pecking, running, on the five skins the map spreads around)
+    {id: 'chicken', voice: {seq: 'peck'}, card: 'npc_chicken.webp', name: 'Chicken', group: 'Summer', level: 'Map Character', mdl: 'models/applejack/applejack_chicken.mdl', pak: 'ctf_applejack.bsp', idle: 'stand_a', run: 'run', fam: [['Default', 0], ['Skin 1', 1], ['Skin 2', 2], ['Skin 3', 3], ['Skin 4', 4]], skin: 0},
   ];
   // the merc cards from Chickenman's TF2 UI redesign (Items > Mercs), the same markup and styles: class render cropped to head and
   // shoulders (CARDP: left, top, scale fitted to the Figma cards), the class emblem behind, role top right, name bottom left.
@@ -67,7 +78,7 @@
     sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Horseless_Headless_Horsemann',
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
     skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
-    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen'};
+    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack'};
   // each character's description: official words only, with where they're from (Valve's Meet the Team videos and update pages, the
   // maps' publicity blurbs, the game's own lines); characters with none have none
   const DESC = {
@@ -101,6 +112,10 @@
     hell_hale: ['Welcome to the Underworld, mortals! I\u2019m Saxton Hale, CEO of Hell, and I got this position by beating the hell out of the Devil.', 'Outburst publicity blurb'],
     toastmaster: ['Madame Sinclair sends her regards.', 'The Toastmaster'],
     seal: ['Selbyen is a small Norwegian fishing village that is also a tourist attraction because of all the seals that are released back to nature. This year, the mercs have decided to compete over who feeds the most fish to the seals as a publicity stunt. Of course, they\u2019ll be bringing their dirtiest tactics to do whatever they can to win.', 'Selbyen publicity blurb'],
+    rd_robot: ['You must destroy the enemy\u2019s robots and collect their reactor cores to win. Retrieve stolen power cores by invading the enemy vault.', 'The Administrator'],
+    bombinomicon: ['FOOL! Ye have gazed upon the Bombinomicon!', 'Merasmus'],
+    megalodon: ['On behalf of our crew, we would like to welcome you to Sea Base Aquarius. Aquarius is located on a coral reef deep below the Caribbean, it is yours (and our) frontier of research and discovery. Your journey will take you through the beautiful waters with rich marine life, however, lurking in the depths comes many dangers.', 'Aquarius publicity blurb'],
+    chicken: ['Gave a chicken a friend, because friendship is magic.', 'Applejack patch notes, February 18, 2025'],
   };
   // where each appears: the map it first appeared on (or the maps, when they came out together), then every other map, by their TF2 Wiki
   // names and each linked to its wiki page. MAPDB: every released map's file and wiki page (the wiki's List of maps); SPELLS: its
@@ -128,6 +143,8 @@
     ghost: [['koth_harvest_event'], ['pl_fifthcurve_event', 'cp_ambush_event', 'koth_viaduct_event', 'pl_rumble_event', 'pl_sludgepit_event', 'koth_lakeside_event', 'pl_millstone_event', 'plr_hightower_event', 'koth_moonshine_event', 'pl_precipice_event_final', 'koth_slasher', 'pl_terror_event']],
     dutchman: [['pd_cursed_cove_event'], []], krampus: [['koth_krampus'], []], saxton: [['vsh_distillery', 'vsh_nucleus', 'vsh_skirmish', 'vsh_tinyrock'], []],
     santa_hale: [['vsh_maul'], []], hell_hale: [['vsh_outburst'], []], toastmaster: [['koth_synthetic_event'], []], seal: [['pd_selbyen'], []],
+    rd_robot: [['rd_asteroid'], []], bombinomicon: [['koth_viaduct_event'], ['koth_lakeside_event', 'plr_hightower_event', 'pl_fifthcurve_event', 'cp_spookeyridge']],
+    megalodon: [['pl_aquarius', 'ctf_pressure'], []], chicken: [['ctf_applejack'], []],
   };
   NPCS.forEach(n => {
     if (n.id === 'bot_engineer') n.card = 'npc_bot_engineer.webp';   // the main menu has no Engineer Robot render
@@ -172,7 +189,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Summer': 'Selbyen\u2019s seal'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'The summer maps\u2019 wildlife'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];

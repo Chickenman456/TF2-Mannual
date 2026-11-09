@@ -677,7 +677,7 @@
     if (sk && !el.querySelector('.spv-team')) { skin = bar('', 'Skin'); skin.innerHTML = sk.map(([l, t]) => `<option value="${E(t)}">${E(l)}</option>`).join(''); skin.onchange = () => { o.sfx('buttonclick'); Store3D.npc.team(skin.value); }; }
     let sty = null;
     if (o.def.styles) { sty = bar('', 'Style'); sty.innerHTML = o.def.styles.map(([l], i) => `<option value="${i}">${E(l)}</option>`).join(''); }
-    if (o.def.fam) { fam = bar('', 'Skin'); fam.innerHTML = o.def.fam.map(([l, i]) => `<option value="${i}">${E(l)}</option>`).join(''); fam.value = String(o.def.skin); }
+    if (o.def.fam) { fam = bar('', 'Skin'); fam.innerHTML = o.def.fam.map(([l, i]) => `<option value="${i}">${E(l)}</option>`).join(''); fam.value = String(o.def.skin); if (sty) { fam.parentElement.classList.add('spv-fxsel'); placeBars(); } }   // with a Style too: Skin under it, in the second dropdown's place
     el.addEventListener('click', e => {
       if (!ST || ST.el !== el) return;
       const tb = e.target.closest('[data-spt]'); if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); Store3D.npc.team(ST.team); return; }
