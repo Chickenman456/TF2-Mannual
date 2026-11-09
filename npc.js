@@ -21,6 +21,12 @@
     giant_demo: [['Giant Demoknight, Chief Tavish, Major Bomber', ["Prince Tavish's Crown"]]],
     giant_heavy: [['Giant Deflector Heavy', ['The U-clank-a']], ['Super Heavyweight Champ', ["Pugilist's Protector"]], ['Captain Punch', ['War Head']], ['Giant Heavy (The Tungsten Toque)', ['The Tungsten Toque']]],
   };
+  // Romevision (vision_filter_flags 4): the armour and helmet every robot of the class wears to a player with the filter on (items_game
+  // tw_<class>bot_*), offered on every robot ahead of its named costumes
+  const ROME = {scout: ['tw_scoutbot_armor', 'tw_scoutbot_hat'], soldier: ['tw_soldierbot_armor', 'tw_soldierbot_helmet'], pyro: ['tw_pyrobot_armor', 'tw_pyrobot_helmet'],
+    demo: ['tw_demobot_armor', 'tw_demobot_helmet'], heavy: ['tw_heavybot_armor', 'tw_heavybot_helmet'], engineer: ['tw_engineerbot_armor', 'tw_engineerbot_helmet'],
+    medic: ['tw_medibot_chariot', 'tw_medibot_hat'], sniper: ['tw_sniperbot_armor', 'tw_sniperbot_helmet'], spy: ['tw_spybot_armor', 'tw_spybot_hood']};
+  const costumes = (s, k) => [['Romevision', ROME[s]]].concat(BOTCOS[k] || []);
   const BOTSLOTS = {engineer: ['melee'], scout: ['primary', 'melee'], soldier: ['primary'], demo: ['primary', 'secondary'], heavy: ['primary', 'melee'], medic: ['primary', 'secondary']};
   // the skeletons: their own sequences (skeleton_sniper_animations / skeleton_sniper_boss_animations: running, spawning out of the
   // ground, swinging, flinching), plus the Sniper's that they borrow for standing and jumping with a melee weapon
@@ -33,8 +39,8 @@
     ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM})),
     // Zombie Infection (the zi_ maps): the class with its Voodoo-Cursed soul and no weapon in hand (lo.js), card art from the main menu's zombie renders
     ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp'})),
-    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: BOTCOS['bot_' + s], name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
-    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: BOTCOS['giant_' + s], name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
+    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: costumes(s, 'bot_' + s), name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
+    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: costumes(s, 'giant_' + s), name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
     {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noteam: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
     // the Tank (tank_boss.cpp): its treads and bomb mechanism are their own models, bonemerged on the tank_track_L / _R and turret_bone bones; it drives on 'movement'
     {id: 'tank', loop: 'MVM.TankEngineLoop', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', idle: 'movement', attach: ['models/bots/boss_bot/tank_track_l.mdl', 'models/bots/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl']},

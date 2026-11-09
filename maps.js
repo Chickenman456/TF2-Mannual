@@ -55,6 +55,12 @@
 .mapc i{position:absolute;left:6px;right:6px;bottom:7px;z-index:1;font:400 11px/1 TF2Secondary;font-style:normal;color:#e6dac4;text-align:center;text-shadow:0 1px 2px #000}
 .mapc:hover,.mapc:focus-visible{border-color:#ffb84d;box-shadow:0 0 14px #ffb84d55;outline:none}
 .mapc:hover .mapi,.mapc:focus-visible .mapi{filter:brightness(.9) saturate(1);transform:scale(1.06)}
+.mapzoom{position:fixed;inset:0;z-index:200;background:#0d0c0bee;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;cursor:zoom-out}
+.mapzoom img{max-width:none;flex:none;transform-origin:center;box-shadow:0 10px 40px #000c;cursor:zoom-in;user-select:none;-webkit-user-drag:none}
+.mapzoom.zoomed img{cursor:grab}
+.mapzoom .mzbar{position:absolute;right:16px;bottom:16px;display:flex;gap:6px}
+.mapzoom .mzbar button{min-width:38px;height:34px;padding:0 10px;border:0;border-radius:4px;background:#766B5E;color:#F5E5C1;font:700 17px TF2Build;cursor:pointer}
+.mapzoom .mzbar button:hover{background:#9a8b78}
 #mappop{position:fixed;z-index:60;width:400px;max-width:calc(100vw - 24px);border:3px solid #ffb84d;border-radius:8px;overflow:hidden;background:#2b2724;box-shadow:0 10px 30px #000b;
   pointer-events:none;opacity:0;transform:scale(.96);transition:opacity .14s ease,transform .14s ease}
 #mappop.on{opacity:1;transform:none}
@@ -106,14 +112,16 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       const snd = typeof sfx === 'function' ? sfx : () => {};
       snd('panel_open');
       openF = m.f;
-      const go = () => ItemPreview.openMap({name: m.n, map: m, photo: m.ph ? (window.ZMAPPHOTO || {})[m.f] || null : null, shot: shot(m),
+      const go = () => ItemPreview.openMap({name: m.n, map: m, photo: m.ph ? (window.ZMAPPHOTO || {})[m.f] || null : null, shot: shot(m), hd: (window.ZMAPPHOTO || {})[m.f + '#hd'] || null,
         wiki: m.w ? W + encodeURIComponent(m.w.replace(/ /g, '_')).replace(/%2F/g, '/') : null,
         // the map's stamp from the Mann Co. Store, and the Steam leaderboard of its top supporters (contributions_<map>)
         buy: m.st && m.sb ? 'https://store.steampowered.com/buyitem/440/' + m.st : null, leaderboard: m.lb ? 'https://steamcommunity.com/stats/TF2/leaderboards/' + m.lb + '/' : null,
         esc: E, sfx: snd, close: () => { openF = null; snd('panel_close'); }});
-      // the window opens on the screenshot; the photos come in 8 files (ui/maps/p<n>.js), the one holding this map's read the first time it's needed
+      // the window opens on the screenshot; its 1280 x 720 copy and the loading screen's photos come in 8 files (ui/maps/p<n>.js), the one holding this map's read the first time it's needed
       go();
-      if (m.ph && !(window.ZMAPPHOTO && ZMAPPHOTO[m.f])) add('ui/maps/p' + m.ph + '.js', () => ItemPreview.mapPhoto && ItemPreview.mapPhoto(m.f, (window.ZMAPPHOTO || {})[m.f]));
+      const P = window.ZMAPPHOTO || {}, k = m.hd || m.ph;
+      const got = () => { const Q = window.ZMAPPHOTO || {}; if (ItemPreview.mapPhoto) ItemPreview.mapPhoto(m.f, Q[m.f]); if (ItemPreview.mapHD) ItemPreview.mapHD(m.f, Q[m.f + '#hd']); };
+      if (k && !P[m.f + '#hd']) add('ui/maps/p' + k + '.js', got);
     },
   };
   // hovering a card: its screenshot popped out bigger beside it, with its name, mode and update
