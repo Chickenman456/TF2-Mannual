@@ -743,5 +743,35 @@
     load(o.def);
     return true;
   }
-  window.ItemPreview = {open, openNpc, close, isOpen: () => !!ST};
+  /* openMap({name, map:{f, n, m, d, u, s, w, b, e, t, ph}, photo, thumb, wiki, esc, sfx, close}): a map in the same window: its loading
+     screen's photos (materials/vgui/maps/menu_photos_<map>) where the store has the merc, and its details where the store has the item's */
+  function openMap(o) {
+    close();
+    const el = document.createElement('div'); el.className = 'spv spv-npc spv-map player';
+    el.innerHTML = markup(o);
+    document.body.appendChild(el);
+    ST = {o, el, u: 2, state: 'map', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
+    ['.spv-icons', '.spv-team', '.spv-rot', '.spv-tb', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=full]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
+    const E = o.esc, m = o.map, mp = el.querySelector('.spv-model');
+    // the photos when the loading screen has them; a map without (most of the community maps added since) shows its menu thumbnail
+    mp.insertAdjacentHTML('afterbegin', `<img class="spv-mapimg${o.photo ? '' : ' thumb'}" src="${E(o.photo || o.thumb || '')}" alt="${E(o.name)}: loading screen">`);
+    const when = m.d ? new Date(m.d + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'}) : '';
+    const row = (k, v) => v ? `<div class="spv-attrs big"><div style="color:#766B5E">${E(k)}</div><div>${E(v)}</div></div>` : '';
+    el.querySelector('.spv-rows').innerHTML = `<div class="spv-lvl">${E(m.m)}</div>`
+      + (m.b ? `<div class="spv-attrs big"><div>“${E(m.b[0])}”</div><div style="color:#766B5E">— ${E(m.b[1])}</div></div>` : '')
+      + row('Released:', [when, m.u && m.u !== 'Launch' ? m.u : m.u === 'Launch' ? 'with the game' : ''].filter(Boolean).join(', '))
+      + row('Made by:', m.s === 'Valve' ? 'Valve' : 'The community (Steam Workshop)')
+      + row('Environment:', [m.e, m.t].filter(Boolean).join(' · '))
+      + row('Map file:', m.f + '.bsp')
+      + (o.wiki ? `<a class="spv-btn spv-wiki big" href="${E(o.wiki)}" target="_blank" rel="noopener">Wiki Page...</a>` : '');
+    el.addEventListener('click', e => {
+      if (!ST || ST.el !== el) return;
+      const a = e.target.closest('[data-spv]'); if (!a) return;
+      if (a.dataset.spv === 'close') close();
+    });
+    addEventListener('keydown', onKey, true); addEventListener('resize', layout);
+    layout(); setTimeout(layout, 60);
+    return true;
+  }
+  window.ItemPreview = {open, openNpc, openMap, close, isOpen: () => !!ST};
 })();
