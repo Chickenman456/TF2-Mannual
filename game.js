@@ -59,7 +59,7 @@
     };
   }
 
-  // ---- the saved copy: the web page can't keep access to your folder (it runs inside Claude's frame), so everything the preview
+  // ---- the saved copy: the web page can't keep access to your folder (it runs inside another page's frame), so everything the preview
   // reads from it (the VPK directories, the item schema, and each model, material and texture it opens) is also kept in this
   // browser. After a reload or a page update the preview starts from that copy; linking again adds whatever it doesn't have yet.
   // Keyed to the TF2 version (the size and date of tf2_misc_dir.vpk), so a game update never mixes old and new files.
@@ -182,7 +182,7 @@
       try { if (!(await ZLIVE.connect(savedSource(m.sig)))) return false; } catch (e) { return false; }
       NAME = m.name || 'tf'; SAVED = true; dispatchEvent(new Event('tf2files')); return true;
     },
-    /* false inside another page's frame (Claude's): browsers only let a page keep a folder when it's in its own tab */
+    /* false inside another page's frame: browsers only let a page keep a folder when it's in its own tab */
     get canKeep() { return 'showDirectoryPicker' in window && topLevel(); },
     /* true while the preview runs on the saved copy alone (items not opened before need the folder linked again) */
     get saved() { return SAVED && api.linked; },

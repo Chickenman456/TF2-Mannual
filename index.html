@@ -688,7 +688,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.3</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.4</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1869,7 +1869,7 @@ function syncDone(){
 function textOf(res){ return (res && res.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n') || (typeof res?.payload === 'string' ? res.payload : ''); }
 
 let browserTab = null;
-// the Claude app's browser tab used to read the backpack: closed again once the sync is over
+// the app's browser tab used to read the backpack: closed again once the sync is over
 async function closeBrowser(){
   const id = browserTab; browserTab = null;
   if (!MCP || id === null) return;
@@ -2015,7 +2015,7 @@ function gamePanel(msg){
       : on ? `Linked to your TF2 folder <span class="path">${esc(TF2Files.name)}</span>. Click any item for the Mann Co. Store preview, then a class portrait to see it on that merc in 3D, read straight from your game files. What the preview reads is saved in this browser, so it's still there after a reload or a page update.`
       : `Click any item for the Mann Co. Store preview. Point this page at your TF2 folder and it shows the item on the merc in 3D too, read straight from your game files. Your files stay on your computer: the page only reads them, in your browser.`}</p>
     ${on ? '' : `<p class="sub">Pick your <b>Team Fortress 2</b> folder, usually <span class="path">C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2</span>. The <b>tf</b> folder inside it works too, but some unusual effects use materials from the <b>hl2</b> folder next to it, so those show only part of the effect. Your browser will ask whether to "upload" it. Nothing is sent anywhere; that's just how browsers word letting a page read a folder. What the preview reads is saved in this browser, so it's still there next time.</p>`}
-    ${window.TF2Files && !TF2Files.canKeep && window.claude ? `<p class="sub">Inside Claude, the browser doesn't let this page keep your folder, so it works from the saved copy until you link it again. Open the page in its own tab and link the folder there: the browser remembers it (in Chrome, choose <b>Allow on every visit</b> when it asks) and you won't have to link it again.</p>
+    ${window.TF2Files && !TF2Files.canKeep && window.claude ? `<p class="sub">In this window, the browser doesn't let this page keep your folder, so it works from the saved copy until you link it again. Open the page in its own tab and link the folder there: the browser remembers it (in Chrome, choose <b>Allow on every visit</b> when it asks) and you won't have to link it again.</p>
     <div class="row"><a class="btn" href="${esc(location.href)}" target="_blank" rel="noopener">Open in its own tab</a></div>` : ''}
     <div class="row"><button class="btn big" id="tfgo" type="button">${on && TF2Files.saved ? 'Link my TF2 folder again' : on ? 'Pick another folder' : 'Link my TF2 folder'}</button>${on ? '<button class="btn" id="tfoff" type="button">Unlink</button>' : ''}</div>
     <p class="sub" id="tfmsg" style="margin:0;color:var(--AttribNegative)">${msg ? esc(msg) : ''}</p>`;
