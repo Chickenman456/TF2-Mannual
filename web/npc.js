@@ -30,10 +30,10 @@
     {id: 'hhh', open: 'Halloween.HeadlessBossLaugh', fire: ['attackStand_ITEM1'], fireSnd: 'Halloween.HeadlessBossAttack', voice: {seq: 'boo', snd: 'Halloween.HeadlessBossBoo'}, card: 'npc_hhh.webp', name: 'Horseless Headless Horsemann', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin',
       styles: [['Default', {}], ['Necro Smasher', {attach: ['models/weapons/c_models/c_big_mallet/c_big_mallet.mdl']}]]},
     {id: 'hhh_hollow', open: 'Halloween.HeadlessBossLaugh', fire: ['attackStand_ITEM1'], fireSnd: 'Halloween.HeadlessBossAttack', voice: {seq: 'boo', snd: 'Halloween.HeadlessBossBoo'}, card: 'npc_hhh_hollow.webp', name: 'Hellishly Hollow Horseman', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman_burnt.mdl', pak: 'plr_hacksaw_event.bsp', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], pfx: 'ghost_pumpkin'},
-    {id: 'monoculus', open: 'Halloween.MonoculusBossSpawn', fire: ['firing1', 'firing2', 'firing3'], voice: {seq: 'laugh', snd: 'Halloween.EyeballBossLaugh'}, nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']]},
+    {id: 'monoculus', fire: ['firing1', 'firing2', 'firing3'], voice: {seq: 'laugh', snd: 'Halloween.EyeballBossLaugh'}, nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', skins: [['Default', 'RED'], ['Angry', 'BLU']]},
     // the spellbook's MONOCULUS!: the same model on its team skins (families 2 and 3: the eye seen through halloween_demoeye_glass_add)
     {id: 'monoculus_spell', fire: ['firing1', 'firing2', 'firing3'], voice: {seq: 'laugh', snd: 'Halloween.EyeballBossLaugh'}, nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2},
-    {id: 'merasmus', open: 'Halloween.MerasmusAppears', fire: ['zap_attack', 'bomb_attack'], voice: {seq: 'taunt_laugh', snd: 'Halloween.MerasmusTauntFakeProp'}, card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0},
+    {id: 'merasmus', open: 'Halloween.MerasmusAppears', fire: ['zap_attack', 'bomb_attack'], voice: {snd: 'Halloween.MerasmusTauntFakeProp'}, allbg: 1, card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0},
     {id: 'skeleton', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_medium'}, card: 'npc_skeleton.webp', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2},
     {id: 'skeleton_king', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [0, -0.6, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2},
     // Spineyard's mobsters (pl_spineyard's mobster.nut; one look: the model's skin families swap only materials it doesn't draw, and the
@@ -59,6 +59,10 @@
     {id: 'seal', voice: {seq: 'idlesleepy'}, card: 'npc_seal.webp', name: 'Seal', group: 'Summer', level: 'Map Character', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', run: 'walk', fam: [['Default', 0], ['Skin 1', 1], ['Skin 2', 2]], skin: 0},
     // Aquarius's Megalodon (models/props_megalodon/megalodon.mdl, packed in pl_aquarius and in ctf_pressure, which packs its roars too)
     {id: 'megalodon', voice: {seq: 'eatpayload', snd: ['ctf_pressure/megalodon_roar1.wav', 'ctf_pressure/megalodon_roar2.wav', 'ctf_pressure/megalodon_roar3.wav']}, fire: ['bite', 'swimbite'], nofloor: 1, card: 'npc_megalodon.webp', name: 'Megalodon', group: 'Summer', level: 'Map Character', mdl: 'models/props_megalodon/megalodon.mdl', pak: ['pl_aquarius.bsp', 'ctf_pressure.bsp'], idle: 'swim', run: 'swim_fast'},
+    // Embargo's robot butlers (pl_embargo packs them, and botlers.nut picks the model: the health kit carriers, the drink carriers, the empty tray, and the gambling
+    // tables' trayless ones), their idle and panic, their own voice lines (sound/mvm/botler, packed in the map)
+    {id: 'botler', voice: {snd: ['mvm/botler/idle_01.mp3', 'mvm/botler/idle_02.mp3', 'mvm/botler/idle_03.mp3', 'mvm/botler/idle_04.mp3']}, card: 'npc_botler.webp', name: 'Robot Butler', group: 'Summer', level: 'Map Character', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', run: 'panic',
+      styles: [['Health Kit', {}], ['Drink', {mdl: 'models/bots/bot_worker/robot_butler_worker.mdl'}], ['Empty Tray', {mdl: 'models/bots/bot_worker/robot_butler_worker4.mdl'}], ['No Tray', {mdl: 'models/bots/bot_worker/robot_butler_worker2.mdl'}]]},
     // Applejack's chickens (ctf_applejack packs applejack_chicken.mdl: standing, pecking, running, on the five skins the map spreads around)
     {id: 'chicken', voice: {seq: 'peck'}, card: 'npc_chicken.webp', name: 'Chicken', group: 'Summer', level: 'Map Character', mdl: 'models/applejack/applejack_chicken.mdl', pak: 'ctf_applejack.bsp', idle: 'stand_a', run: 'run', fam: [['Default', 0], ['Skin 1', 1], ['Skin 2', 2], ['Skin 3', 3], ['Skin 4', 4]], skin: 0},
   ];
@@ -78,7 +82,7 @@
     sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Horseless_Headless_Horsemann',
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
     skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
-    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack'};
+    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack', botler: W + 'Embargo#Robots'};
   // each character's description: official words only, with where they're from (Valve's Meet the Team videos and update pages, the
   // maps' publicity blurbs, the game's own lines); characters with none have none
   const DESC = {
@@ -115,6 +119,7 @@
     rd_robot: ['You must destroy the enemy\u2019s robots and collect their reactor cores to win. Retrieve stolen power cores by invading the enemy vault.', 'The Administrator'],
     bombinomicon: ['FOOL! Ye have gazed upon the Bombinomicon!', 'Merasmus'],
     megalodon: ['On behalf of our crew, we would like to welcome you to Sea Base Aquarius. Aquarius is located on a coral reef deep below the Caribbean, it is yours (and our) frontier of research and discovery. Your journey will take you through the beautiful waters with rich marine life, however, lurking in the depths comes many dangers.', 'Aquarius publicity blurb'],
+    botler: ['I am a servant robot designed to make your life easier.', 'Robot butler, Embargo'],
     chicken: ['Gave a chicken a friend, because friendship is magic.', 'Applejack patch notes, February 18, 2025'],
   };
   // where each appears: the map it first appeared on (or the maps, when they came out together), then every other map, by their TF2 Wiki
@@ -144,7 +149,7 @@
     dutchman: [['pd_cursed_cove_event'], []], krampus: [['koth_krampus'], []], saxton: [['vsh_distillery', 'vsh_nucleus', 'vsh_skirmish', 'vsh_tinyrock'], []],
     santa_hale: [['vsh_maul'], []], hell_hale: [['vsh_outburst'], []], toastmaster: [['koth_synthetic_event'], []], seal: [['pd_selbyen'], []],
     rd_robot: [['rd_asteroid'], []], bombinomicon: [['koth_viaduct_event'], ['koth_lakeside_event', 'plr_hightower_event', 'pl_fifthcurve_event', 'cp_spookeyridge']],
-    megalodon: [['pl_aquarius', 'ctf_pressure'], []], chicken: [['ctf_applejack'], []],
+    megalodon: [['pl_aquarius', 'ctf_pressure'], []], chicken: [['ctf_applejack'], []], botler: [['pl_embargo'], []],
   };
   NPCS.forEach(n => {
     if (n.id === 'bot_engineer') n.card = 'npc_bot_engineer.webp';   // the main menu has no Engineer Robot render
@@ -189,7 +194,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'The summer maps\u2019 wildlife'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'Characters of the summer maps'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];

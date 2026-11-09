@@ -706,7 +706,7 @@
       const k = String(e.key).toLowerCase(), d = o.def;
       if (k === 'w' && runQ) { e.preventDefault(); busy++; running = !running; back(); }
       else if (k === 'f' && (fireQ.length || d.fireSnd)) { if (!fireQ.length) { e.preventDefault(); Store3D.npc.sound(d.fireSnd); return; } e.preventDefault(); once(fireQ[(Math.random() * fireQ.length) | 0], d.fireSnd, true); }
-      else if (k === 'v' && d.voice && (voiceQ || d.voice.snd)) { e.preventDefault(); once(voiceQ, d.voice.snd); }
+      else if (k === 'v' && d.voice && (voiceQ || d.voice.snd)) { e.preventDefault(); once(voiceQ, d.voice.snd, true); }   // layered too when the game layers it (the HHH's boo)
     };
     addEventListener('keydown', ST.npcKey);
     const load = def => {
