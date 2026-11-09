@@ -778,6 +778,8 @@ async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+
  // the character's own always-on effect (the HHH's ghost_pumpkin, which his client puts on him at his origin)
  if(def.pfx&&window.ZPFX&&ZPFX.keep){const key='npc|'+def.pfx;NPC.pfx=key;ZPFX.keep(key,def.pfx,()=>NPC.g===g&&g.parent?{obj:g,merc:g,yup:true}:null,()=>{const v=new THREE.Vector3();g.getWorldScale(v);return v.y||1}).catch(()=>{})}
  g.scale.setScalar(def.scale||1);
+ // noshadow: one the map gives no shadow (Premuda's seagulls flying overhead, Aquarius's dolphins: disableshadows)
+ if(def.noshadow)meshes.forEach(m=>m.castShadow=false);
  // rot: the angles the map gives it, where its model is made another way up (Bread Space's Big Mama: rolled 180 degrees)
  if(def.rot)g.rotation.set(def.rot[0]*Math.PI/180,def.rot[1]*Math.PI/180,def.rot[2]*Math.PI/180);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
  // a prop the map parents to it (Laughter's crocodiles' Sydney Straw Boats: a prop_dynamic SetParentAttachmentMaintainOffset on the croc's splash
@@ -2086,7 +2088,7 @@ async function mapFile(name){const p='maps/'+name,src=ST.src;if(!src)return null
  if(src.blob){try{const f=await src.blob(p);if(f)return f}catch(e){}}if(src.map){try{const f=await src.map(name);if(f)return f}catch(e){}}
  if(src.path&&src.kind=='list'){try{return await src.path(p)}catch(e){}}return null}
 async function mountPak(name){if(PAKS.has(name))return PAKS.get(name);const P=(async()=>{const f=await mapFile(name);if(!f){
-  // the saved copy (the page reloaded inside Claude's frame, which can't keep your folder) has a map's files only once they've been read
+  // the saved copy (the page reloaded inside another page's frame, which can't keep your folder) has a map's files only once they've been read
   const src=ST.src||{},mf=name.replace(/\.bsp$/i,''),mp=(window.ZMAPS||[]).find(x=>x.f===mf),mn=mp?mp.n:'maps/'+name;
   if(!src.blob&&!src.map&&!src.handle)throw new Error(mn+'’s files aren’t in the saved copy of your TF2 files yet. Link your TF2 folder again (Settings › Sync with your game) and open this once; it’s kept from then on');
   throw new Error('maps/'+name+' not found in your TF2 folder')}

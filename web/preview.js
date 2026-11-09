@@ -713,7 +713,7 @@
     const sk = o.def.skins || null, teamUI = el.querySelector('.spv-team');
     if (!sk || !(sk[0][0] === 'RED' && sk[1] && sk[1][0] === 'BLU')) teamUI.remove();
     const E = o.esc;
-    const keysOf = (run, fire, voice) => [run ? 'W run' : '', fire ? 'F attack' : '', voice ? 'V ' + (o.def.voice.snd ? 'voice' : 'idle') : ''].filter(Boolean).join(', ') || 'None';
+    const keysOf = (run, fire, voice) => [run ? 'W ' + (o.def.runLabel || 'run') : '', fire ? 'F attack' : '', voice ? 'V ' + (o.def.voice.snd ? 'voice' : 'idle') : ''].filter(Boolean).join(', ') || 'None';
     el.querySelector('.spv-rows').innerHTML = charRows(o, keysOf(false, false, false));   // filled in once its sequences are read
     el.addEventListener('pointerdown', onDown);
     const bar = (cls, label) => { const b = document.createElement('label'); b.className = 'spv-styles pl ' + cls; b.innerHTML = `<span>${E(label)}</span><select aria-label="${E(label)}"></select>`; el.querySelector('.spv-frame').appendChild(b); return b.querySelector('select'); };
@@ -761,7 +761,7 @@
         const keep = def.keep ? seqs.filter(def.keep) : seqs;
         const pri = (def.idle ? [new RegExp('^' + def.idle + '$', 'i')] : []).concat([/^stand_primary$/i, /^stand_melee$/i, /^stand_item1$/i, /^idle/i, /^stand/i, /idle|stand/i]);
         let idle = null; for (const re of pri) { idle = keep.find(q => re.test(q.name)); if (idle) break; } idle = idle || keep[0];
-        const run = (def.run && keep.find(q => q.name.toLowerCase() === def.run)) || keep.find(q => /^run/i.test(q.name)) || keep.find(q => /^walk/i.test(q.name)) || keep.find(q => /run|walk/i.test(q.name));
+        const run = (def.run && keep.find(q => q.name.toLowerCase() === String(def.run).toLowerCase())) || keep.find(q => /^run/i.test(q.name)) || keep.find(q => /^walk/i.test(q.name)) || keep.find(q => /run|walk/i.test(q.name));
         idleQ = idle && idle.name; runQ = run && run.name;
         const has = n => { const q = seqs.find(x => x.name.toLowerCase() === String(n).toLowerCase()); return q && q.name; };
         fireQ = (def.fire || []).map(has).filter(Boolean); voiceQ = def.voice && def.voice.seq ? has(def.voice.seq) : null;
