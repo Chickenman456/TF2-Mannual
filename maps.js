@@ -14,11 +14,11 @@
   let group = 'mode';
   try { group = localStorage.getItem('mapGroup') || 'mode'; } catch (e) {}
   if (!GROUPS.some(g => g[0] === group)) group = 'mode';
-  // the filters: a release year, who made it (Valve or the community) and a holiday (Halloween, Smissmas, or neither)
-  let F = {y: '', s: '', h: ''};
+  // the filters: a release year, a game mode, who made it (Valve or the community) and a holiday (Halloween, Smissmas, or neither)
+  let F = {y: '', m: '', s: '', h: ''};
   try { F = Object.assign(F, JSON.parse(localStorage.getItem('mapFilt') || '{}')); } catch (e) {}
   const HOL = [['', 'Any'], ['h', 'Halloween'], ['x', 'Smissmas'], ['n', 'Not a holiday map']];
-  const keep = m => (!F.y || m.d.slice(0, 4) === F.y) && (!F.s || m.s === F.s) && (!F.h || (F.h === 'n' ? !m.h : m.h === F.h));
+  const keep = m => (!F.y || m.d.slice(0, 4) === F.y) && (!F.m || m.m === F.m) && (!F.s || m.s === F.s) && (!F.h || (F.h === 'n' ? !m.h : m.h === F.h));
   const shot = m => (window.ZMAPSHOT && ZMAPSHOT[m.f]) || '';
   const when = m => m.d ? new Date(m.d + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'}) : '';
   function card(m) {
@@ -111,8 +111,9 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       const tabs = `<div class="maptabs" role="group" aria-label="Group maps by"><span class="lab">Group by</span>${GROUPS.map(([k, l]) =>
         `<button class="btn${k === group ? ' on' : ''}" type="button" data-mapgroup="${k}" aria-pressed="${k === group}">${l}</button>`).join('')}</div>`;
       const years = [...new Set(ALL().map(m => m.d.slice(0, 4)))].sort((a, b) => b - a);
+      const modes = [...new Set(ALL().map(m => m.m).filter(Boolean))].sort((a, b) => a.localeCompare(b));
       const sel = (k, label, opts) => `<label class="mapf"><span>${label}</span><select class="in" data-mapf="${k}">${opts.map(([v, l]) => `<option value="${E(v)}"${F[k] === v ? ' selected' : ''}>${E(l)}</option>`).join('')}</select></label>`;
-      const filters = `<div class="mapfs">${sel('y', 'Year', [['', 'All years']].concat(years.map(y => [y, y])))}${sel('s', 'Made by', [['', 'Anyone'], ['Valve', 'Valve'], ['Community', 'The community']])}${sel('h', 'Holiday', HOL)}</div>`;
+      const filters = `<div class="mapfs">${sel('y', 'Year', [['', 'All years']].concat(years.map(y => [y, y])))}${sel('m', 'Game mode', [['', 'All modes']].concat(modes.map(x => [x, x])))}${sel('s', 'Made by', [['', 'Anyone'], ['Valve', 'Valve'], ['Community', 'The community']])}${sel('h', 'Holiday', HOL)}</div>`;
       if (!L.length) return tabs + filters + '<div class="empty"><h2>No maps match</h2><p>Try another name, map file, game mode or update, or change the filters.</p></div>';
       // the sections close and open like the item sections do (index.html's closed[], by data-key)
       const C = typeof closed !== 'undefined' ? closed : {};
