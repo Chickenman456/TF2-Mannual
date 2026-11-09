@@ -2076,7 +2076,11 @@ async function mapFile(name){const p='maps/'+name,src=ST.src;if(!src)return null
  if(src.handle){try{return await (await (await src.handle.getDirectoryHandle('maps')).getFileHandle(name)).getFile()}catch(e){}}
  if(src.blob){try{const f=await src.blob(p);if(f)return f}catch(e){}}if(src.map){try{const f=await src.map(name);if(f)return f}catch(e){}}
  if(src.path&&src.kind=='list'){try{return await src.path(p)}catch(e){}}return null}
-async function mountPak(name){if(PAKS.has(name))return PAKS.get(name);const P=(async()=>{const f=await mapFile(name);if(!f)throw new Error('maps/'+name+' not found in your TF2 folder');
+async function mountPak(name){if(PAKS.has(name))return PAKS.get(name);const P=(async()=>{const f=await mapFile(name);if(!f){
+  // the saved copy (the page reloaded inside Claude's frame, which can't keep your folder) has a map's files only once they've been read
+  const src=ST.src||{},mf=name.replace(/\.bsp$/i,''),mp=(window.ZMAPS||[]).find(x=>x.f===mf),mn=mp?mp.n:'maps/'+name;
+  if(!src.blob&&!src.map&&!src.handle)throw new Error(mn+'’s files aren’t in the saved copy of your TF2 files yet. Link your TF2 folder again (Settings › Sync with your game) and open this once; it’s kept from then on');
+  throw new Error('maps/'+name+' not found in your TF2 folder')}
   const h=new DataView(await f.slice(0,8+64*16).arrayBuffer());if(h.getUint32(0,true)!==0x50534256)throw new Error(name+': not a map');const off=h.getInt32(8+40*16,true),len=h.getInt32(8+40*16+4,true);
   const z={size:len,slice:(a,b)=>f.slice(off+a,off+Math.min(b,len))};const Z=await zipDir(z);const k={z,Z};PAKZ.push(k);return k})();PAKS.set(name,P);try{return await P}catch(e){PAKS.delete(name);throw e}}
 async function pakRead(p){for(const P of PAKS.values()){let k;try{k=await P}catch(e){continue}const e=k.Z.get(p);if(e){const b=await zipGet(k.z,e);keepPak(p,b);return b}}return null}
