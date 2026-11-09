@@ -174,7 +174,8 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
    You bring the zip; the page reads it here, in the browser, and nothing is uploaded. Like mods.tf did: the zip's model files are
    copied to the replaced item's model path (each of its classes and styles), its materials kept where its model looks for them,
    and its backpack icon put over the replaced item's, packed as one .vpk for tf/custom. Only an item the same class wears in the
-   same equip region can be replaced. The items and their model paths come from your TF2 files (Settings > Sync with your game). */
+   same equip region can be replaced, and only one every class of which the mod has a model for (a Medic-only mod never replaces
+   an all-class or multi-class item). The items and their model paths come from your TF2 files (Settings > Sync with your game). */
 (function () {
   'use strict';
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
@@ -279,7 +280,8 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     for (const e of st.byId.values()) {
       if (e.k !== 'cos') continue; const r = e.r;
       if (!regions(r).some(x => m.regions.includes(x))) continue;
-      const cs = classesOf(r).filter(c => m.models[c] && modelsFor(r, c).length); if (!cs.length) continue;
+      // every class that wears it has to get the mod's model: a Medic-only mod can't replace an all-class or multi-class item
+      const cs = classesOf(r); if (!cs.every(c => m.models[c] && modelsFor(r, c).length)) continue;
       out.push({id: e.id, name: e.dn || r.name || ('#' + e.id), classes: cs, r});
     }
     return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -315,6 +317,16 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     return new Blob([L.buffer, nm, b, C.buffer, nm, D.buffer], {type: 'application/zip'});
   }
 
+  // the model's own name, as the replaced item's (what $modelname gives a model compiled for that path): studiohdr_t's name (64
+  // characters) and studiohdr2_t's full one, written after the model's data; its .vvd and .vtx files go by its checksum, unchanged
+  function rename(b, path) {
+    const nm = path.replace(/^models\//, ''), en = new TextEncoder().encode(nm);
+    const dv0 = new DataView(b.buffer, b.byteOffset, b.byteLength), h2 = dv0.getInt32(400, true);
+    const end = (b.length + 3) & ~3, out = new Uint8Array(end + en.length + 1); out.set(b);
+    const dv = new DataView(out.buffer); out.fill(0, 12, 76); out.set(en.subarray(0, 63), 12);
+    if (h2 > 0 && h2 + 24 <= b.length) { out.set(en, end); dv.setInt32(h2 + 20, end - h2, true); dv.setInt32(76, out.length, true); }
+    return out;
+  }
   async function build() {
     const m = M.mod, t = targets().find(x => x.id === M.pick); if (!m || !t) return;
     M.busy = 'Building the mod…'; M.err = ''; redraw();
@@ -324,10 +336,17 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       for (const n of z.Z.keys()) if (n.startsWith(G + 'materials/')) { const b = await z.get(n); if (b) files.set(n.slice(G.length), b); }
       // its model, as each model the replaced item's classes wear (every style)
       const put = []; for (const c of t.classes) for (const dst of modelsFor(t.r, c)) put.push([m.models[c], dst.slice(0, -4)]);
-      for (const [src, dst] of put) for (const x of MDLX) { const b = z.Z.has(src + x) ? await z.get(src + x) : null; if (b) files.set(dst + x, b); }
+      for (const [src, dst] of put) for (const x of MDLX) { let b = z.Z.has(src + x) ? await z.get(src + x) : null; if (!b) continue; if (x === '.mdl') b = rename(b, dst + '.mdl'); files.set(dst + x, b); }
       // its backpack icon over the replaced item's
       const tinv = t.r.image_inventory ? String(t.r.image_inventory).replace(/\\/g, '/').toLowerCase() : '';
-      if (M.icon !== false && m.inv && tinv) for (const sfx of ['.vmt', '_large.vmt']) { const b = files.get('materials/' + m.inv + sfx); if (b) files.set('materials/' + tinv + sfx, b); }
+      // (its textures too, under the replaced item's names, with materials that point at them: the backpack reads the icon by that name)
+      if (M.icon !== false && m.inv && tinv) for (const sfx of ['', '_large']) {
+        const vtf = files.get('materials/' + m.inv + sfx + '.vtf'); if (!vtf) continue;
+        files.set('materials/' + tinv + sfx + '.vtf', vtf);
+        const vm = files.get('materials/' + m.inv + sfx + '.vmt');
+        const t = vm ? new TextDecoder('latin1').decode(vm).replace(/("\$basetexture"\s*")[^"]*(")/i, '$1' + tinv + sfx + '$2') : `"UnlitGeneric"\n{\n\t"$basetexture"\t\t"${tinv + sfx}"\n\t"$translucent"\t\t"1"\n}\n`;
+        files.set('materials/' + tinv + sfx + '.vmt', new TextEncoder().encode(t));
+      }
       const safe = s => String(s).toLowerCase().replace(/^the /, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
       const name = 'mod_' + safe(m.name) + '_' + safe(t.name) + '.vpk', blob = vpk(files);
       let saved = false;
