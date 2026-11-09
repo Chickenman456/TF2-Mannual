@@ -772,6 +772,20 @@ async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+
  // the character's own always-on effect (the HHH's ghost_pumpkin, which his client puts on him at his origin)
  if(def.pfx&&window.ZPFX&&ZPFX.keep){const key='npc|'+def.pfx;NPC.pfx=key;ZPFX.keep(key,def.pfx,()=>NPC.g===g&&g.parent?{obj:g,merc:g,yup:true}:null,()=>{const v=new THREE.Vector3();g.getWorldScale(v);return v.y||1}).catch(()=>{})}
  g.scale.setScalar(def.scale||1);V.sc.add(g);NPC.g=g;NPC.meshes=meshes;NPC.def=def;NPC.mx=new THREE.AnimationMixer(g);NPC.act=null;NPC.bones=new Set(Object.values(pb).map(b=>b.name));
+ // a prop the map parents to it (Laughter's crocodiles' Sydney Straw Boats: a prop_dynamic SetParentAttachmentMaintainOffset on the croc's splash
+ // attachment): placed where the map puts it relative to the character (Source model space: x forward, y left, z up; pitch, yaw, roll in degrees),
+ // the character posed as the map spawns it (its DefaultAnim's first frame), then carried by that attachment's bone
+ for(const P of (def.place||[])){try{const fb=pb[String(P.bone).toLowerCase()];if(!fb)continue;const A=await ZLIVE.npcLoad(P.mdl,P.skin);if(NPC.tok!==tok)return null;const A0=A.man[Object.keys(A.man)[0]]||{};
+  // (read before the action stops: stopping it puts the bones back as they were)
+  const rel=()=>{g.updateMatrixWorld(true);return new THREE.Matrix4().copy(g.matrixWorld).invert().multiply(fb.matrixWorld)};let Bg=null;
+  if(P.seq){const r=await ZLIVE.npcClip(def.mdl,P.seq,NPC.bones).catch(()=>null);if(NPC.tok!==tok)return null;if(r){const mx=new THREE.AnimationMixer(g);const a=mx.clipAction(r.clip);a.play();mx.update(0);Bg=rel();a.stop();mx.uncacheRoot(g)}}
+  if(!Bg)Bg=rel();
+  const d=Math.PI/180,o=P.at,an=P.ang||[0,0,0];const T=new THREE.Matrix4().compose(new THREE.Vector3(o[1],o[2],o[0]),new THREE.Quaternion().setFromEuler(new THREE.Euler(an[0]*d,an[1]*d,an[2]*d,'YXZ')),new THREE.Vector3(1,1,1));
+  // a model loaded on its own stands with its up along -z here: turned upright
+  T.multiply(new THREE.Matrix4().makeRotationX(Math.PI/2));const H=new THREE.Group();H.name='place';Bg.invert().multiply(T).decompose(H.position,H.quaternion,H.scale);fb.add(H);
+  const lb={};const mk=b=>{const k=b.name.toLowerCase();if(lb[k])return lb[k];const nb=new THREE.Bone();nb.name=b.name;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);nb.scale.copy(b.scale);(b.parent&&b.parent.isBone?mk(b.parent):H).add(nb);return lb[k]=nb};
+  for(const s of A.src){const wm=s.clone();const MI=A0[s.material.name]||{};wm.userData.mi=MI;const Q=(P.team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=Q?wmat(Q):s.material;wm.frustumCulled=false;wm.castShadow=true;
+   if(s.isSkinnedMesh)wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mk),s.skeleton.boneInverses),new THREE.Matrix4());else H.add(wm);if(s.isSkinnedMesh)g.add(wm);meshes.push(wm)}}catch(e){console.warn('[NPC] place',P.mdl,e)}}
  return seqs}
 function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=new THREE.Box3();const v=new THREE.Vector3();g.traverse(x=>{if(x.isBone)B.expandByPoint(x.getWorldPosition(v))});
  // the meshes where the pose puts them (a sample of each one's vertices, skinned), not where they sit unposed
