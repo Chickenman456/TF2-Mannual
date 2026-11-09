@@ -26,7 +26,9 @@
   const ROME = {scout: ['tw_scoutbot_armor', 'tw_scoutbot_hat'], soldier: ['tw_soldierbot_armor', 'tw_soldierbot_helmet'], pyro: ['tw_pyrobot_armor', 'tw_pyrobot_helmet'],
     demo: ['tw_demobot_armor', 'tw_demobot_helmet'], heavy: ['tw_heavybot_armor', 'tw_heavybot_helmet'], engineer: ['tw_engineerbot_armor', 'tw_engineerbot_helmet'],
     medic: ['tw_medibot_chariot', 'tw_medibot_hat'], sniper: ['tw_sniperbot_armor', 'tw_sniperbot_helmet'], spy: ['tw_spybot_armor', 'tw_spybot_hood']};
-  const costumes = (s, k) => [['Romevision', ROME[s]]].concat(BOTCOS[k] || []);
+  // the gatebots' lights (robot_gatebot.pop: "MvM GateBot Light <class>", its style 0 lit, style 1 dark), a robot's costume as [item, style]
+  const GATE = {scout: 'Scout', soldier: 'Soldier', pyro: 'Pyro', demo: 'Demoman', heavy: 'Heavy', engineer: 'Engineer', medic: 'Medic', sniper: 'Sniper', spy: 'Spy'};
+  const costumes = (s, k) => [['Romevision', ROME[s]], ['Gatebot', [['MvM GateBot Light ' + GATE[s], 0]]], ['Gatebot (light off)', [['MvM GateBot Light ' + GATE[s], 1]]]].concat(BOTCOS[k] || []);
   const BOTSLOTS = {engineer: ['melee'], scout: ['primary', 'melee'], soldier: ['primary'], demo: ['primary', 'secondary'], heavy: ['primary', 'melee'], medic: ['primary', 'secondary']};
   // the skeletons: their own sequences (skeleton_sniper_animations / skeleton_sniper_boss_animations: running, spawning out of the
   // ground, swinging, flinching), plus the Sniper's that they borrow for standing and jumping with a melee weapon
@@ -41,9 +43,11 @@
     ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp'})),
     ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: costumes(s, 'bot_' + s), name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
     ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: costumes(s, 'giant_' + s), name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
-    {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noteam: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
+    {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noteam: 1, costumes: [['Romevision', ['tw_sentrybuster']]], noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
     // the Tank (tank_boss.cpp): its treads and bomb mechanism are their own models, bonemerged on the tank_track_L / _R and turret_bone bones; it drives on 'movement'
-    {id: 'tank', loop: 'MVM.TankEngineLoop', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', idle: 'movement', attach: ['models/bots/boss_bot/tank_track_l.mdl', 'models/bots/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl']},
+    {id: 'tank', loop: 'MVM.TankEngineLoop', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', idle: 'movement', attach: ['models/bots/boss_bot/tank_track_l.mdl', 'models/bots/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl'],
+      // Romevision: the tank of models/bots/tw2 (its body and treads), the same bomb mechanism
+      styles: [['Default', {}], ['Romevision', {mdl: 'models/bots/tw2/boss_bot/boss_tank.mdl', attach: ['models/bots/tw2/boss_bot/tank_track_l.mdl', 'models/bots/tw2/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl']}]]},
     // Robot Destruction's robots (rd_asteroid): A, B and C each their own model in models/bots/bot_worker, on four skins (RED, BLU, and
     // each team's protected look); they greet with Robot.Greeting (game_sounds_vo_rd_robots.txt), and the A robot panics and runs
     {id: 'rd_robot', voice: {snd: 'Robot.Greeting'}, card: 'npc_rd_robot.webp', name: 'Robot Destruction Robot', group: 'Robot Destruction', level: 'Map Objective', mdl: 'models/bots/bot_worker/bot_worker_a.mdl', idle: 'idle', run: 'panic',
