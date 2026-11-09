@@ -673,7 +673,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.4</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.5</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1239,7 +1239,10 @@ function render(){
   document.body.classList.toggle('vnpc', S.view === 'npc');   // Characters: the search and filters fade out, and don't apply
   document.body.classList.toggle('vmap', S.view === 'maps');   // Maps: the search finds maps; the item filters fade out
   { const qi = $('#q'); if (qi) qi.placeholder = S.view === 'maps' ? 'Search maps\u2026' : 'Search items\u2026'; }
-  $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>Try turning on more item types, or change the filters.</p></div>';
+  // nothing found with no filters in the way (and an item type ticked): the game's files aren't in yet, so a button to sync them
+  const nofilt = !activeFilters().length && Object.values(S.types || {}).some(Boolean) && !(window.ZLIVE && ZLIVE.ready);
+  $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>' + (nofilt ? 'Nothing was found, and no filters are hiding anything. Sync your TF2 install and the items come straight from your game.' : 'Try turning on more item types, or change the filters.') + '</p>'
+    + (nofilt ? '<p><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>' : '') + '</div>';
   if (S.quality){ document.body.dataset.quality = S.quality; document.body.style.setProperty('--qcol', QUAL[S.quality].c); }
   else { delete document.body.dataset.quality; }
   meter(); syncControls(); watchIcons();
@@ -1509,6 +1512,7 @@ function resetFilters(){
   save(); render();
 }
 document.addEventListener('click', e => {
+  if (e.target.closest('[data-tfsync]')){ sfx('buttonclick'); openSettings(); const t = $('#tfpath'); if (t) t.focus(); return; }
   if (e.target.closest('#filtBtn, [data-fopen]')){ S.fopen = !S.fopen; save(); filterSummary(); }
   else if (e.target.closest('#resetBtn, [data-freset]')) resetFilters();
 });

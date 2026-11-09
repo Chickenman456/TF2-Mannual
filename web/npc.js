@@ -80,6 +80,8 @@
     {id: 'scarecrow', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], card: 'npc_scarecrow.webp', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL},
     // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
     {id: 'ghost', open: 'Halloween.GhostMoan', voice: {snd: 'Halloween.GhostBoo'}, card: 'npc_ghost.webp', name: 'Ghost', group: 'Halloween', level: 'Halloween Hazard', mdl: 'models/props_halloween/ghost.mdl', styles: [['Default', {}], ['Hatless', {mdl: 'models/props_halloween/ghost_no_hat.mdl'}]]},
+    // Graveyard's dead players: a miniature Dispenser ghost each, its team's colour (ghost_healing_red, ghost_healing)
+    {id: 'ghost_healing', voice: {snd: 'Halloween.GhostBoo'}, card: 'npc_ghost_healing.webp', name: 'Healing Ghost', group: 'Halloween', level: 'Halloween Character', mdl: 'models/props_graveyard/ghost_healing_red.mdl', pak: 'arena_lumberyard_event.bsp', idle: 'idle', styles: [['RED', {}], ['BLU', {mdl: 'models/props_graveyard/ghost_healing.mdl'}]]},
     // the Bombinomicon itself (props_halloween/bombonomicon.mdl, not the badge): idle, flipping its pages, its headbomb lines (Halloween.BombinomiconSpin)
     {id: 'bombinomicon', voice: {seq: 'flip_stimulated', snd: 'Halloween.BombinomiconSpin'}, nofloor: 1, card: 'npc_bombinomicon.webp', name: 'Bombinomicon', group: 'Halloween', level: 'Announcer', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle'},
     {id: 'dutchman', fire: ['point', 'stomp'], card: 'npc_dutchman.webp', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
@@ -123,7 +125,7 @@
   const WIKI = {merc: c => W + CNAME[c], zombie: () => W + 'Zombie_Infection', bot: c => W + CNAME[c] + '_Robot', giant: () => W + 'Robots#Giant_Robots',
     sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Horseless_Headless_Horsemann',
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
-    skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
+    skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', ghost_healing: W + 'Graveyard', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
     santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack', botler: W + 'Embargo#Robots',
     seaghoul: W + 'Slime', seagull: W + 'Sharkbay', seagull_blowout: W + 'Blowout', seagull_premuda: W + 'Premuda', dolphin: W + 'Aquarius', crocodile: W + 'Environmental_death', shark: W + 'Environmental_death', piranhas: W + 'Environmental_death', big_mama: W + 'Bread_Space#Big_Mama'};
   // each character's description: official words only, with where they're from (Valve's Meet the Team videos and update pages, the
@@ -188,7 +190,7 @@
     merasmus: [['koth_lakeside_event'], ['pl_fifthcurve_event', 'pl_rumble_event', 'koth_slasher']],
     skeleton: [['plr_hightower_event'], SK], skeleton_king: [['plr_hightower_event'], SK],
     skeleton_mobster: [['pl_spineyard'], []], salmann: [['koth_slime'], []], scarecrow: [['pd_farmageddon'], []],
-    ghost: [['koth_harvest_event'], ['pl_fifthcurve_event', 'cp_ambush_event', 'koth_viaduct_event', 'pl_rumble_event', 'pl_sludgepit_event', 'koth_lakeside_event', 'pl_millstone_event', 'plr_hightower_event', 'koth_moonshine_event', 'pl_precipice_event_final', 'koth_slasher', 'pl_terror_event']],
+    ghost_healing: [['arena_lumberyard_event'], []], ghost: [['koth_harvest_event'], ['pl_fifthcurve_event', 'cp_ambush_event', 'koth_viaduct_event', 'pl_rumble_event', 'pl_sludgepit_event', 'koth_lakeside_event', 'pl_millstone_event', 'plr_hightower_event', 'koth_moonshine_event', 'pl_precipice_event_final', 'koth_slasher', 'pl_terror_event']],
     dutchman: [['pd_cursed_cove_event'], []], krampus: [['koth_krampus'], []], saxton: [['vsh_distillery', 'vsh_nucleus', 'vsh_skirmish', 'vsh_tinyrock'], []],
     santa_hale: [['vsh_maul'], []], hell_hale: [['vsh_outburst'], []], toastmaster: [['koth_synthetic_event'], []], seal: [['pd_selbyen'], []],
     rd_robot: [['rd_asteroid'], []], bombinomicon: [['koth_viaduct_event'], ['koth_lakeside_event', 'plr_hightower_event', 'pl_fifthcurve_event', 'cp_spookeyridge']],
