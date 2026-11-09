@@ -28,7 +28,8 @@
     medic: ['tw_medibot_chariot', 'tw_medibot_hat'], sniper: ['tw_sniperbot_armor', 'tw_sniperbot_helmet'], spy: ['tw_spybot_armor', 'tw_spybot_hood']};
   // the gatebots' lights (robot_gatebot.pop: "MvM GateBot Light <class>", its style 0 lit, style 1 dark), a robot's costume as [item, style]
   const GATE = {scout: 'Scout', soldier: 'Soldier', pyro: 'Pyro', demo: 'Demoman', heavy: 'Heavy', engineer: 'Engineer', medic: 'Medic', sniper: 'Sniper', spy: 'Spy'};
-  const costumes = (s, k) => [['Romevision', ROME[s]], ['Gatebot', [['MvM GateBot Light ' + GATE[s], 0]]], ['Gatebot (light off)', [['MvM GateBot Light ' + GATE[s], 1]]]].concat(BOTCOS[k] || []);
+  // (the Gatebot styles on the standard robots only, not the giants)
+  const costumes = (s, k) => [['Romevision', ROME[s]]].concat(/^giant_/.test(k) ? [] : [['Gatebot', [['MvM GateBot Light ' + GATE[s], 0]]], ['Gatebot (light off)', [['MvM GateBot Light ' + GATE[s], 1]]]]).concat(BOTCOS[k] || []);
   const BOTSLOTS = {engineer: ['melee'], scout: ['primary', 'melee'], soldier: ['primary'], demo: ['primary', 'secondary'], heavy: ['primary', 'melee'], medic: ['primary', 'secondary']};
   // the skeletons: their own sequences (skeleton_sniper_animations / skeleton_sniper_boss_animations: running, spawning out of the
   // ground, swinging, flinching), plus the Sniper's that they borrow for standing and jumping with a melee weapon
@@ -63,13 +64,16 @@
     {id: 'monoculus_spell', fire: ['firing1', 'firing2', 'firing3'], voice: {seq: 'laugh', snd: 'Halloween.EyeballBossLaugh'}, nofloor: 1, card: 'npc_monoculus_spell.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2},
     {id: 'merasmus', open: 'Halloween.MerasmusAppears', fire: ['zap_attack', 'bomb_attack'], voice: {snd: 'Halloween.MerasmusTauntFakeProp'}, allbg: 1, card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0},
     {id: 'skeleton', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_medium'}, card: 'npc_skeleton.webp', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2},
-    {id: 'skeleton_king', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [0, -0.6, 0], rot: [0.1, 0, 0], scale: 1.1}], idle: 'stand_melee', keep: SKEL, skin: 2},
+    {id: 'skeleton_king', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [0, -0.3, 3.5], rot: [0.03, 0, 0], scale: 1.1}], idle: 'stand_melee', keep: SKEL, skin: 2},
     // Spineyard's mobsters (pl_spineyard's mobster.nut; one look: the model's skin families swap only materials it doesn't draw, and the
     // script shoots with Weapon_SMG.Single and laughs with Halloween.skeleton_laugh_medium): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
     {id: 'skeleton_mobster', fireSnd: 'Weapon_SMG.Single', voice: {snd: 'Halloween.skeleton_laugh_medium'}, card: 'npc_skeleton_mobster.webp', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name)},
     // Slime's Salmann (koth_slime's salmann.nut: salmann.mdl packed in the map, standing and running with stand_MELEE / run_MELEE)
-    {id: 'salmann', fire: ['MELEE_swing', 'MELEE_swing_2', 'MELEE_swing_3', 'MELEE_swing_4', 'MELEE_swing_5', 'attack_slime'], card: 'npc_salmann.webp', name: 'Salmann', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/props_brine/salmann.mdl', pak: 'koth_slime.bsp', idle: 'stand_melee', run: 'run_melee'},
+    {id: 'salmann', voice: {snd: ['slime/salmann_gurgle_01.wav', 'slime/salmann_gurgle_02.wav', 'slime/salmann_gurgle_03.wav', 'slime/salmann_gurgle_04.wav', 'slime/salmann_gurgle_06.wav', 'slime/salmann_gurgle_07.wav', 'slime/salmann_gurgle_08.wav', 'slime/salmann_gurgle_09.wav', 'slime/salmann_gurgle_10.wav', 'slime/salmann_gurgle_11.wav', 'slime/salmann_gurgle_12.wav', 'slime/salmann_gurgle_13.wav']}, fire: ['MELEE_swing', 'MELEE_swing_2', 'MELEE_swing_3', 'MELEE_swing_4', 'MELEE_swing_5', 'attack_slime'], card: 'npc_salmann.webp', name: 'Salmann', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/props_brine/salmann.mdl', pak: 'koth_slime.bsp', idle: 'stand_melee', run: 'run_melee'},
     {id: 'seaghoul', voice: {seq: 'Hop', snd: ['slime/seaghouls1.wav', 'slime/seaghouls2.wav', 'slime/seaghouls3.wav']}, fire: ['Takeoff', 'Hop'], card: 'npc_seaghoul.webp', name: 'Seaghoul', group: 'Halloween', level: 'Map Character', mdl: 'models/props_brine/seaghoul.mdl', pak: 'koth_slime.bsp', idle: 'Idle01', run: 'Walk'},
+    {id: 'seagull', voice: {seq: 'Hop'}, fire: ['Takeoff', 'Hop'], card: 'npc_seagull.webp', name: 'Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/props_brine/seagull.mdl', pak: ['koth_sharkbay.bsp', 'koth_boardwalk.bsp'], idle: 'Idle01', run: 'Walk'},
+    {id: 'seagull_blowout', voice: {seq: 'yell'}, fire: ['yell_b'], allbg: 1, card: 'npc_seagull_blowout.webp', name: 'Blowout Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/props_offshore_project/sea_life/seagull.mdl', pak: 'koth_blowout.bsp', idle: 'idle', run: 'fly'},
+    {id: 'seagull_premuda', card: 'npc_seagull_premuda.webp', name: 'Premuda Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/premuda/seagull.mdl', pak: 'cp_premuda.bsp', idle: 'idle', run: 'flight_straight', fam: [['Default', 0], ['Skin 1', 1]], skin: 0},
     // Farmageddon's scarecrows: reskinned skeletons, models/bots/farmageddon/scarecrow.mdl packed in pd_farmageddon
     {id: 'scarecrow', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], card: 'npc_scarecrow.webp', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL},
     // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
@@ -114,7 +118,8 @@
     sentry_buster: W + 'Sentry_Buster', tank: W + 'Tank_Robot', hhh: W + 'Horseless_Headless_Horsemann', hhh_hollow: W + 'Horseless_Headless_Horsemann',
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
     skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
-    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack', botler: W + 'Embargo#Robots'};
+    santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack', botler: W + 'Embargo#Robots',
+    seaghoul: W + 'Slime', seagull: W + 'Sharkbay', seagull_blowout: W + 'Blowout', seagull_premuda: W + 'Premuda', crocodile: W + 'Mercenary_Park'};
   // each character's description: official words only, with where they're from (Valve's Meet the Team videos and update pages, the
   // maps' publicity blurbs, the game's own lines); characters with none have none
   const DESC = {
@@ -181,7 +186,9 @@
     dutchman: [['pd_cursed_cove_event'], []], krampus: [['koth_krampus'], []], saxton: [['vsh_distillery', 'vsh_nucleus', 'vsh_skirmish', 'vsh_tinyrock'], []],
     santa_hale: [['vsh_maul'], []], hell_hale: [['vsh_outburst'], []], toastmaster: [['koth_synthetic_event'], []], seal: [['pd_selbyen'], []],
     rd_robot: [['rd_asteroid'], []], bombinomicon: [['koth_viaduct_event'], ['koth_lakeside_event', 'plr_hightower_event', 'pl_fifthcurve_event', 'cp_spookeyridge']],
-    megalodon: [['pl_aquarius', 'ctf_pressure'], []], chicken: [['ctf_applejack'], []], botler: [['pl_embargo'], []],
+    megalodon: [['pl_aquarius', 'ctf_pressure'], []], seaghoul: [['koth_slime'], []], seagull: [['koth_sharkbay'], ['koth_boardwalk']], seagull_blowout: [['koth_blowout'], []], seagull_premuda: [['cp_premuda'], []],
+    // the crocodiles: Mercenary Park's, Laughter's two in hats, and the ones a croc pit (func_croc) sends up
+    crocodile: [['cp_mercenarypark'], ['koth_slaughter_event', 'vsh_skirmish', 'koth_sharkbay', 'koth_cachoeira', 'koth_boardwalk']], chicken: [['ctf_applejack'], []], botler: [['pl_embargo'], []],
   };
   NPCS.forEach(n => {
     if (n.id === 'bot_engineer') n.card = 'npc_bot_engineer.webp';   // the main menu has no Engineer Robot render
