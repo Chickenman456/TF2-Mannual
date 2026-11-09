@@ -566,6 +566,7 @@
   function onKey(e) {
     if (!ST || e.key !== 'Escape') return;
     e.stopPropagation(); e.preventDefault();
+    if (ST.mapZoom) { ST.mapZoom(); return; }
     const m = ST.el.querySelector('.spv-menu, .spv-src');
     if (m) m.remove(); else if (FS) exitFS(); else close();
   }
@@ -632,6 +633,7 @@
   }
   function close() {
     if (!ST) return;
+    if (ST.mapZoom) ST.mapZoom();
     if (window.ZFACE) ZFACE.killAll();   // the taunt's voices and music stop with the window
     if (window.ZPFX && ZPFX.clear) ZPFX.clear();   // no particles carried over into the next preview
     try { if (noiseAu) { noiseAu.pause(); noiseAu = null; } } catch (e) {}
@@ -754,13 +756,18 @@
       market: o.leaderboard, marketLabel: 'Top Supporters', marketTitle: 'The map’s Steam leaderboard of the players who bought the most of its Map Stamps'});
     document.body.appendChild(el);
     ST = {o, el, u: 2, state: 'map', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
-    ['.spv-icons', '.spv-team', '.spv-rot', '.spv-tb', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=full]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
+    ['.spv-icons', '.spv-team', '.spv-rot', '.spv-tb', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
+    { const fb = el.querySelector('[data-spv=full]'); fb.title = 'Zoom in'; fb.setAttribute('aria-label', 'Zoom in'); fb.style.setProperty('--g', `url(${IMG}store_zoom.webp)`); }
     const E = o.esc, m = o.map, mp = el.querySelector('.spv-model');
     mp.insertAdjacentHTML('afterbegin', `<img class="spv-mapimg shot" alt="${E(o.name)}: screenshot"><img class="spv-mapimg photo" alt="${E(o.name)}: loading screen" hidden>`);
     const [im, ph] = mp.querySelectorAll('.spv-mapimg');
     // the screenshot can still be on its way (maps.js reads them in the background): a spinner until it is
     const setShot = u => { if (u) { im.src = u; mp.classList.remove('loading'); } else mp.classList.add('loading'); };
-    setShot(o.shot); ST.mapShot = setShot;
+    // the screenshot at 1280 x 720 when its file is in (ui/maps/p<n>.js): the window and the zoom show that from then on
+    let hd = false; const setShot0 = setShot;
+    ST.mapShot = u => { if (!hd) setShot0(u); };
+    ST.mapHD = u => { if (u) { hd = true; setShot0(u); } };
+    setShot(o.shot); if (o.hd) ST.mapHD(o.hd);
     // the loading screen's photos, when the game has them for this map (they can arrive after the window opens: mapPhoto)
     ST.mapPhoto = u => {
       if (!u || ph.src) return; ph.src = u;
@@ -784,13 +791,47 @@
       if (!ST || ST.el !== el) return;
       const a = e.target.closest('[data-spv]'); if (!a) return;
       if (a.dataset.spv === 'close') close();
+      else if (a.dataset.spv === 'full') { o.sfx('buttonclick'); mapZoom(ph.hidden ? im : ph); }
     });
+    // the image itself opens the zoom too
+    mp.addEventListener('click', e => { if (e.target.closest('.spv-mapimg')) { o.sfx('buttonclick'); mapZoom(e.target.closest('.spv-mapimg')); } });
+    mp.style.cursor = 'zoom-in';
     addEventListener('keydown', onKey, true); addEventListener('resize', layout);
     layout(); setTimeout(layout, 60);
     return true;
   }
+  /* the map's image over the whole page, zoomed the way the store's merc is: the wheel zooms toward the mouse (pinch on a touch screen),
+     dragging pans, a double click fits it again; Esc, the close button or a click outside it go back to the window */
+  function mapZoom(img) {
+    if (!ST || !img || !img.src || ST.mapZoom) return;
+    const ov = document.createElement('div'); ov.className = 'mapzoom';
+    ov.innerHTML = `<img alt="${ST.o.esc(img.alt || '')}" src="${img.src}" draggable="false"><div class="mzbar"><button type="button" data-mz="out" aria-label="Zoom out">−</button><button type="button" data-mz="fit" aria-label="Fit">Fit</button><button type="button" data-mz="in" aria-label="Zoom in">+</button><button type="button" data-mz="x" aria-label="Close">✕</button></div>`;
+    document.body.appendChild(ov);
+    const im = ov.querySelector('img'); let k = 1, x = 0, y = 0, base = 1;
+    const fit = () => { const W = innerWidth * .94, H = innerHeight * .9, w = im.naturalWidth || 1280, h = im.naturalHeight || 720; base = Math.min(W / w, H / h, 2.5); k = 1; x = 0; y = 0; draw(); };
+    const draw = () => { const w = (im.naturalWidth || 1280) * base, h = (im.naturalHeight || 720) * base; im.style.width = w + 'px'; im.style.height = h + 'px'; im.style.transform = `translate(${x}px,${y}px) scale(${k})`; ov.classList.toggle('zoomed', k > 1.01); };
+    const zoomAt = (f, cx, cy) => { const n = Math.max(1, Math.min(8, k * f)); f = n / k; const ox = cx - innerWidth / 2, oy = cy - innerHeight / 2; x = ox - (ox - x) * f; y = oy - (oy - y) * f; k = n; if (k === 1) { x = 0; y = 0; } draw(); };
+    if (im.complete) fit(); else im.onload = fit;
+    const end = () => { ov.remove(); removeEventListener('resize', fit); if (ST) ST.mapZoom = null; };
+    ST.mapZoom = end;
+    addEventListener('resize', fit);
+    ov.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX, e.clientY); }, {passive: false});
+    const P = new Map(); let drag = null, pinch = null, moved = false;
+    ov.addEventListener('pointerdown', e => { if (e.target.closest('.mzbar')) return; P.set(e.pointerId, [e.clientX, e.clientY]); moved = false; ov.setPointerCapture(e.pointerId);
+      if (P.size === 2) { const [a, b] = [...P.values()]; pinch = {d: Math.hypot(a[0] - b[0], a[1] - b[1]), k}; drag = null; } else drag = {sx: e.clientX, sy: e.clientY, x, y}; });
+    ov.addEventListener('pointermove', e => { if (!P.has(e.pointerId)) return; P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pinch && P.size === 2) { const [a, b] = [...P.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomAt(pinch.k * d / pinch.d / k, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); moved = true; return; }
+      if (drag && k > 1) { x = drag.x + e.clientX - drag.sx; y = drag.y + e.clientY - drag.sy; draw(); } if (drag && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4) moved = true; });
+    const up = e => { P.delete(e.pointerId); if (P.size < 2) pinch = null; if (!P.size) drag = null; };
+    ov.addEventListener('pointerup', e => { const was = moved; up(e); if (!was && e.target === ov) end(); });
+    ov.addEventListener('pointercancel', up);
+    ov.addEventListener('dblclick', e => { if (k > 1.01) fit(); else zoomAt(2.5, e.clientX, e.clientY); });
+    ov.addEventListener('click', e => { const b = e.target.closest('[data-mz]'); if (!b) return; const z = b.dataset.mz;
+      if (z === 'x') end(); else if (z === 'fit') fit(); else zoomAt(z === 'in' ? 1.4 : 1 / 1.4, innerWidth / 2, innerHeight / 2); });
+  }
   // maps.js: a screenshot that arrived after its map's window opened
   function mapShot(f, u) { if (ST && ST.state === 'map' && ST.o.map.f === f && ST.mapShot) ST.mapShot(u); }
   function mapPhoto(f, u) { if (ST && ST.state === 'map' && ST.o.map.f === f && ST.mapPhoto) ST.mapPhoto(u); }
-  window.ItemPreview = {open, openNpc, openMap, mapShot, mapPhoto, close, isOpen: () => !!ST};
+  function mapHD(f, u) { if (ST && ST.state === 'map' && ST.o.map.f === f && ST.mapHD) ST.mapHD(u); }
+  window.ItemPreview = {open, openNpc, openMap, mapShot, mapPhoto, mapHD, close, isOpen: () => !!ST};
 })();
