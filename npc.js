@@ -74,6 +74,8 @@
     {id: 'seagull', voice: {seq: 'Hop'}, fire: ['Takeoff', 'Hop'], card: 'npc_seagull.webp', name: 'Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/props_brine/seagull.mdl', pak: ['koth_sharkbay.bsp', 'koth_boardwalk.bsp'], idle: 'Idle01', run: 'Walk'},
     {id: 'seagull_blowout', voice: {seq: 'yell'}, fire: ['yell_b'], allbg: 1, card: 'npc_seagull_blowout.webp', name: 'Blowout Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/props_offshore_project/sea_life/seagull.mdl', pak: 'koth_blowout.bsp', idle: 'idle', run: 'fly'},
     {id: 'seagull_premuda', card: 'npc_seagull_premuda.webp', name: 'Premuda Seagull', group: 'Summer', level: 'Map Character', mdl: 'models/premuda/seagull.mdl', pak: 'cp_premuda.bsp', idle: 'idle', run: 'flight_straight', fam: [['Default', 0], ['Skin 1', 1]], skin: 0},
+    // Bread Space's Big Mama (Specimen 79): asleep in the borehole (sleep), roused when the cart reaches the Gate (intro), snapping (bite)
+    {id: 'big_mama', open: 'breadspace/breadboss_wakeup.wav', voice: {seq: 'intro', snd: 'breadspace/breadboss_wakeup.wav'}, fire: ['bite'], fireSnd: 'breadspace/breadboss_bite1.wav', card: 'npc_big_mama.webp', name: 'Big Mama', group: 'Smissmas', level: 'Map Character', mdl: 'models/props_breadspace/bread_mama.mdl', pak: 'pl_breadspace.bsp', idle: 'idle', run: 'sleep', rot: [0, 0, 180]},
     // Farmageddon's scarecrows: reskinned skeletons, models/bots/farmageddon/scarecrow.mdl packed in pd_farmageddon
     {id: 'scarecrow', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], card: 'npc_scarecrow.webp', name: 'Scarecrow', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/farmageddon/scarecrow.mdl', pak: 'pd_farmageddon.bsp', idle: 'stand_melee', keep: SKEL},
     // the ghost of Zepheniah Mann (props_halloween/ghost.mdl, and ghost_no_hat.mdl without the Ghastly Gibus)
@@ -92,7 +94,10 @@
     {id: 'seal', voice: {seq: 'idlesleepy'}, card: 'npc_seal.webp', name: 'Seal', group: 'Summer', level: 'Map Character', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', run: 'walk', fam: [['Default', 0], ['Skin 1', 1], ['Skin 2', 2]], skin: 0},
     // Aquarius's Megalodon (models/props_megalodon/megalodon.mdl, packed in pl_aquarius and in ctf_pressure, which packs its roars too)
     {id: 'megalodon', voice: {seq: 'eatpayload', snd: ['ctf_pressure/megalodon_roar1.wav', 'ctf_pressure/megalodon_roar2.wav', 'ctf_pressure/megalodon_roar3.wav']}, fire: ['bite', 'swimbite'], nofloor: 1, card: 'npc_megalodon.webp', name: 'Megalodon', group: 'Summer', level: 'Map Character', mdl: 'models/props_megalodon/megalodon.mdl', pak: ['pl_aquarius.bsp', 'ctf_pressure.bsp'], idle: 'swim', run: 'swim_fast'},
-    {id: 'crocodile', voice: {seq: 'swimming02'}, fire: ['attack'], card: 'npc_crocodile.webp', name: 'Crocodile', group: 'Summer', level: 'Map Character', mdl: 'models/props_island/crocodile/crocodile.mdl', idle: 'idle', run: 'swimming',
+    // Sharkbay's sharks (skin 3, stripeless blue, in the map)
+    {id: 'shark', voice: {seq: 'hooked'}, fire: ['attack'], card: 'npc_shark.webp', name: 'Shark', group: 'Summer', level: 'Environmental Hazard', mdl: 'models/props_gunn/shark/shark.mdl', pak: 'koth_sharkbay.bsp', idle: 'idle', run: 'swimming', fam: [['Blue', 0], ['Beige', 1], ['White', 2], ['Stripeless blue', 3], ['Stripeless beige', 4], ['Stripeless white', 5]], skin: 3},
+    {id: 'piranhas', fire: ['ATTACK'], card: 'npc_piranhas.webp', name: 'Piranhas', group: 'Summer', level: 'Environmental Hazard', mdl: 'models/piranhas/piranhas.mdl', pak: 'koth_cachoeira.bsp', idle: 'SWIM_V1', run: 'SWIM_V2', inplace: 'root_bone', center: 1},
+    {id: 'crocodile', voice: {seq: 'swimming02'}, fire: ['attack'], card: 'npc_crocodile.webp', name: 'Crocodile', group: 'Summer', level: 'Environmental Hazard', mdl: 'models/props_island/crocodile/crocodile.mdl', idle: 'idle', run: 'swimming',
       // Laughter's two crocodiles wear a team-coloured Sydney Straw Boat (koth_slaughter_event: croc_hat1 skin 1 on croc1, croc_hat2 skin 0 on croc2)
       styles: [['Mercenary Park', {}], ['Laughter (RED)', {place: [{mdl: 'models/player/items/sniper/bio_sniper_boater.mdl', bone: 'head', seq: 'swimming02', at: [40, -36, 7], ang: [7.5, 0, 0], skin: 0, team: 'RED'}]}], ['Laughter (BLU)', {place: [{mdl: 'models/player/items/sniper/bio_sniper_boater.mdl', bone: 'head', seq: 'swimming02', at: [40, -36, 7], ang: [7.5, 0, 0], skin: 1, team: 'BLU'}]}]]},
     // Embargo's robot butlers (pl_embargo packs them, and botlers.nut picks the model: the health kit carriers, the drink carriers, the empty tray, and the gambling
@@ -119,7 +124,7 @@
     monoculus: W + 'MONOCULUS', monoculus_spell: W + 'MONOCULUS', merasmus: W + 'Merasmus', skeleton: W + 'Skeletons', skeleton_king: W + 'Skeletons',
     skeleton_mobster: W + 'Spineyard', salmann: W + 'Slime', scarecrow: W + 'Farmageddon', ghost: W + 'Ghost', dutchman: W + 'Community_announcers#Cursed_Cove', krampus: W + 'Krampus#Krampus', saxton: W + 'Saxton_Hale',
     santa_hale: W + 'Saxton_Hale', hell_hale: W + 'Saxton_Hale', toastmaster: W + 'Sinthetic#Toastmaster', seal: W + 'Selbyen', rd_robot: W + 'Robot_Destruction#Robots', bombinomicon: W + 'Bombinomicon_(character)', megalodon: W + 'Aquarius', chicken: W + 'Applejack', botler: W + 'Embargo#Robots',
-    seaghoul: W + 'Slime', seagull: W + 'Sharkbay', seagull_blowout: W + 'Blowout', seagull_premuda: W + 'Premuda', crocodile: W + 'Mercenary_Park'};
+    seaghoul: W + 'Slime', seagull: W + 'Sharkbay', seagull_blowout: W + 'Blowout', seagull_premuda: W + 'Premuda', crocodile: W + 'Environmental_death', shark: W + 'Environmental_death', piranhas: W + 'Environmental_death', big_mama: W + 'Bread_Space#Big_Mama'};
   // each character's description: official words only, with where they're from (Valve's Meet the Team videos and update pages, the
   // maps' publicity blurbs, the game's own lines); characters with none have none
   const DESC = {
@@ -187,8 +192,9 @@
     santa_hale: [['vsh_maul'], []], hell_hale: [['vsh_outburst'], []], toastmaster: [['koth_synthetic_event'], []], seal: [['pd_selbyen'], []],
     rd_robot: [['rd_asteroid'], []], bombinomicon: [['koth_viaduct_event'], ['koth_lakeside_event', 'plr_hightower_event', 'pl_fifthcurve_event', 'cp_spookeyridge']],
     megalodon: [['pl_aquarius', 'ctf_pressure'], []], seaghoul: [['koth_slime'], []], seagull: [['koth_sharkbay'], ['koth_boardwalk']], seagull_blowout: [['koth_blowout'], []], seagull_premuda: [['cp_premuda'], []],
-    // the crocodiles: Mercenary Park's, Laughter's two in hats, and the ones a croc pit (func_croc) sends up
-    crocodile: [['cp_mercenarypark'], ['koth_slaughter_event', 'vsh_skirmish', 'koth_sharkbay', 'koth_cachoeira', 'koth_boardwalk']], chicken: [['ctf_applejack'], []], botler: [['pl_embargo'], []],
+    // the crocodiles (the wiki's Environmental hazards): Mercenary Park's, Laughter's two in hats, and the ones a croc pit sends up
+    crocodile: [['cp_mercenarypark'], ['koth_boardwalk', 'cp_darkmarsh', 'koth_slaughter_event', 'htf_marshlands', 'vsh_skirmish', 'koth_toxic', 'pl_terror_event']],
+    shark: [['koth_sharkbay'], []], piranhas: [['koth_cachoeira'], []], big_mama: [['pl_breadspace'], []], chicken: [['ctf_applejack'], []], botler: [['pl_embargo'], []],
   };
   NPCS.forEach(n => {
     if (n.id === 'bot_engineer') n.card = 'npc_bot_engineer.webp';   // the main menu has no Engineer Robot render
@@ -216,6 +222,7 @@
   css.textContent = `
 .spv-maps a{color:inherit;text-decoration:underline;text-decoration-color:#766B5E;text-underline-offset:2px}
 .spv-maps a:hover{color:#ffb84d;text-decoration-color:currentColor}
+.sec.closed .npcgrid{display:none}
 .npcgrid{display:grid;grid-template-columns:repeat(auto-fill,196px);gap:16px 18px;justify-content:center;padding:8px 0 22px}
 .npcc{position:relative;width:196px;height:99px}
 .npcgrid .zcc{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(.55)}
@@ -233,11 +240,13 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'The Smissmas boss', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'Characters of the summer maps'};
+  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'Characters of the Smissmas maps', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'Characters of the summer maps'};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
-      return groups.map(g => `<section class="sec"><div class="sh"><div class="grow"><h2>${E(g)}</h2><div class="sub">${E(SUB[g] || '')}</div></div></div>
+      // the sections close and open like the item sections do (index.html's closed[], by data-key)
+      const C = typeof closed !== 'undefined' ? closed : {};
+      return groups.map(g => `<section class="sec${C['npc:' + g] ? ' closed' : ''}" data-key="${E('npc:' + g)}"><div class="sh"><div class="grow"><h2>${E(g)}</h2><div class="sub">${E(SUB[g] || '')}</div></div></div>
         <div class="npcgrid">${NPCS.filter(n => n.group === g).map(card).join('')}</div></section>`).join('')
         + '<p class="empty" style="padding:10px 0 30px">Characters load from your TF2 install. Link it under Settings &gt; Sync with your game.</p>';
     },
