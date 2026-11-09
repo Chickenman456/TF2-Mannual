@@ -169,3 +169,227 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     const b = e.target.closest('[data-map]'); if (b) MAPVIEW.open(b.dataset.map);
   });
 })();
+
+/* The Mod Maker tab: a compiled Workshop zip (the in-game Workshop importer's "Export") turned into a mod that replaces an item.
+   You bring the zip; the page reads it here, in the browser, and nothing is uploaded. Like mods.tf did: the zip's model files are
+   copied to the replaced item's model path (each of its classes and styles), its materials kept where its model looks for them,
+   and its backpack icon put over the replaced item's, packed as one .vpk for tf/custom. Only an item the same class wears in the
+   same equip region can be replaced. The items and their model paths come from your TF2 files (Settings > Sync with your game). */
+(function () {
+  'use strict';
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
+  const CLS = ['scout', 'soldier', 'pyro', 'demo', 'heavy', 'engineer', 'medic', 'sniper', 'spy'];
+  const CNAME = {scout: 'Scout', soldier: 'Soldier', pyro: 'Pyro', demo: 'Demoman', heavy: 'Heavy', engineer: 'Engineer', medic: 'Medic', sniper: 'Sniper', spy: 'Spy'};
+  const ck = c => { c = String(c || '').toLowerCase(); return c === 'demoman' ? 'demo' : c; };
+  const MDLX = ['.mdl', '.vvd', '.dx80.vtx', '.dx90.vtx', '.sw.vtx', '.phy'];
+  const M = {busy: '', err: '', mod: null, pick: null, q: '', note: ''};
+  const css = document.createElement('style');
+  css.textContent = `
+.modmk .drop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px;border:2px dashed #5b5048;border-radius:6px;margin:10px 12px 6px}
+.modmk .drop.over{border-color:#cf6a32;background:rgba(207,106,50,.08)}
+.modmk .drop p{margin:0;color:#a39684;font:400 15px TF2Secondary}
+.modmk .modcard{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:12px;margin:6px 12px;background:rgba(0,0,0,.18);border-radius:6px}
+.modmk .modcard img{width:128px;height:128px;object-fit:contain;background:#2b2724;border-radius:4px}
+.modmk .modcard h3{margin:0 0 4px;font:400 22px TF2Build,TF2Secondary}
+.modmk .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.modmk .tag{font:400 13px TF2Secondary;padding:2px 8px;border-radius:3px;background:#3c352f;color:#ebe2ca}
+.modmk .modbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 12px}
+.modmk .modgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:8px 12px 24px}
+.modmk .tgt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;background:rgba(0,0,0,.18);border:2px solid transparent;border-radius:6px;cursor:pointer;color:inherit;font:400 14px TF2Secondary;text-align:center}
+.modmk .tgt:hover{background:rgba(255,255,255,.06)}
+.modmk .tgt.on{border-color:#cf6a32;background:rgba(207,106,50,.12)}
+.modmk .tgt .ico,.modmk .tgt .ph{width:80px;height:80px;object-fit:contain}
+.modmk .msg{padding:4px 12px;color:#a39684;font:400 15px TF2Secondary}
+.modmk .err{color:var(--AttribNegative,#ff4040)}
+@media (max-width:600px){.modmk .modgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}}`;
+  document.head.appendChild(css);
+
+  // ---- reading the zip (store3d.js's zip reader: stored, deflated and LZMA entries; its names lower case, with forward slashes) ----
+  async function readZip(file) {
+    if (!window.ZLIVE || !ZLIVE.zipDir) throw new Error('The preview engine didn’t load.');
+    const f = {size: file.size, slice: (a, b) => file.slice(a, b)};
+    const Z = await ZLIVE.zipDir(f);
+    const man = [...Z.keys()].find(n => /(^|\/)manifest\.txt$/.test(n));
+    if (!man) throw new Error('That zip has no manifest.txt: export the item from TF2’s Workshop importer and pick that zip.');
+    const root = man.slice(0, -'manifest.txt'.length);
+    const get = async n => { const e = Z.get(n); if (!e) return null; const b = await ZLIVE.zipGet(f, e); if (!b) throw new Error(n + ': a compression this page can’t read'); return b; };
+    return {Z, root, get, man};
+  }
+  const txt = u8 => new TextDecoder('latin1').decode(u8);
+  const regions = r => { const o = []; if (r.equip_region && typeof r.equip_region === 'string') o.push(r.equip_region.toLowerCase()); if (r.equip_regions && typeof r.equip_regions === 'object') Object.keys(r.equip_regions).forEach(k => o.push(k.toLowerCase())); return [...new Set(o)]; };
+  const classesOf = r => { const u = r.used_by_classes; const L = u && typeof u === 'object' ? Object.keys(u).filter(k => String(u[k]) !== '0').map(ck).filter(c => CLS.includes(c)) : []; return L.length ? L : CLS.slice(); };
+  const groupsOf = r => { const b = r.visuals && r.visuals.player_bodygroups; return b && typeof b === 'object' ? Object.keys(b).filter(k => String(b[k]) !== '0').map(k => k.toLowerCase()).sort() : []; };
+  // a model path for a class from model_player / model_player_per_class (a class's own, or the all-class "basename" with %s)
+  function modelFor(v, c) {
+    if (!v || typeof v !== 'object') return null;
+    const pc = v.model_player_per_class;
+    if (pc && typeof pc === 'object') {
+      for (const k in pc) if (ck(k) === c && pc[k]) return String(pc[k]);
+      if (pc.basename) return String(pc.basename).replace(/%s/g, c);
+    }
+    return v.model_player ? String(v.model_player) : null;
+  }
+  // every model a class wears the item as: its own, and each style's
+  function modelsFor(r, c) {
+    const out = new Set(); const a = modelFor(r, c); if (a) out.add(a);
+    const st = r.visuals && r.visuals.styles; if (st && typeof st === 'object') for (const k in st) { const m = modelFor(st[k], c); if (m) out.add(m); }
+    return [...out].map(p => p.replace(/\\/g, '/').toLowerCase().replace(/^\/+/, ''));
+  }
+
+  // a .tga (the manifest's backpack icon), for the page: uncompressed or run-length, colour or grey
+  function tgaURL(b) {
+    const dv = new DataView(b.buffer, b.byteOffset, b.byteLength); const idl = b[0], type = b[2], w = dv.getUint16(12, true), h = dv.getUint16(14, true), bpp = b[16], desc = b[17];
+    if (![2, 3, 10, 11].includes(type) || !w || !h) return null; const px = bpp >> 3; const rle = type >= 9; const grey = type === 3 || type === 11;
+    let o = 18 + idl + (b[1] ? dv.getUint16(5, true) * ((b[7] + 7) >> 3) : 0); const n = w * h, out = new Uint8ClampedArray(n * 4);
+    const put = (i, s) => { if (grey) { out[i * 4] = out[i * 4 + 1] = out[i * 4 + 2] = b[s]; out[i * 4 + 3] = px > 1 ? b[s + 1] : 255; } else { out[i * 4] = b[s + 2]; out[i * 4 + 1] = b[s + 1]; out[i * 4 + 2] = b[s]; out[i * 4 + 3] = px === 4 ? b[s + 3] : 255; } };
+    for (let i = 0; i < n && o < b.length;) {
+      if (!rle) { put(i++, o); o += px; continue; }
+      const c = b[o++], k = (c & 127) + 1;
+      if (c & 128) { for (let j = 0; j < k && i < n; j++) put(i++, o); o += px; } else { for (let j = 0; j < k && i < n; j++) { put(i++, o); o += px; } }
+    }
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d'); const im = new ImageData(out, w, h);
+    if (desc & 32) x.putImageData(im, 0, 0); else { const t = document.createElement('canvas'); t.width = w; t.height = h; t.getContext('2d').putImageData(im, 0, 0); x.translate(0, h); x.scale(1, -1); x.drawImage(t, 0, 0); }
+    return cv.toDataURL('image/png');
+  }
+
+  async function load(file) {
+    M.busy = 'Reading ' + file.name + '…'; M.err = ''; M.mod = null; M.pick = null; M.note = ''; redraw();
+    try {
+      const z = await readZip(file);
+      const mt = ZLIVE.kv(txt(await z.get(z.man)));
+      const A = mt.asset || mt; const S = (A.importsession || {}); const I = S.itemschema || {};
+      const cls = classesOf(I.used_by_classes ? I : {used_by_classes: A['class'] ? {[A['class']]: 1} : null});
+      const regs = regions(I).length ? regions(I) : regions(S);
+      const models = {};
+      for (const c of cls) { const p = modelFor(I, c); if (!p) continue; const gp = z.root + 'game/' + p.replace(/\\/g, '/').toLowerCase(); if (z.Z.has(gp)) models[c] = gp.slice(0, -4); }
+      if (!Object.keys(models).length) throw new Error('Couldn’t find the item’s compiled model in the zip (game/models/….mdl): export it again from the Workshop importer once it has compiled.');
+      let icon = null; const ip = S.icon && (z.root + String(S.icon).replace(/\\/g, '/').toLowerCase());
+      if (ip && z.Z.has(ip)) { try { icon = tgaURL(await z.get(ip)); } catch (e) { icon = null; } }
+      M.mod = {file, z, name: String(S.name || A.name || file.name.replace(/\.zip$/i, '')), classes: Object.keys(models), regions: regs, groups: groupsOf(I), models,
+        inv: I.image_inventory ? String(I.image_inventory).replace(/\\/g, '/').toLowerCase() : '', icon};
+      if (!regs.length) M.note = 'The manifest names no equip region, so no item can be matched to it.';
+    } catch (e) { M.err = (e && e.message) || String(e); }
+    M.busy = ''; redraw();
+  }
+
+  // the items the mod can replace: worn by one of its classes, in one of its equip regions, with a model for that class
+  function targets() {
+    const st = window.ZLIVE && ZLIVE.ready && ZLIVE._st; const m = M.mod; if (!st || !st.byId || !m) return [];
+    const out = [];
+    for (const e of st.byId.values()) {
+      if (e.k !== 'cos') continue; const r = e.r;
+      if (!regions(r).some(x => m.regions.includes(x))) continue;
+      const cs = classesOf(r).filter(c => m.models[c] && modelsFor(r, c).length); if (!cs.length) continue;
+      out.push({id: e.id, name: e.dn || r.name || ('#' + e.id), classes: cs, r});
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // ---- the .vpk (version 1, one file: its directory, then the files' data; ArchiveIndex 0x7fff = right after the directory) ----
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  function vpk(files) {   // files: Map(path -> Uint8Array)
+    const enc = new TextEncoder(), tree = {};
+    for (const [p, b] of files) {
+      const s = p.lastIndexOf('/'), dir = s < 0 ? ' ' : p.slice(0, s), base = p.slice(s + 1), d = base.lastIndexOf('.');
+      const ext = d < 0 ? ' ' : base.slice(d + 1), nm = d < 0 ? base : base.slice(0, d);
+      ((tree[ext] = tree[ext] || {})[dir] = tree[ext][dir] || []).push([nm, b]);
+    }
+    const parts = [], data = []; let off = 0;
+    const str = s => parts.push(enc.encode(s + '\0'));
+    for (const ext in tree) { str(ext); for (const dir in tree[ext]) { str(dir); for (const [nm, b] of tree[ext][dir]) {
+      str(nm); const e = new DataView(new ArrayBuffer(18));
+      e.setUint32(0, crc32(b), true); e.setUint16(4, 0, true); e.setUint16(6, 0x7fff, true); e.setUint32(8, off, true); e.setUint32(12, b.length, true); e.setUint16(16, 0xffff, true);
+      parts.push(new Uint8Array(e.buffer)); data.push(b); off += b.length; } str(''); } str(''); } str('');
+    const treeLen = parts.reduce((a, x) => a + x.length, 0);
+    const h = new DataView(new ArrayBuffer(12)); h.setUint32(0, 0x55aa1234, true); h.setUint32(4, 1, true); h.setUint32(8, treeLen, true);
+    return new Blob([h.buffer, ...parts, ...data], {type: 'application/octet-stream'});
+  }
+  // a zip holding one file, stored (for where the page may only offer a .zip)
+  async function zip1(name, blob) {
+    const b = new Uint8Array(await blob.arrayBuffer()), nm = new TextEncoder().encode(name), c = crc32(b);
+    const L = new DataView(new ArrayBuffer(30)); L.setUint32(0, 0x04034b50, true); L.setUint16(4, 20, true); L.setUint32(14, c, true); L.setUint32(18, b.length, true); L.setUint32(22, b.length, true); L.setUint16(26, nm.length, true);
+    const C = new DataView(new ArrayBuffer(46)); C.setUint32(0, 0x02014b50, true); C.setUint16(4, 20, true); C.setUint16(6, 20, true); C.setUint32(16, c, true); C.setUint32(20, b.length, true); C.setUint32(24, b.length, true); C.setUint16(28, nm.length, true);
+    const cdOff = 30 + nm.length + b.length;
+    const D = new DataView(new ArrayBuffer(22)); D.setUint32(0, 0x06054b50, true); D.setUint16(8, 1, true); D.setUint16(10, 1, true); D.setUint32(12, 46 + nm.length, true); D.setUint32(16, cdOff, true);
+    return new Blob([L.buffer, nm, b, C.buffer, nm, D.buffer], {type: 'application/zip'});
+  }
+
+  async function build() {
+    const m = M.mod, t = targets().find(x => x.id === M.pick); if (!m || !t) return;
+    M.busy = 'Building the mod…'; M.err = ''; redraw();
+    try {
+      const files = new Map(), z = m.z, G = z.root + 'game/';
+      // its materials, where its model looks for them (models/workshop/..., backpack/workshop/...)
+      for (const n of z.Z.keys()) if (n.startsWith(G + 'materials/')) { const b = await z.get(n); if (b) files.set(n.slice(G.length), b); }
+      // its model, as each model the replaced item's classes wear (every style)
+      const put = []; for (const c of t.classes) for (const dst of modelsFor(t.r, c)) put.push([m.models[c], dst.slice(0, -4)]);
+      for (const [src, dst] of put) for (const x of MDLX) { const b = z.Z.has(src + x) ? await z.get(src + x) : null; if (b) files.set(dst + x, b); }
+      // its backpack icon over the replaced item's
+      const tinv = t.r.image_inventory ? String(t.r.image_inventory).replace(/\\/g, '/').toLowerCase() : '';
+      if (M.icon !== false && m.inv && tinv) for (const sfx of ['.vmt', '_large.vmt']) { const b = files.get('materials/' + m.inv + sfx); if (b) files.set('materials/' + tinv + sfx, b); }
+      const safe = s => String(s).toLowerCase().replace(/^the /, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const name = 'mod_' + safe(m.name) + '_' + safe(t.name) + '.vpk', blob = vpk(files);
+      let saved = false;
+      const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+      if (dl) {   // the page inside another app's frame may offer only a .zip: the .vpk inside it
+        try { await dl.save({filename: name.replace(/\.vpk$/, '.zip'), data: await zip1(name, blob)}); saved = true; }
+        catch (e) { if (e && e.code === 'declined') { M.busy = ''; redraw(); return; } }
+      }
+      if (!saved) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+      M.note = `Built ${name} (${(blob.size / 1048576).toFixed(1)} MB, ${files.size} files)${dl ? ', in a .zip: take the .vpk out of it' : ''}. Put it in Team Fortress 2/tf/custom, and ${t.name} shows as ${m.name}. Mods like this show only where the server allows custom files.`;
+    } catch (e) { M.err = (e && e.message) || String(e); }
+    M.busy = ''; redraw();
+  }
+
+  const redraw = () => { if (typeof S !== 'undefined' && S.view === 'mods' && typeof render === 'function') render(); };
+  const icon = id => { try { const it = typeof ITEMS !== 'undefined' && ITEMS[id]; if (it && typeof iconHtml === 'function') return iconHtml(it); } catch (e) {} return '<div class="ph">?</div>'; };
+
+  window.MODVIEW = {
+    render() {
+      const m = M.mod, live = !!(window.ZLIVE && ZLIVE.ready);
+      let h = `<section class="sec modmk"><div class="sh"><div class="grow"><h2>Mod Maker</h2><div class="sub">Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region</div></div></div>
+        <div class="drop" data-moddrop><button class="btn big" type="button" data-modpick>Choose a Workshop zip</button><p>or drop one here. Export it from TF2’s Workshop importer once it has compiled. It’s read here, in your browser.</p>
+        <input type="file" accept=".zip,application/zip" data-modfile hidden></div>`;
+      if (M.busy) h += `<p class="msg">${E(M.busy)}</p>`;
+      if (M.err) h += `<p class="msg err">${E(M.err)}</p>`;
+      if (m) {
+        h += `<div class="modcard">${m.icon ? `<img alt="" src="${m.icon}">` : ''}<div><h3>${E(m.name)}</h3><div class="sub">${E(m.file.name)}</div>
+          <div class="tags">${m.classes.map(c => `<span class="tag">${E(CNAME[c])}</span>`).join('')}${m.regions.map(r => `<span class="tag">Equip region: ${E(r)}</span>`).join('')}${m.groups.map(g => `<span class="tag">Hides: ${E(g)}</span>`).join('')}</div></div></div>`;
+        if (!live) h += `<p class="msg">Sync your TF2 install to see the items it can replace: the items and their model paths come from your game.</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
+        else {
+          const all = targets(), q = M.q.trim().toLowerCase(), L = q ? all.filter(x => x.name.toLowerCase().includes(q)) : all;
+          const t = all.find(x => x.id === M.pick);
+          h += `<div class="modbar"><b>Replace</b><input class="in" type="search" placeholder="Search ${all.length} items…" value="${E(M.q)}" data-modq aria-label="Search the items it can replace">
+            <label class="chk"><input type="checkbox" data-modicon${M.icon === false ? '' : ' checked'}> Replace its backpack icon too</label>
+            <button class="btn big" type="button" data-modbuild${t && !M.busy ? '' : ' disabled'}>${t ? 'Build mod for ' + E(t.name) : 'Pick an item to replace'}</button></div>`;
+          if (t) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
+          if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
+          h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.classes.map(c => CNAME[c]).join(', '))}">${icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
+            : `<p class="msg">No item ${E(m.classes.map(c => CNAME[c]).join(' or '))} wears in the ${E(m.regions.join(' or '))} region.</p>`;
+        }
+      } else if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
+      return h + '</section>';
+    },
+  };
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest || !e.target.closest('.modmk')) return;
+    if (e.target.closest('[data-modpick]')) { const i = document.querySelector('[data-modfile]'); if (i) i.click(); return; }
+    const tg = e.target.closest('[data-modtgt]'); if (tg) { M.pick = tg.dataset.modtgt; M.note = ''; if (typeof sfx === 'function') sfx('buttonclick'); redraw(); return; }
+    if (e.target.closest('[data-modbuild]')) { if (typeof sfx === 'function') sfx('buttonclick'); build(); }
+  });
+  document.addEventListener('change', e => {
+    const f = e.target.closest && e.target.closest('[data-modfile]'); if (f && f.files && f.files[0]) { load(f.files[0]); return; }
+    const c = e.target.closest && e.target.closest('[data-modicon]'); if (c) M.icon = c.checked;
+  });
+  document.addEventListener('input', e => {
+    const q = e.target.closest && e.target.closest('[data-modq]'); if (!q) return; M.q = q.value;
+    const st = q.selectionStart; redraw(); const n = document.querySelector('[data-modq]'); if (n) { n.focus(); try { n.setSelectionRange(st, st); } catch (x) {} }
+  });
+  for (const ev of ['dragenter', 'dragover']) document.addEventListener(ev, e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (!d) return; e.preventDefault(); d.classList.add('over'); });
+  document.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (d) d.classList.remove('over'); });
+  document.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) load(f); });
+  // the item list arrives when the game's files are synced
+  addEventListener('tf2files', redraw);
+})();

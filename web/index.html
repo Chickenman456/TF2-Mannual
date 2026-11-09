@@ -604,6 +604,7 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
         <button class="btn" type="button" data-view="npc" title="The game's characters: the Mann vs. Machine robots and the Halloween bosses, with their animations">Characters</button>
         <button class="btn" type="button" data-view="maps" title="Every map in the game, by game mode, year or name, with its loading screen">Maps</button>
+        <button class="btn" type="button" data-view="mods" title="Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region">Mod Maker</button>
       </div>
       <div class="tabs" role="group" aria-label="Yours">
         <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
@@ -673,7 +674,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.7</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.8</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1221,6 +1222,8 @@ function render(){
     html = window.NPCVIEW ? NPCVIEW.render() : '';
   } else if (S.view === 'maps'){
     html = window.MAPVIEW ? MAPVIEW.render() : '';
+  } else if (S.view === 'mods'){
+    html = window.MODVIEW ? MODVIEW.render() : '';
   } else if (S.view === 'backpack'){
     html = backpackView();
   } else {
@@ -1228,7 +1231,7 @@ function render(){
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
-  if (fxShown() && S.view !== 'npc' && S.view !== 'maps'){
+  if (fxShown() && S.view !== 'npc' && S.view !== 'maps' && S.view !== 'mods'){
     // unusual effects, ticked under Item types: a section for each kind after the items (in By Year, the dated ones are in their years)
     fxIndex(); const all = Object.values(FX).filter(e => S.view !== 'year' || !e.date);
     let fh = '';
@@ -1236,7 +1239,7 @@ function render(){
     if (fh && S.lastSync && !S.fxSynced) fh = `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>` + fh;
     html += fh;
   }
-  document.body.classList.toggle('vnpc', S.view === 'npc');   // Characters: the search and filters fade out, and don't apply
+  document.body.classList.toggle('vnpc', S.view === 'npc' || S.view === 'mods');   // Characters: the search and filters fade out, and don't apply
   document.body.classList.toggle('vmap', S.view === 'maps');   // Maps: the search finds maps; the item filters fade out
   { const qi = $('#q'); if (qi) qi.placeholder = S.view === 'maps' ? 'Search maps\u2026' : 'Search items\u2026'; }
   // nothing found with no filters in the way (and an item type ticked): the game's files aren't in yet, so a button to sync them
