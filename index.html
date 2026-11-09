@@ -9,6 +9,7 @@
 <script src="preview.js" defer></script>
 <script src="ui/cards.js" defer></script>
 <script src="npc.js" defer></script>
+<script src="maps.js" defer></script>
 <script src="lo.js" defer></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -612,6 +613,7 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
         <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
         <button class="btn" type="button" data-view="npc" title="The game's characters: the Mann vs. Machine robots and the Halloween bosses, with their animations">Characters</button>
+        <button class="btn" type="button" data-view="maps" title="Every map in the game, by game mode, year or name, with its loading screen">Maps</button>
       </div>
       <div class="tabs" role="group" aria-label="Yours">
         <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
@@ -681,7 +683,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.09.8</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.09.9</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1294,6 +1296,8 @@ function render(){
     }
   } else if (S.view === 'npc'){
     html = window.NPCVIEW ? NPCVIEW.render() : '';
+  } else if (S.view === 'maps'){
+    html = window.MAPVIEW ? MAPVIEW.render() : '';
   } else if (S.view === 'backpack'){
     html = backpackView();
   } else {
@@ -1301,7 +1305,7 @@ function render(){
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
-  if (fxShown() && S.view !== 'npc'){
+  if (fxShown() && S.view !== 'npc' && S.view !== 'maps'){
     // unusual effects, ticked under Item types: a section for each kind after the items (in By Year, the dated ones are in their years)
     fxIndex(); const all = Object.values(FX).filter(e => S.view !== 'year' || !e.date);
     let fh = '';
@@ -1310,6 +1314,8 @@ function render(){
     html += fh;
   }
   document.body.classList.toggle('vnpc', S.view === 'npc');   // Characters: the search and filters fade out, and don't apply
+  document.body.classList.toggle('vmap', S.view === 'maps');   // Maps: the search finds maps; the item filters fade out
+  { const qi = $('#q'); if (qi) qi.placeholder = S.view === 'maps' ? 'Search maps\u2026' : 'Search items\u2026'; }
   $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>Try turning on more item types, or change the filters.</p></div>';
   if (S.quality){ document.body.dataset.quality = S.quality; document.body.style.setProperty('--qcol', QUAL[S.quality].c); }
   else { delete document.body.dataset.quality; }
