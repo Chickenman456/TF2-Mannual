@@ -1,7 +1,7 @@
 /* Maps: every map in the game (mapdata.js), laid out after Chickenman's map select screen redesign (the casual menu's map
    cards, without its player counts and favourites): the map's screenshot from the TF2 Wiki, its name and its game mode.
-   Grouped by game mode, by update, by release year, by who made it or A to Z; the search box finds them by name, file or
-   mode. Hovering a card pops its screenshot out bigger; a card opens the map in the store preview's window with its loading
+   Grouped by game mode, by update, by release year, by who made it or A to Z, and filtered by year, maker and holiday; the
+   search box finds them by name, file or mode; the sections close like the item sections. Hovering a card pops its screenshot out bigger; a card opens the map in the store preview's window with its loading
    screen's photos (preview.js openMap). */
 (() => {
   const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -10,10 +10,15 @@
   const GROUPS = [['mode', 'Game Mode'], ['update', 'Update'], ['year', 'Year'], ['maker', 'Made By'], ['az', 'A–Z']];
   // the game modes in the order the casual menu lists its categories, then the rest
   const MORDER = ['Payload', 'Control Points', 'King of the Hill', 'Attack/Defend', 'Capture the Flag', 'PASS Time', 'Player Destruction', 'Payload Race', 'Special Delivery',
-    'Territorial Control', 'Arena', 'Mannpower', 'Robot Destruction', 'Mann vs. Machine', 'Versus Saxton Hale', 'Zombie Infection', 'Tug of War', 'Hold the Flag', 'Training'];
+    'Territorial Control', 'Arena', 'Mannpower', 'Robot Destruction', 'Mann vs. Machine', 'Versus Saxton Hale', 'Zombie Infection', 'Tug of War', 'Hold the Flag', 'Training', 'Item Testing'];
   let group = 'mode';
   try { group = localStorage.getItem('mapGroup') || 'mode'; } catch (e) {}
   if (!GROUPS.some(g => g[0] === group)) group = 'mode';
+  // the filters: a release year, who made it (Valve or the community) and a holiday (Halloween, Smissmas, or neither)
+  let F = {y: '', s: '', h: ''};
+  try { F = Object.assign(F, JSON.parse(localStorage.getItem('mapFilt') || '{}')); } catch (e) {}
+  const HOL = [['', 'Any'], ['h', 'Halloween'], ['x', 'Smissmas'], ['n', 'Not a holiday map']];
+  const keep = m => (!F.y || m.d.slice(0, 4) === F.y) && (!F.s || m.s === F.s) && (!F.h || (F.h === 'n' ? !m.h : m.h === F.h));
   const shot = m => (window.ZMAPSHOT && ZMAPSHOT[m.f]) || '';
   const when = m => m.d ? new Date(m.d + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'}) : '';
   function card(m) {
@@ -43,6 +48,10 @@
   const css = document.createElement('style');
   css.textContent = `
 .maptabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0 4px}
+.mapfs{display:flex;flex-wrap:wrap;gap:8px 14px;padding:6px 0 8px}
+.mapfs .mapf{display:flex;align-items:center;gap:6px;font:400 15px TF2Secondary;color:#a39684}
+.mapfs select{width:auto;min-width:120px}
+.sec.closed .mapgrid{display:none}
 .maptabs .lab{font:400 15px TF2Secondary;color:#a39684;margin-right:4px}
 .mapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:18px 26px;padding:10px 12px 24px}
 @media (max-width:560px){.mapgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:8px 4px 18px}.mapc{height:68px}.mapc b{font-size:14px;bottom:15px}.mapc i{font-size:9px;bottom:5px}}
@@ -98,12 +107,17 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     render() {
       if (!window.ZMAPS) { need(); return '<div class="empty"><h2>Loading the maps…</h2></div>'; }
       const q = ((document.getElementById('q') || {}).value || '').trim().toLowerCase();
-      const L = ALL().filter(m => !q || m.n.toLowerCase().includes(q) || m.f.toLowerCase().includes(q) || m.m.toLowerCase().includes(q) || (m.u || '').toLowerCase().includes(q));
+      const L = ALL().filter(keep).filter(m => !q || m.n.toLowerCase().includes(q) || m.f.toLowerCase().includes(q) || m.m.toLowerCase().includes(q) || (m.u || '').toLowerCase().includes(q));
       const tabs = `<div class="maptabs" role="group" aria-label="Group maps by"><span class="lab">Group by</span>${GROUPS.map(([k, l]) =>
         `<button class="btn${k === group ? ' on' : ''}" type="button" data-mapgroup="${k}" aria-pressed="${k === group}">${l}</button>`).join('')}</div>`;
-      if (!L.length) return tabs + '<div class="empty"><h2>No maps match</h2><p>Try another name, map file, game mode or update.</p></div>';
-      return tabs + sections(L).map(([h, sub, M]) => `<section class="sec"><div class="sh"><div class="grow"><h2>${E(h)}</h2><div class="sub">${E(sub)}</div></div></div>
-        <div class="mapgrid">${M.map(card).join('')}</div></section>`).join('')
+      const years = [...new Set(ALL().map(m => m.d.slice(0, 4)))].sort((a, b) => b - a);
+      const sel = (k, label, opts) => `<label class="mapf"><span>${label}</span><select class="in" data-mapf="${k}">${opts.map(([v, l]) => `<option value="${E(v)}"${F[k] === v ? ' selected' : ''}>${E(l)}</option>`).join('')}</select></label>`;
+      const filters = `<div class="mapfs">${sel('y', 'Year', [['', 'All years']].concat(years.map(y => [y, y])))}${sel('s', 'Made by', [['', 'Anyone'], ['Valve', 'Valve'], ['Community', 'The community']])}${sel('h', 'Holiday', HOL)}</div>`;
+      if (!L.length) return tabs + filters + '<div class="empty"><h2>No maps match</h2><p>Try another name, map file, game mode or update, or change the filters.</p></div>';
+      // the sections close and open like the item sections do (index.html's closed[], by data-key)
+      const C = typeof closed !== 'undefined' ? closed : {};
+      return tabs + filters + sections(L).map(([h, sub, M]) => { const key = 'map:' + group + ':' + h; return `<section class="sec ${C[key] ? 'closed' : ''}" data-key="${E(key)}"><div class="sh"><div class="grow"><h2>${E(h)}</h2><div class="sub">${E(sub)}</div></div></div>
+        <div class="mapgrid">${M.map(card).join('')}</div></section>`; }).join('')
         + '<p class="empty" style="padding:10px 0 30px">Every map in the game (its master map list) with its loading screen’s photos from the game files. Screenshots, game modes, updates, release dates and publicity blurbs from the TF2 Wiki.</p>';
     },
     open(f) {
@@ -143,6 +157,11 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   }
   document.addEventListener('pointerover', e => { if (e.pointerType && e.pointerType !== 'mouse') return; const c = e.target.closest && e.target.closest('.mapc'); pop(c || null); });
   addEventListener('scroll', () => pop(null), {passive: true, capture: true});
+  document.addEventListener('change', e => {
+    const f = e.target.closest && e.target.closest('[data-mapf]'); if (!f) return;
+    F[f.dataset.mapf] = f.value; try { localStorage.setItem('mapFilt', JSON.stringify(F)); } catch (x) {}
+    if (typeof sfx === 'function') sfx('buttonclick'); if (typeof render === 'function') render();
+  });
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-mapgroup]');
     if (g) { group = g.dataset.mapgroup; try { localStorage.setItem('mapGroup', group); } catch (x) {} if (typeof sfx === 'function') sfx('buttonclick'); if (typeof render === 'function') render(); return; }
