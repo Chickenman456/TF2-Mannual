@@ -75,7 +75,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       snd('panel_open');
       const go = () => ItemPreview.openMap({name: m.n, map: m, photo: m.ph ? (window.ZMAPPHOTO || {})[m.f] || null : null, thumb: thumb(m),
         wiki: m.w ? W + encodeURIComponent(m.w.replace(/ /g, '_')).replace(/%2F/g, '/') : null, esc: E, sfx: snd, close: () => snd('panel_close')});
-      // the photos come in 16 files (ui/maps/p<n>.js); the one holding this map's is read the first time it's needed
+      // the photos come in 8 files (ui/maps/p<n>.js); the one holding this map's is read the first time it's needed
       if (!m.ph || (window.ZMAPPHOTO && ZMAPPHOTO[m.f])) { go(); return; }
       const sc = document.createElement('script'); sc.src = 'ui/maps/p' + m.ph + '.js'; sc.onload = go; sc.onerror = go; document.head.appendChild(sc);
     },
