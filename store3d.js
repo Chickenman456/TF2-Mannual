@@ -757,12 +757,16 @@ async function npcShow(el,def,team){await init();const tok=NPC.tok=(NPC.tok||0)+
  // what it wears (the Skeleton King's crown): bonemerged, its bones taken from the character's of the same name
  // a bone the character doesn't have is the attachment's own (the Tank's two treads both name theirs de_track11...)
  const own=new Set(Object.keys(pb));
- for(const at of (def.attach||[])){const ap=typeof at=='string'?at:at.mdl,off=typeof at=='string'?null:at.off,orot=typeof at=='string'?null:at.rot,osc=typeof at=='string'?null:at.scale;try{const A=await ZLIVE.npcLoad(ap);if(NPC.tok!==tok)return null;const A0=A.man[Object.keys(A.man)[0]]||{};
-  const lb={};const mkL=b=>{const k=b.name.toLowerCase();if(own.has(k))return pb[k];if(lb[k])return lb[k];const nb=new THREE.Bone();nb.name=b.name;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);nb.scale.copy(b.scale);const par=b.parent&&b.parent.isBone?mkL(b.parent):null;(par||g).add(nb);return lb[k]=nb};
+ for(const at of (def.attach||[])){const ap=typeof at=='string'?at:at.mdl,off=typeof at=='string'?null:at.off,orot=typeof at=='string'?null:at.rot,osc=typeof at=='string'?null:at.scale,rt=typeof at=='string'?null:at.root;try{const A=await ZLIVE.npcLoad(ap);if(NPC.tok!==tok)return null;const A0=A.man[Object.keys(A.man)[0]]||{};
+  const lb={};const mkL=b=>{const k=b.name.toLowerCase();if(own.has(k))return pb[k];if(lb[k])return lb[k];const nb=new THREE.Bone();nb.name=b.name;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);nb.scale.copy(b.scale);const top=!(b.parent&&b.parent.isBone);const par=top?(rt&&pb[rt[0].toLowerCase()])||null:mkL(b.parent);if(top&&rt&&par){nb.position.set(rt[1][0],rt[1][1],rt[1][2]);nb.quaternion.set(0,0,0,1);nb.scale.set(1,1,1)}(par||g).add(nb);return lb[k]=nb};
+  // root: a tread whose root bone the body hasn't got (the Romevision Tank's) hung where the standard Tank's own treads sit
   // an offset (in the bone's own space) for a hat sat on a head shaped unlike the one it was made for
   const mkA=b=>{const k=b.name.toLowerCase();if(off&&pb[k]){const key='@'+k;if(pb[key])return pb[key];const nb=new THREE.Bone();nb.name=b.name+'_zoff';nb.position.set(off[0],off[1],off[2]);if(orot)nb.rotation.set(orot[0],orot[1],orot[2]);if(osc)nb.scale.setScalar(osc);pb[k].add(nb);NPC.off=nb;return pb[key]=nb}return mkL(b)};
   for(const s of A.src){const wm=s.clone();const MI=A0[s.material.name]||{};wm.userData.mi=MI;const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;wm.material=P?wmat(P):s.material;wm.frustumCulled=false;wm.castShadow=true;
-   if(s.isSkinnedMesh)wm.bind(new THREE.Skeleton(s.skeleton.bones.map(mkA),s.skeleton.boneInverses),new THREE.Matrix4());g.add(wm);meshes.push(wm)}}catch(e){console.warn('[NPC] attach',ap,e)}}
+   if(s.isSkinnedMesh){const SB=s.skeleton.bones,BI=s.skeleton.boneInverses;
+    // its own bones in the pose its mesh was bound in (the Romevision treads' wheels: their ref animation sets them for a body they aren't on)
+    wm.bind(new THREE.Skeleton(SB.map(mkA),BI),new THREE.Matrix4());
+     if(rt)SB.forEach((b,i)=>{const nb=lb[b.name.toLowerCase()];const pi=b.parent&&b.parent.isBone?SB.indexOf(b.parent):-1;if(!nb||pi<0||!lb[b.parent.name.toLowerCase()])return;const M=BI[pi].clone().multiply(BI[i].clone().invert());M.decompose(nb.position,nb.quaternion,nb.scale)});}g.add(wm);meshes.push(wm)}}catch(e){console.warn('[NPC] attach',ap,e)}}
  NPC.eyes=[];try{const EY=await ZLIVE.npcEyes(def.mdl);if(NPC.tok!==tok)return null;const EM=meshes.filter(wm=>{const MI=wm.userData.mi||{};return MI.red&&/eyerefract/i.test(MI.red.shader||'')});EM.forEach((wm,k)=>{const E=EY[k];if(!E)return;
    const r=eyeMat({name:E.mat,userData:{eye:E}},g);if(E.irisLive)r.mat.uniforms.iris.value=E.irisLive;wm.material=r.mat;wm.userData.eyeE=1;NPC.eyes.push(r.tick)})}catch(e){console.warn('[NPC] eyes',e)}
  // the character's own always-on effect (the HHH's ghost_pumpkin, which his client puts on him at his origin)
