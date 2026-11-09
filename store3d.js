@@ -818,7 +818,10 @@ async function npcFire(name){const g=NPC.g,def=NPC.def;if(!g)return false;let G=
  if(!G)return npcPlay(name,true);NPC.gm=NPC.gm&&NPC.gm.o===g?NPC.gm:{o:g,cn:''};NPC.gm._gest=[{g:G,t:0}];
  if(ZLIVE.npcSeqSounds)ZLIVE.npcSeqSounds(def.mdl,name).then(E=>E.forEach(e=>setTimeout(()=>{if(NPC.g===g)npcSound(e.s)},e.c*G.dur*1000))).catch(()=>{});return G.dur}
 // a sound from the game's files, at the viewer's volume; a looping one plays until the character is closed
-async function npcSound(name,loop){const g=NPC.g;const u=ZLIVE.sndURL?await ZLIVE.sndURL(name):null;if(!u||NPC.g!==g)return null;const au=new Audio(u);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;au.loop=!!loop;(NPC.auds=NPC.auds||[]).push(au);if(!loop)au.addEventListener('ended',()=>{const i=NPC.auds?NPC.auds.indexOf(au):-1;if(i>=0)NPC.auds.splice(i,1)});if(v>0)au.play().catch(()=>{});return au}
+async function npcSound(name,loop){const g=NPC.g;const u=ZLIVE.sndURL?await ZLIVE.sndURL(name):null;if(!u||NPC.g!==g)return null;const au=new Audio(u);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;au.loop=!!loop;
+ // pitch: a map's own soundscript that plays one higher (Graveyard's ghosts: its Halloween.GhostBoo at pitch 175)
+ {const pr=NPC.def&&NPC.def.pitch&&NPC.def.pitch[name];if(pr){au.preservesPitch=false;au.mozPreservesPitch=false;au.webkitPreservesPitch=false;au.playbackRate=pr}}
+ (NPC.auds=NPC.auds||[]).push(au);if(!loop)au.addEventListener('ended',()=>{const i=NPC.auds?NPC.auds.indexOf(au):-1;if(i>=0)NPC.auds.splice(i,1)});if(v>0)au.play().catch(()=>{});return au}
 // the playing sequence's sound events, as its time passes them
 // the bodygroups the playing sequence has switched to by now (every other sequence: the first state of each)
 function npcBgTick(){const M=NPC.meshes;if(!M||!NPC.def||!NPC.def.allbg)return;const B=NPC.bge,bg={};if(B&&NPC.act===B.a&&B.dur>0){const cyc=B.a.time/B.dur;for(const x of B.E){if(x.c>cyc)break;bg[x.bp]=x.st}}
