@@ -6,18 +6,36 @@
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demo', 'Demoman'], ['heavy', 'Heavy'], ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy']];
   const GIANT = new Set(['scout', 'soldier', 'pyro', 'demo', 'heavy']);
   const TEAM = [['RED', 'RED'], ['BLU', 'BLU']];
+  // the weapons a robot of each class carries (the number keys reach only these): the Engineer Robot his wrench, the Scout and the Heavy no
+  // secondary, the Soldier his rocket launcher alone, the Demoman no bottle, the Medic no melee
+  // the robots' named costumes: the cosmetics their templates wear (scripts/population/robot_standard.pop and robot_giant.pop,
+  // Item lines that are hats and misc items; the weapons stay the number keys'), named by the template's Name
+  const BOTCOS = {
+    bot_scout: [['Minor League Scout', ["Batter's Helmet"]], ['Force-A-Nature Scout', ["The Fed-Fightin' Fedora", 'The Bolt Boy']]],
+    bot_demo: [['Samurai Demo', ['Demo Kabuto']]],
+    bot_heavy: [['Heavyweight Champ', ["Pugilist's Protector"]], ['Steel Gauntlet Pusher', ['The Carl']]],
+    giant_scout: [['Super Scout', ['Bonk Boy']], ['Force-a-Nature Super Scout', ["The Fed-Fightin' Fedora", 'The Bolt Boy']], ['Giant Jumping Sandman', ['The Hanger-On Hood', 'The Flight of the Monarch']],
+      ['Major League Scout', ["Batter's Helmet", 'MNC Mascot Outfit']], ['Armored Sandman Scout', ["Batter's Helmet"]], ['Major League', ['The Cockfighter', 'The Boston Boom-Bringer', 'Summer Shades']]],
+    giant_soldier: [['Sergeant Crits', ["Tyrant's Helm"]], ['Major Crits (Full Metal Drill Hat)', ['Full Metal Drill Hat']], ['Major Crits (The Team Captain)', ['The Team Captain', 'Fancy Dress Uniform']]],
+    giant_pyro: [['Giant Flare Pyro', ['Old Guadalajara']], ['Giant Airblast Pyro', ['Traffic Cone']]],
+    giant_demo: [['Giant Demoknight, Chief Tavish, Major Bomber', ["Prince Tavish's Crown"]]],
+    giant_heavy: [['Giant Deflector Heavy', ['The U-clank-a']], ['Super Heavyweight Champ', ["Pugilist's Protector"]], ['Captain Punch', ['War Head']], ['Giant Heavy (The Tungsten Toque)', ['The Tungsten Toque']]],
+  };
+  const BOTSLOTS = {engineer: ['melee'], scout: ['primary', 'melee'], soldier: ['primary'], demo: ['primary', 'secondary'], heavy: ['primary', 'melee'], medic: ['primary', 'secondary']};
   // the skeletons: their own sequences (skeleton_sniper_animations / skeleton_sniper_boss_animations: running, spawning out of the
   // ground, swinging, flinching), plus the Sniper's that they borrow for standing and jumping with a melee weapon
   const SKEL = q => (/skeleton_sniper/.test(q.file) && !/layer/i.test(q.name)) || /^ACT_MP_(STAND|JUMP_START|JUMP_FLOAT|JUMP_LAND)_MELEE$/.test(q.act || '');
   // the controls a character has (preview.js openNpc): F plays one of its attack sequences (and fireSnd), V its voice or other sequence;
   // open plays when it's shown, loop for as long as it is (the Tank's engine). The sounds are the game's own soundscripts
+  // numbered voice lines a map packs (no soundscript the page reads): dir/name_01.mp3 ... name_NN.mp3
+  const VO = (dir, name, n) => Array.from({length: n}, (_, i) => dir + '/' + name + '_' + String(i + 1).padStart(2, '0') + '.mp3');
   const NPCS = [
     ...CLS.map(([s, n]) => ({id: 'merc_' + s, cls: s, name: n, group: 'Mercenaries', level: 'Mercenary', mdl: 'models/player/' + s + '.mdl', skins: TEAM})),
     // Zombie Infection (the zi_ maps): the class with its Voodoo-Cursed soul and no weapon in hand (lo.js), card art from the main menu's zombie renders
     ...CLS.map(([s, n]) => ({id: 'zombie_' + s, cls: s, zombie: 1, name: 'Zombie ' + n, group: 'Zombie Infection', level: 'Zombie', card: 'npc_zombie_' + (s === 'demo' ? 'demoman' : s) + '.webp'})),
-    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
-    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
-    {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
+    ...CLS.map(([s, n]) => ({id: 'bot_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: BOTCOS['bot_' + s], name: n + ' Robot', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/' + s + '/bot_' + s + '.mdl', skins: TEAM})),
+    ...CLS.filter(([s]) => GIANT.has(s)).map(([s, n]) => ({id: 'giant_' + s, cls: s, bot: 1, slots: BOTSLOTS[s], costumes: BOTCOS['giant_' + s], name: 'Giant ' + n + ' Robot', group: 'Mann vs. Machine', level: 'Giant Robot', mdl: 'models/bots/' + s + '_boss/bot_' + s + '_boss.mdl', skins: TEAM})),
+    {id: 'sentry_buster', card: 'npc_sentry_buster.webp', name: 'Sentry Buster', cls: 'demo', bot: 1, noteam: 1, noart: 1, robot: 'models/bots/demo/bot_sentry_buster.mdl', group: 'Mann vs. Machine', level: 'Robot', mdl: 'models/bots/demo/bot_sentry_buster.mdl'},
     // the Tank (tank_boss.cpp): its treads and bomb mechanism are their own models, bonemerged on the tank_track_L / _R and turret_bone bones; it drives on 'movement'
     {id: 'tank', loop: 'MVM.TankEngineLoop', card: 'npc_tank.webp', name: 'Tank', group: 'Mann vs. Machine', level: 'Tank Robot', mdl: 'models/bots/boss_bot/boss_tank.mdl', idle: 'movement', attach: ['models/bots/boss_bot/tank_track_l.mdl', 'models/bots/boss_bot/tank_track_r.mdl', 'models/bots/boss_bot/bomb_mechanism.mdl']},
     // Robot Destruction's robots (rd_asteroid): A, B and C each their own model in models/bots/bot_worker, on four skins (RED, BLU, and
@@ -35,7 +53,7 @@
     {id: 'monoculus_spell', fire: ['firing1', 'firing2', 'firing3'], voice: {seq: 'laugh', snd: 'Halloween.EyeballBossLaugh'}, nofloor: 1, card: 'npc_monoculus.webp', name: 'MONOCULUS (Spell)', group: 'Halloween', level: 'Halloween Spell', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', fam: [['RED', 2], ['BLU', 3]], skin: 2},
     {id: 'merasmus', open: 'Halloween.MerasmusAppears', fire: ['zap_attack', 'bomb_attack'], voice: {snd: 'Halloween.MerasmusTauntFakeProp'}, allbg: 1, card: 'npc_merasmus.webp', name: 'Merasmus', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', fam: [['Default', 0], ['Spectral', 1]], skin: 0},
     {id: 'skeleton', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_medium'}, card: 'npc_skeleton.webp', name: 'Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/skeleton_sniper/skeleton_sniper.mdl', idle: 'stand_melee', keep: SKEL, fam: [['Neutral', 2], ['RED', 0], ['BLU', 1]], skin: 2},
-    {id: 'skeleton_king', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [0, -0.6, 0]}], idle: 'stand_melee', keep: SKEL, skin: 2},
+    {id: 'skeleton_king', fire: ['MELEE_swing', 'MELEE_swing2', 'MELEE_swing3', 'MELEE_swing4', 'MELEE_swing5'], voice: {snd: 'Halloween.skeleton_laugh_giant'}, card: 'npc_skeleton_king.webp', name: 'Skeleton King', group: 'Halloween', level: 'Halloween Boss', mdl: 'models/bots/skeleton_sniper_boss/skeleton_sniper_boss.mdl', attach: [{mdl: 'models/player/items/demo/crown.mdl', off: [0, -0.6, 0], rot: [0.1, 0, 0], scale: 1.1}], idle: 'stand_melee', keep: SKEL, skin: 2},
     // Spineyard's mobsters (pl_spineyard's mobster.nut; one look: the model's skin families swap only materials it doesn't draw, and the
     // script shoots with Weapon_SMG.Single and laughs with Halloween.skeleton_laugh_medium): skeleton_sniper_mafia packed in the map, a bonemerged tommygun, standing and running with it
     {id: 'skeleton_mobster', fireSnd: 'Weapon_SMG.Single', voice: {snd: 'Halloween.skeleton_laugh_medium'}, card: 'npc_skeleton_mobster.webp', name: 'Mobster Skeleton', group: 'Halloween', level: 'Halloween Enemy', mdl: 'models/bots/vineyard_event/skeleton_sniper_mafia.mdl', pak: 'pl_spineyard.bsp', attach: ['models/props_tuscany/tommygun_01.mdl'], idle: 'stand_secondary', run: 'run_secondary', keep: q => SKEL(q) || /_SECONDARY$/i.test(q.name)},
@@ -49,8 +67,8 @@
     {id: 'bombinomicon', voice: {seq: 'flip_stimulated', snd: 'Halloween.BombinomiconSpin'}, nofloor: 1, card: 'npc_bombinomicon.webp', name: 'Bombinomicon', group: 'Halloween', level: 'Announcer', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle'},
     {id: 'dutchman', fire: ['point', 'stomp'], card: 'npc_dutchman.webp', name: 'Davy Jones', group: 'Halloween', level: 'Announcer', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     // Krampus (Smissmas 2023): koth_krampus packs his model and the VScript that walks him round (krampus_idle, krampus_run)
-    {id: 'krampus', fire: ['krampus_attack', 'krampus_throw'], card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run'},
-    {id: 'saxton', fire: ['AttackStand_MELEE_R', 'AttackStand_MELEE_L', 'AttackStand_MELEE_U'], card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp'},
+    {id: 'krampus', open: VO('mvm', 'krampus_spawn1', 10), voice: {snd: VO('mvm', 'krampus_iseeyou', 9)}, fire: ['krampus_attack', 'krampus_throw'], card: 'npc_krampus.webp', name: 'Krampus', group: 'Smissmas', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', run: 'krampus_run'},
+    {id: 'saxton', open: VO('mvm/saxton_hale_ns_2025_1', 'round_start', 11), voice: {seq: 'taunt_laugh', snd: VO('mvm/saxton_hale_ns_2025_1', 'laugh', 1)}, fire: ['AttackStand_MELEE_R', 'AttackStand_MELEE_L', 'AttackStand_MELEE_U'], card: 'npc_saxton.webp', name: 'Saxton Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp'},
     // the holiday maps carry their own Hale: santa_hale.mdl packed in vsh_maul, hell_hale.mdl in vsh_outburst
     {id: 'santa_hale', fire: ['AttackStand_MELEE_R', 'AttackStand_MELEE_L', 'AttackStand_MELEE_U'], card: 'npc_santa_hale.webp', name: 'Santa Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp'},
     {id: 'hell_hale', fire: ['AttackStand_MELEE_R', 'AttackStand_MELEE_L', 'AttackStand_MELEE_U'], card: 'npc_hell_hale.webp', name: 'Hellfire Hale', group: 'Versus Saxton Hale', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp'},

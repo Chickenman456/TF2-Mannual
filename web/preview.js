@@ -441,7 +441,7 @@
     FS = {ov, f, ui: ov.querySelector('.ui')};
     ov.style.setProperty('--u', '2.6px');
     ov.querySelector('[data-spv=options]').hidden = ST.npc || ST.state !== 'player' || !paintable();
-    if (ST.npc && !ST.el.querySelector('.spv-team')) ov.querySelectorAll('[data-spt]').forEach(b => b.remove());
+    if ((ST.npc || ST.noteam) && !ST.el.querySelector('.spv-team')) ov.querySelectorAll('[data-spt]').forEach(b => b.remove());
     ST.el.querySelectorAll('.spv-styles').forEach(b => FS.ui.appendChild(b)); placeBars();
     const V = Store3D.V; if (V) { V.storeFS = true; V.storeApply(CNAME[ST.cls]); }
     sizeFig(f); requestAnimationFrame(() => { sizeFig(f); ov.classList.add('on'); });
@@ -491,7 +491,7 @@
     const tb = t.closest('[data-spt]');
     if (tb) { ST.team = tb.dataset.spt; teamSel(); o.sfx('buttonclick'); if (ST.npc) Store3D.npc.team(ST.team); else if (ST.state === 'player') dress(); return; }
     const c = t.closest('[data-spc]');
-    if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = null; if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
+    if (c && ST.el.contains(c)) { if (c.dataset.spc !== ST.cls) { ctlReset(); ST.kslot = ST.allow ? ST.allow[0] : null; if (ST.lod && window.Store3D && Store3D.lod && CNAME[ST.cls]) Store3D.lod(CNAME[ST.cls], 0); } ST.cls = c.dataset.spc; o.sfx('buttonclick'); setState('player'); return; }
     const a = t.closest('[data-spv]'); if (!a) return;
     const k = a.dataset.spv;
     if (k === 'close') { close(); return; }
@@ -550,7 +550,8 @@
     if (e.ctrlKey || e.repeat) return;
     const k = e.key.toLowerCase();
     if (/^[1-9]$/.test(k)) {
-      const sl = (KSLOTS[cn] || KSLOTS._)[+k - 1]; if (!sl) return;
+      // a robot's number keys reach only the weapons its kind carries in Mann vs. Machine (ST.allow: the Engineer Robot's wrench...)
+      const sl = (ST.allow || KSLOTS[cn] || KSLOTS._)[+k - 1]; if (!sl) return;
       e.preventDefault(); ST.kslot = sl; window.ZPREV = prevState();
       const m = window.Z3D && Z3D.M[cn]; if (m && /^(taunt|live:)/.test(m.cn || '')) stopTaunt(cn);
       Store3D.redress(cn); Store3D.ctl.refresh(cn); return;
@@ -616,7 +617,7 @@
     const el = document.createElement('div'); el.className = 'spv';
     el.innerHTML = markup(o);
     document.body.appendChild(el);
-    ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name, char: !!o.char};
+    ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name, char: !!o.char, allow: o.allow || null, kslot: o.allow ? o.allow[0] : null, noteam: !!o.noteam};
     if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
     el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown);
     addEventListener('keydown', onKey, true); addEventListener('keydown', onCtl); addEventListener('keyup', onCtlUp); addEventListener('blur', onCtlUp); addEventListener('resize', layout);
@@ -651,8 +652,17 @@
   function openChar(o) {
     const d = o.def, cn = d.cls === 'demo' ? 'demoman' : d.cls;
     open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, first: o.first, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
-      robot: d.bot ? (d.robot || (/_boss\//.test(d.mdl) ? d.mdl : 'bot')) : false, wish: {on: () => false, toggle() {}}});
+      robot: d.bot ? (d.robot || (/_boss\//.test(d.mdl) ? d.mdl : 'bot')) : false, allow: d.slots || null, noteam: !!d.noteam, wish: {on: () => false, toggle() {}}});
     ST.el.querySelectorAll('[data-spv=wish]').forEach(x => x.remove());
+    // a robot with one look (the Sentry Buster: no RED skin) has no team buttons
+    if (d.noteam) ST.el.querySelectorAll('.spv-team').forEach(x => x.remove());
+    // a robot's named costumes (BOTCOS): the cosmetics its template wears, put on as an item set's are (prevState reads ST.o.set)
+    if (d.costumes && d.costumes.length) {
+      const E = o.esc, b = document.createElement('label'); b.className = 'spv-styles pl'; b.innerHTML = `<span>Style</span><select aria-label="Style"></select>`;
+      ST.el.querySelector('.spv-frame').appendChild(b); const sel = b.querySelector('select'), opts = [['Default', []]].concat(d.costumes);
+      sel.innerHTML = opts.map(([l], i) => `<option value="${i}">${E(l)}</option>`).join(''); placeBars();
+      sel.onchange = () => { o.sfx('buttonclick'); const cn = CNAME[ST.cls]; ST.o.set = opts[+sel.value][1].map(nm => ({kind: 'c', nm})); window.ZPREV = prevState(); if (window.Store3D && Store3D.redress) Store3D.redress(cn); };
+    }
     return true;
   }
   /* openNpc({name, level, where:[...], def:{mdl, pak, attach, idle, skin, fam:[[label, skin family], ...], skins:[[label, team], ...], keep(seq)}, esc, sfx, close}):
