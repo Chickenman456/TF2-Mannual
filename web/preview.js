@@ -596,7 +596,7 @@
   // the wishlist star by the close button: lit while the item is on your wishlist
   function wishLabel() { const b = ST.el.querySelector('[data-spv=wish]'); if (!b) return; const on = ST.o.wish.on(); b.classList.toggle('on', on); b.title = on ? 'On your wishlist (click to remove)' : 'Add to your wishlist'; b.setAttribute('aria-label', b.title); }
   function onKey(e) {
-    if (!ST || e.key !== 'Escape') return;
+    if (!ST || e.key !== 'Escape' || ST.o.dock) return;
     e.stopPropagation(); e.preventDefault();
     if (ST.mapZoom) { ST.mapZoom(); return; }
     const m = ST.el.querySelector('.spv-menu, .spv-src');
@@ -607,7 +607,8 @@
   function layout() {
     if (!ST) return;
     // kept small, near the game's own size on a 1080p screen, and shrinking to fit smaller windows
-    const u = Math.max(.75, Math.min((innerWidth - 16) / 480, (innerHeight - 16) / 300, 2));
+    // docked (the importer's live preview): the merc's side of the window, as wide as the space it's given
+    const u = ST.o.dock ? Math.max(.6, Math.min(ST.o.dock.clientWidth / 240, 2.4)) : Math.max(.75, Math.min((innerWidth - 16) / 480, (innerHeight - 16) / 300, 2));
     ST.u = u; ST.el.style.setProperty('--u', u + 'px');
     // the item name sizes to its contents; the details view hangs underneath it (to the bottom of the viewport)
     const nm = ST.el.querySelector('.spv-name'), dv = ST.el.querySelector('.spv-details');
@@ -647,9 +648,9 @@
            tradable, wiki, market, wish:{on:()=>bool, toggle()}, esc, sfx, close}) */
   function open(o) {
     close();
-    const el = document.createElement('div'); el.className = 'spv';
+    const el = document.createElement('div'); el.className = 'spv' + (o.dock ? ' dock' : '');
     el.innerHTML = markup(o);
-    document.body.appendChild(el);
+    (o.dock || document.body).appendChild(el);
     ST = {o, el, u: 2, state: 'player', cls: null, team: 'RED', paint: null, spell: null, style: 0, fx: o.fx != null ? o.fx : null, iconPos: 0, rot: 0, nm: o.nm || o.name, char: !!o.char, allow: o.allow || null, kslot: o.allow ? o.allow[0] : null, noteam: !!o.noteam};
     if (!window.ZSTYLE || window.ZSTYLE._spv) window.ZSTYLE = {_spv: 1, get: n => (ST && ST.cosStyle && ST.cosStyle[n] != null ? ST.cosStyle[n] : ST && n === ST.nm ? ST.style : 0), spell: n => (ST && n === ST.nm && ST.spell != null ? ST.spell : null), paint: () => ''};
     el.addEventListener('click', onClick); el.addEventListener('pointerdown', onDown);
@@ -658,8 +659,8 @@
     layout(); setTimeout(layout, 60);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layout);
     // straight onto the first merc that can use it (taunts start playing)
-    ST.cls = classList()[0]; setState('player');
-    el.querySelector('.spv-back').focus();
+    ST.cls = (o.cls && classList().includes(o.cls)) ? o.cls : classList()[0]; setState('player');
+    if (!o.dock) el.querySelector('.spv-back').focus();
     if (!raf) raf = requestAnimationFrame(tick);
     return true;
   }

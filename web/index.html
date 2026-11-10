@@ -12,6 +12,7 @@
 <script src="ui/cards.js" defer></script>
 <script src="npc.js" defer></script>
 <script src="maps.js" defer></script>
+<script src="importer.js" defer></script>
 <script src="lo.js" defer></script>
 <style>
 /* The Mann-ual (TF2 Catalog). Interface art and fonts are TF2's own (bundled under the Source SDK license);
@@ -377,6 +378,7 @@ body.nofade .slot.miss .ico,body.nofade .slot.miss .fxi{filter:none}
 .views [data-view=maps]{--vi:url(data:image/webp;base64,UklGRn4FAABXRUJQVlA4THEFAAAvL8ALELemoG0jJ/xJ348O/SOY//knkLTF2361bdswyNTDO4BZ8C2gOwdXA0wlEAiHDGK2Au0PTraBItC9I1eo2dWoMCgQZK45t/ZngPCw7f8hOf7/z+nxqqoec23btjEzSdbBIrazb65t27Y96Qmm45lgWPV6vZ7XHeoOjkT0fwK0x0kq6fRpL3yzKYfhNR89cvMxkjKnfexS6cTF346yx1vfua1VSvdNKp32zCgQQ+EB8zFEYO2yg+TcPkjVunIMfDSM2gYWAvTeIqV7ler8X8EbEPn0hRjZ8joGWPDw6kFK9yLV9BwfAaJtbrkUz9b2zwkAIQZ6z1K2R6kWQQwwhAW6dSueXU2njMXIlt8gerZdpGwPMi3CW6C8cBuB9+W68AweofvxceyG+ZEQGLpA6W4y3Y034/POpXizs7Osp0bp0AE8n+iqrVhgy8lKaiQ6ezTGGP+nxh1W8KSkq/EM1Ekz8JFz1PEZMfB9Y+okuaTxF6LxW0/PA0SzFZNum/hfIjumTpx03xiBVyfdNHuH4XlYqaRUy/BAAIy9NmoHsBDOU6rEHT8czaKZDxEsBu99qPK+8GYQQxEsRgJfJ4nL9BCe/TRwnVIducsiw+srlXXDGMPrK5VK/2bAb+ivVNYPYBT9lUql3wj2qRLNxhvXtB/UecBP5KxoP6jjwI5bCQye0NF5YHs3gZ2ndBxwUMdDePOnSp9bzleSdMgIkctUfROewU5JOmaYwEWSdNyoFSzWicN47nGlzF1MZOwYl7rMdVcd4hLn0j/JmelKLtW75Hym24mMnagk01Ry/mmUU6quqoPllOhtxnlMmTI3jYJtRzxOwS+lrNSQrWScr9NSltVnPVWHZaWsPnuMcd7K6rO67KxA5MrPyHlK1Y8zzouqeRWegTpVz2acL1WzH8+c1XjeuWvq5Kl3foXn4zunTp485a6HiOycMXny5Kl3PYtn7ZTJkydPvrMPz0OD7NeBV0aAWFRHIBY1Q1VRMwBW1DQCrw+xXwde20hkoLevXO7dgbGlt69cLq/uB3xfuVwur96IMdLbVy6Xe4cIPPszOY82tTe3Nb3EOM80tTU3tzVNxDNwTHNLc3vTXHJ+aG5uaW5u+QvPqjfJeU/VDzDOu6p5M57BAyU5LWecT1R96C4CdyzDU2lxScktYJwfU5e4zHVXHeISl7nnGOdFV3KZu5xoxbmXmEUudWmmLjwbO+WUqqvqYDk5fUHOSmXK9C9yepva1lPwiOrrsjPB7IysLqvPJlQdnpVKWVuFgtuy+lKp7i9ye0l63go2NUjSegomqPoqPAMlSTopRCuOlaSriIEe6Uqi8cx9s2bc9w+eD++bNX3m9CeI7Jw/fcbM+54mMDR/+oyZ078zb1s65Uo/WzT2z8C/lWWaRCB47/NgEH2RF7mvKvK88BEsFrkPPpoNH+0Sl5R+IrBfBlYplVJdGj3Gpu//3IwR//zjj9/7gOKvP/74ZQyzHb///d0QRPpbEycp1YN4sw0X6TIs2Iysta4bz8ARdfUX5uaZXqd7xqJ5u1apJLm07iu8MXiFvqeg3JDoZjyDB0qvU9jQgVoMVrBKqWomOn4dIeLv7YohMFOuq+pwd4FFz9K2FzEreCVNXS2lOq2CN/hgPSFWDnET8Gw/RF/gbduc3wnmeaPknHaf6pTVeItECLykLjy73FQCjEGIkZczl2hPUx3+NvgIELj+RjyVy3ZGAyx4bKWT056n0rxRzBuY+UFgbIjq6OHXy+Wc9jZxOvUlIAQzaptFH2HbklalTvswlc57dgAghpoRoHfZUVKqfZsk0iF3vNQb2e3wjw9d3SSlTvs8TSU1ndu96P+PPfafOVef7CRlifYcAA==)}
 .views [data-view=mods]{--vi:url(data:image/webp;base64,UklGRigDAABXRUJQVlA4TBsDAAAvL8ALELVIsG0rrpTMf9LHJiFQI7ilIl9FseMWtZZPIiRLsm3a1prn2kbTtm21bNu2besDbNu2fe+zbXPvs86eACVCU9YIZYdJCBNN7l3ScUXmQIpcU8jyECoj/xhGQfMMuAGzUOYJFASk+Jv+C7rNVywOFO+FalIXWryHGs44lvmBfA0pJEVC1zc+eBiG+cQsi6kssMJ372UmDhSCWciygYlguuhCkw8e9jCLB7qJBDMe4NclWPXCG/MSScXJFEafPfweqwFLpE4hzEcYEMYxDoQbf8x/c41gDUldWPLLYJ+woqnkKda2aYVbxG+DDWkWewAH6sKKnx7OBIhdkyFRbfC2vUyHZhdW/HJztnghVrDTDTW231+mRMLht8HOpk9IC1GWoZbP98PE4AxhsAtMIc+Nly+XOUaDEw+nsHynC2Nee/lymTl4D8TpBrut81+D9RtdOPPTw+d7mLau+ermVAqSaogYu/l8b1OqGnr1MAuUUEFZrfU7VUR8AupVVFHu1nze3IgWTFV6NYQJPVDO0Cc6PLbPh/mFk7p0RmL/1k9hqldTCLLo4UtI8wK9A3VdEX+grrtdSHPu5cvlB1LqKtH1lZdevlxm6UVTJaZw4IeHz/cwbVNTJUJtePgc3PxXQKjEFFFuzefNrpqASgAVHl4Yus+H+YGrVFVEwESZN62dQJpXmAhFLBRlZohuw3gP0lwhJ9S+kKleRsCEH98Py15mCSFhzwcTWQg2AjQlrsx/6Kbzj/7xz43YIlM4myTNTyjSAmWqBVSOzV+XAcQ+JH/xqVOw0oWjIsTGfpTpwsa2UVQPKQSILagyQARHH9ikAJ0/VYJp6glIAHbIKfUpSAI6tCcFUyj1SdzMRkIJtvMQW/PVHzkeJk+ww5S3d3Ft/u8bjO21eYy4shMCBW7+q5mCp6E385BUXPfG5fZueNG6YAwwr+EWkPKPPUNsF9wySQeCScnI884L4rHy6rHAZhBa1KQQyuy6ZKMe5lqVHqr/6eeEe9yNGlGjRkSNGhFRgzvfqUNbAnQXmiTBBmteSVF1v/ap3LVP3QYA)}
 .views [data-view=models]{--vi:url(data:image/webp;base64,UklGRngDAABXRUJQVlA4TGsDAAAvL8ALENVQlm3btZvw/z89G+89SUXPvel8YaPjHA7pOodjFigQ5DriOkIBAADE/////////////zcB3mAECOAxv0cADndLrd0Ds06ohgo92uTg7QCk3O1TC3BgdNRJTAULTyb55j+8gKZ+BOUUSLVmAQodBhDoON6w48ZVEn74DH4Q4UMrq5xwzAY9BMOuo4SFccKeOOoYQ2gYTs745S/ZeOc5B1da4BKgIeTcsoe6jiMNUeM+Z1sO3iIfp+trbEllM+EDT+ciLC2UgmY/VF0ck7Ps3za+YHMvcJg8T0h2Lr5L2LrtODD8lrVlXfnbyZpvAj4GIEPBoC0hxD4/snIWXlG17+ninrMtR2w5BaVKrS5gdxKkvBKD3Ewwt6tdjMJPCzcIYU8XT9namqx5IiDuDkFgd/sfyAkg8JxlbXlkdwgbn62toUHFMEm2dd1uXVTt2EUzQcMrKci6tYaEo0BkNy1rcJ5AF7H5cJuhJI+CpWNP1RUrG9Ve1WVa2sYtVEpJ1mQLYs7JTMi1EKX+ZsLSVdWOQ+LD1jv9J0n4CXNAfcqabHkEtYLMRXAZgCjMZHEXDBwH0Ar34CnEfGRL1pDN4bbt3IdIP3ATdOxjKoTE0H1RtQ/p8A6pgv3jTmvsf07beQ+JvuQ6GNl1DgUXeA8gFd5u6r887An2cPC9Z4VJgeMk+BUgqnN4sBdW/F+DqVC0JI0/9l9LWdakBeXvALr0bzRaO1oHppSEWUCnCGRLzoKx9ZbH1nIWQgVCgsPT2zn3HJz1lauQ7PN6krOsYWjMIVb885UWJmr406OQ5nK0LlFpcNmlM2tr96F01vA1/3yFvzOYapH88ImMy1EW/+A9n+0F2WW2s6Dn0JrvvuRszZVLfT0Pd/A7R+3UGMLCebh5XIvE5Ows+NtVpyAynJuND+hchOdOeHyq1pylovklb5B08fGL9SxEOtw7BY7GrO23ObqIcp7QjBzIqiAiRW3CAwr2Lq3bllNn7XMqQWty6tJ9QHeSczqo+J12DpMwDpN98Uny6V9nebjKvxhOsBHA4XzK0KPsbUxi9tGuZwktDxweuYbzz8cb4YtThR4T4sn5lQTMYJk6HPiGXpR0eNyp/kAEhiBUDY84qoDFiBgYtKbHr1EKJDBqzdHH6GOWCtQ7reEJz+GJjukNXQA=)}
+.views [data-view=importer]{--vi:url(data:image/webp;base64,UklGRtoCAABXRUJQVlA4TM0CAAAvL8ALEJVIjGxbaBv6b3rtBH19qOAFHH5Gl/Aj5AgAYEhSNde2bUa2bdsPsG1vZNu2bZxt276mA7dtIylhUHdm9j4eUa3GR4kuWZwLqIKAa3s/RVW1HU999td79y1Kovwr7FAg8p5gX9pv7RT3cBRBp0EEg0YhE59E7BKLqPPcSTLvROYePkXkRdCoSNrgaEVCNl5gxmS+D9xnxsqIa9Dj6EyfelrwnEG/ENq7kLRIrq4WXK7OlTFt19NXPOMG2cYrAD0wd9fLjD/kO2k44wH113iVwN8n1rh3bs3Fv3hOoz6r/YPXg/U+uafkgnaV5YwRL1Y+oDLyugYRBQuA9VZGPKNRcHDBdWWkUfI6yyh2JCOe06xi47g1GRHXuZERdJIRT6RbT3OCCdO6um7ICDmT5Fxf16gz3uBbQFWPw8UcSTLvkWbf0bYA0F86XSfFBZmeHoPhUWa9ptoBjMNFRkfd0bKAg5Lv+WHwHqQY+o0+O8ZdQlfpiv/xll4PQcl4Oz7SruJwnkHF264owM+gGgEzzrhPv0CkPJ9nfvHu6jppD5uMe4xxn0n0EK3C4ygjye/YpQTbfV38MMGyjiJpL6hkzXum74GripZEdQYM6lUhhOzvJ8Lew9ZbiY7vrDoeFAJqPQUwJS2Y9js/4kePeq7rgXyuz1VCx8tXshlZ1tX/N/UQNRdk8harLQpmOoj3/owNnjpM9UQ/eW1joifefBZw9J88SntHnP7zLcgWOtom6kafE7EJuB1nksxfkVXVLmZiUaX9zBH38e0D7a/AqpIZ9IjIBWyjaWVEa8GgTzkOYhpewCaQ+o+9Z0bEXbA6njP+xeoC9jCiueAXuOwFMS0uYDNVv0y/uVaVlMwRJVW1z0kTSq1noscP7apd4pkkcyLyLKD2oCi5/fv3cycGIOA9PCXW6ySJX0p+fz/36E8REafRnC7JVFezj9afSwEA)}
 .views [data-view=backpack]{--vi:url(data:image/webp;base64,UklGRlAEAABXRUJQVlA4TEMEAAAvL8ALEAUkt20ESfn/pwlUElf1YPceQQGSZNO2tfbZ5/l92362bdu2bdu2bdu2bdu65rl/75lVDtxGkpTuXQioYPqanT+U+TvO4fzSBAQF+nc/Ay633/3gq6M7MXAFPud/4vKbdtZ5JNp7m/zC2WkKfsjxxKOs9aIASABc4Eqmko6K+G1JX28u1wIAHpmquM90odDfVQCi3LJRX/Xl9nUZ7uP/lzEZcED1E4EcGgmDrT5RPgEAaqMGMp+6P92y8anFZcrIaLDzsNtlsaZ6xecD1CmDtTLZM6r7i4ojhYCpICrp6KT/AdZLiy11CoCnZmipp90SABYWSXFRcUb/XGAlWAKATykoIN5GzdU30zMAhGUJnPFbGYHLN77W2EjXAavEE0ooACd0UlZnx1mAEhYA+PBUKcFFRyeNKpZ5B+8sE26PZTweAI+MVVYVC4UNPYYTAgiTbpFkSprrBQAiyRaLHZEEiLVSLUX1dhXAWAYAywfgjv4qGVamTJPJPgHg8Vl2hOWEdvKoY6NQyB+gBKC2q6OMKT6gjGAZP5hvtJ4mOS0OQJM7BssjlxEeA+BvPWEBr41WRE1bKUA4ZZTyFPDBKl3U09dhCRBhgRL+VMc+FiBZD0c1lEsn1+Y6HIMIxuz4YJ2myqrmFwWM9+6ip4AIsxVRwFRhoyqUwG6AroDgvVllTMh6PgBXtZdeVbtYgNCxkueSaMiBAJaXsQz81DYhKxX3r85u7TEBnNZfF2FgsZ3lwZAyjoOstnmkl39kN2NsKS8oASTYqIN+zkH07GzorkZSegQeAWC3cr5RwX4AfLcMl0lLwEsztDLJU4D1PrYXYClV0K/CAG+N8bcfdHaviWXlKFNGK3cM0t5KUWNqtDTZAwABKCvcLwo5qo40MpopemgIgQJcQRkNcHAH541duulhlxCwFyNwV+oyytk3lhpNFyY9p4wmKRXRgJsmaGuaxyESCll0SJ1wz1gd/SYoqDXlYblIQgCxtuimp328OdUs9Z/eVGiSY3rpbDdVqEwZLUGCgR2j5pox2swNSSGd7pBEADFWa2eIKwBk9odRXrJstDXKomzQ2UBHWIBIpxsFPDVZazO8AighzopFcEqGARhyV4zSwTyvIIMBcEZ/HawXH3YdP858Wx5qa3U2zC8qGKyXE6kTNJK3hm9Lcpd8r4KHexRuIXmkq2/KbItyGfWHEMWNKOCZHj4vU4YrglDgAlQ63Vnei0J3X5QpI8gpIx7g3xDS6QHeldzUQqqj6Oew4tYJAXyaTfpslALuaCPlUEyXyXQfx2a+WFS4qoUUrYiHmB/1dX80In4ICpfV5zbls+AEIqX6jg3IL4QCLmhwpfQYVsSqMUjrZZBT6nXij8dZx+4/E70FCL9NqEm1Js6309h3ergDsP7TjQUcVfHk+6R4KqCM+sMelV/prYBK+VpZVR/pQwEH/dC5nFOQ/+tlAAA=)}
 .tabs .btn{font-size:15px;padding:7px 12px}
 .fform{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px;padding-block:12px;border-top:1px solid #4A443D;align-items:end}
@@ -630,6 +632,7 @@ button.vg:focus-visible{outline:none}
         <button class="btn" type="button" data-view="maps">Maps</button>
         <button class="btn" type="button" data-view="mods">Mod Maker</button>
         <button class="btn" type="button" data-view="models">Model Viewer</button>
+        <button class="btn" type="button" data-view="importer">Item Importer</button>
       </div>
     </nav>
     <div class="grow"></div>
@@ -695,7 +698,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.18</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.19</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1247,6 +1250,8 @@ function render(){
     html = window.MODVIEW ? MODVIEW.render() : '';
   } else if (S.view === 'models'){
     html = window.MDLVIEW ? MDLVIEW.render() : '';
+  } else if (S.view === 'importer'){
+    html = window.IMPVIEW ? IMPVIEW.render() : '';
   } else if (S.view === 'backpack'){
     html = backpackView();
   } else {
@@ -1254,7 +1259,7 @@ function render(){
     html = ids.length ? section('wish', null, 'Wishlist', 'Items you\'re hunting for', ids)
       : '<div class="empty"><h2>Your wishlist is empty</h2><p>Hover any item and click ' + gi('star') + ' to add it here.</p></div>';
   }
-  if (fxShown() && S.view !== 'npc' && S.view !== 'maps' && S.view !== 'mods' && S.view !== 'models'){
+  if (fxShown() && S.view !== 'npc' && S.view !== 'maps' && S.view !== 'mods' && S.view !== 'models' && S.view !== 'importer'){
     // unusual effects, ticked under Item types: a section for each kind after the items (in By Year, the dated ones are in their years)
     fxIndex(); const all = Object.values(FX).filter(e => S.view !== 'year' || !e.date);
     let fh = '';
@@ -1262,7 +1267,7 @@ function render(){
     if (fh && S.lastSync && !S.fxSynced) fh = `<div class="panel fxnote"><b>Your last sync (${esc(S.lastSync)}) was before unusual effects were tracked.</b> Sync again to fill this in. Your Steam inventory has to be set to Public; Friends Only isn't enough.</div>` + fh;
     html += fh;
   }
-  document.body.classList.toggle('vnpc', S.view === 'npc' || S.view === 'mods' || S.view === 'models');   // Characters: the search and filters fade out, and don't apply
+  document.body.classList.toggle('vnpc', S.view === 'npc' || S.view === 'mods' || S.view === 'models' || S.view === 'importer');   // Characters: the search and filters fade out, and don't apply
   document.body.classList.toggle('vmap', S.view === 'maps');   // Maps: the search finds maps; the item filters fade out
   { const qi = $('#q'); if (qi) qi.placeholder = S.view === 'maps' ? 'Search maps\u2026' : 'Search items\u2026'; }
   // nothing found with no filters in the way (and an item type ticked): the game's files aren't in yet, so a button to sync them

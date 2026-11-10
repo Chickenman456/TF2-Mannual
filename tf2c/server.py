@@ -13,6 +13,48 @@ import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from . import importer
+from . import kv as kv_mod
+from . import vpk as vpk_mod
+
+IMPORT_LOCK = threading.Lock()
+
+
+def importer_steamid():
+    """The Steam account TF2's importer stamps its zips with: the one signed in to Steam on this computer, else the last
+    backpack synced here."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess") as k:
+            v = int(winreg.QueryValueEx(k, "ActiveUser")[0])
+            if v:
+                return 76561197960265728 + v
+    except Exception:
+        pass
+    try:
+        return int(jload(os.path.join(USER, "backpack.json"), {}).get("steamid") or 0) or None
+    except (TypeError, ValueError):
+        return None
+
+
+def pick_file(kind, start):
+    """The importer's file dialogs, opened on this computer (the page can't learn a file's path from the browser)."""
+    types = {"model": [("Model files", "*.smd *.dmx *.fbx *.obj")], "image": [("Image files", "*.tga *.png")],
+             "session": [("Import session", "*.txt *.zip")], "qc": [("QC", "*.qc *.txt")]}.get(kind, [("All files", "*.*")])
+    try:
+        import tkinter
+        from tkinter import filedialog
+    except ImportError:
+        return ""
+    root = tkinter.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        p = filedialog.askopenfilename(parent=root, filetypes=types + [("All files", "*.*")], initialdir=start or None)
+    finally:
+        root.destroy()
+    return os.path.normpath(p) if p else ""
+
 from . import __version__
 
 mimetypes.add_type("image/webp", ".webp")
@@ -302,6 +344,53 @@ class Handler(BaseHTTPRequestHandler):
         os.replace(tmp, fp)
         return self.send(200, {"path": "tf/custom/" + name})
 
+    def importer(self, op):
+        """The Workshop item importer (importer.py), on the computer TF2 is installed on. Only from the page itself (the header
+        makes any other site's request a CORS preflight, which this server never allows)."""
+        if self.headers.get("X-Mannual") != "1" or not APP.tf_dir:
+            return self.send(403, {"error": "not allowed"})
+        b = self.body()
+        T = importer.Tools(APP.tf_dir, APP.files or vpk_mod.TF2Files(APP.tf_dir))
+        try:
+            if op == "info":
+                loc = kv_mod.parse_loc(T.read_text("resource/tf_english.txt") or "")
+                return self.send(200, {"ok": T.ok(), "regions": T.equip_regions(), "classes": importer.CLASSES,
+                                       "bodygroups": importer.BODYGROUPS, "vmt": importer.STANDARD_VMT,
+                                       "qc": {p: importer.qc_template(T, p) for p in ("hat", "misc")},
+                                       "budget": {p: [importer.tri_budget(T, p, i) for i in range(3)] for p in ("hat", "misc")},
+                                       "loc": {k: v for k, v in loc.items() if k.startswith(("tf_importfile", "tf_itemprefab", "tf_itemskintype",
+                                               "tf_class_name", "tf_publishfile_nofileselected", "tf_close", "tf_importpreview"))},
+                                       "steamid": importer_steamid(), "import_source": os.path.join(T.tf, "workshop", "import_source")})
+            if op == "pick":
+                return self.send(200, {"path": pick_file(b.get("kind", ""), b.get("dir") or "")})
+            if op == "lod":
+                with IMPORT_LOCK:
+                    lod, mats = importer.check_lod(T, b.get("session") or {}, b.get("class", ""), int(b.get("lod", 0)), b.get("file", ""))
+                return self.send(200, {"lod": lod, "materials": mats})
+            if op == "image":
+                f, kind = b.get("file", ""), b.get("kind", "")
+                if kind == "icon":
+                    px = importer.check_icon(f); w = h = 512; ch, a = 4, True
+                else:
+                    w, h, ch, a = importer.check_texture(f, kind); px = importer.read_image(f)[2]
+                return self.send(200, {"width": w, "height": h, "channels": ch, "alpha": a, "png": importer.png_data_url(w, h, px, 256)})
+            if op in ("build", "preview"):
+                with IMPORT_LOCK:
+                    r = importer.build(T, b.get("session") or {}, importer_steamid() or 0, "preview" if op == "preview" else b.get("stage", "final"))
+                if op == "preview":
+                    with open(r["zip"], "rb") as f:
+                        data = f.read()
+                    os.remove(r["zip"])
+                    return self.send(200, data, "application/zip")
+                return self.send(200, r)
+            if op == "load":
+                return self.send(200, {"session": importer.load(T, b.get("file", ""))})
+            if op == "save":
+                return self.send(200, {"path": importer.save(T, b.get("session") or {}, b.get("file") or "")})
+            return self.send(404, {"error": "not found"})
+        except importer.ImportError_ as e:
+            return self.send(200, {"fail": e.token, "var": {k: str(v) for k, v in e.var.items()}})
+
     def body(self):
         n = int(self.headers.get("Content-Length") or 0)
         try:
@@ -381,7 +470,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send(404, {"error": "not found"})
                 ctype = "application/wasm" if path.endswith(".wasm") else (mimetypes.guess_type(path)[0] or "application/octet-stream")
                 return self.send(200, data, ctype, cache=True)
-            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/", "/vendor/", "/ctk/")) or path in ("/preview.js", "/store3d.js", "/game.js", "/pfx.js", "/vgui.js", "/wpi.js", "/npc.js", "/maps.js", "/mapdata.js", "/vmtfix.js", "/lo.js"):
+            if path.startswith(("/static/", "/ui/", "/fonts/", "/sounds/", "/vendor/", "/ctk/")) or path in ("/preview.js", "/store3d.js", "/game.js", "/pfx.js", "/vgui.js", "/wpi.js", "/npc.js", "/maps.js", "/importer.js", "/mapdata.js", "/vmtfix.js", "/lo.js"):
                 rel = path[len("/static/"):] if path.startswith("/static/") else path.lstrip("/")
                 fp = os.path.normpath(os.path.join(WEB, rel))
                 if fp.startswith(WEB) and os.path.isfile(fp):
@@ -398,6 +487,8 @@ class Handler(BaseHTTPRequestHandler):
         path = url.path
         if path == "/api/custom":
             return self.save_custom(url)
+        if path.startswith("/api/imp/"):
+            return self.importer(path[9:])
         b = self.body()
         try:
             if path == "/api/tfdir":
