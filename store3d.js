@@ -2030,8 +2030,9 @@ async function zipGet(f,z){const h=new DataView(await f.slice(z.lo,z.lo+30).arra
 async function wsList(){const s=ST.src;if(!ST.ready||!s||!s.list)return null;const L=await s.list(WSDIR);return L&&L.filter(x=>/\.zip$/i.test(x.name)).sort((a,b)=>b.t-a.t)}
 const WSCLS={scout:'scout',soldier:'soldier',pyro:'pyro',demo:'demoman',demoman:'demoman',heavy:'heavy',heavyweapons:'heavy',engineer:'engineer',medic:'medic',sniper:'sniper',spy:'spy'};
 // open one: its import session and backpack icon (enough for the list); load() then adds the rest of its game files
-function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t;if(WS[key])return WS[key];return WS[key]=(async()=>{
- const f=await srcBlob(WSDIR+'/'+it.name.toLowerCase());if(!f)throw new Error('not in the saved copy: link your TF2 folder again');const Z=await zipDir(f);
+function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t+(it.blob?'|'+(it.v||0):'');if(WS[key])return WS[key];return WS[key]=(async()=>{
+ // it.blob: a zip the page has in hand (the importer's preview), instead of one in import_source
+ const f=it.blob||await srcBlob(WSDIR+'/'+it.name.toLowerCase());if(!f)throw new Error('not in the saved copy: link your TF2 folder again');const Z=await zipDir(f);
  const mf=Z.get('manifest.txt');const M=mf?KV(text(await zipGet(f,mf)),true):{};const A=M.asset||M;const IS=A.importsession||{};
  const game=[...Z.keys()].filter(n=>n.startsWith('game/')).map(n=>n.slice(5));
  for(const n of game)if(n.startsWith('materials/backpack/')){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}
