@@ -244,7 +244,7 @@
 .npcgrid .zcard .zvem{transform:translate(calc(var(--px,0)*5px),calc(var(--py,0)*4px));transition:transform .18s ease-out}
 `;
   document.head.appendChild(css);
-  const SUB = {'Mercenaries': 'The nine classes', 'Zombie Infection': 'The infected, bare-handed',  'Mann vs. Machine': 'The robots of Mann vs. Machine', 'Halloween': 'The Halloween bosses and their minions', 'Smissmas': 'Characters of the Smissmas maps', 'Versus Saxton Hale': 'The boss of Versus Saxton Hale, and his holiday versions', 'Robot Destruction': 'The robots of Robot Destruction', 'Summer': 'Characters of the summer maps'};
+  const SUB = {};
   window.NPCVIEW = {
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
@@ -252,7 +252,7 @@
       const C = typeof closed !== 'undefined' ? closed : {};
       return groups.map(g => `<section class="sec${C['npc:' + g] ? ' closed' : ''}" data-key="${E('npc:' + g)}"><div class="sh"><div class="grow"><h2>${E(g)}</h2><div class="sub">${E(SUB[g] || '')}</div></div></div>
         <div class="npcgrid">${NPCS.filter(n => n.group === g).map(card).join('')}</div></section>`).join('')
-        + '<p class="empty" style="padding:10px 0 30px">Characters load from your TF2 install. Link it under Settings &gt; Sync with your game.</p>';
+        + (window.ZLIVE && ZLIVE.ready ? '' : '<p class="empty" style="padding:10px 0 30px"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>');
     },
     open(id){
       const n = NPCS.find(x => x.id === id); if (!n) return;

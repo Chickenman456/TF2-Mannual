@@ -631,20 +631,20 @@ button.vg:focus-visible{outline:none}
   <div class="tools gut">
     <nav class="views" aria-label="Views">
       <div class="tabs" role="group" aria-label="Yours">
-        <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
+        <button class="btn" type="button" data-view="backpack">My Backpack</button>
         <button class="btn" type="button" data-view="wishlist"><span class="gi tabg" style="--g:url(ui/gi_star.webp)"></span> Wishlist <span id="wcount"></span></button>
       </div>
       <div class="tabs" role="group" aria-label="Checklist">
-        <button class="btn" type="button" data-view="class" title="Every item, grouped by the class that uses it">By Class</button>
-        <button class="btn" type="button" data-view="year" title="Every item, grouped by release year">By Year</button>
-        <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
-        <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
+        <button class="btn" type="button" data-view="class">By Class</button>
+        <button class="btn" type="button" data-view="year">By Year</button>
+        <button class="btn" type="button" data-view="case">Cases &amp; Collections</button>
+        <button class="btn" type="button" data-view="set">Item Sets</button>
       </div>
       <div class="tabs" role="group" aria-label="Explore">
-        <button class="btn" type="button" data-view="npc" title="The game's characters: the Mann vs. Machine robots and the Halloween bosses, with their animations">Characters</button>
-        <button class="btn" type="button" data-view="maps" title="Every map in the game, by game mode, year or name, with its loading screen">Maps</button>
-        <button class="btn" type="button" data-view="mods" title="Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region">Mod Maker</button>
-        <button class="btn" type="button" data-view="models" title="Every model in the game, by folder or by name, each in the store preview's window with its animations and skins">Model Viewer</button>
+        <button class="btn" type="button" data-view="npc">Characters</button>
+        <button class="btn" type="button" data-view="maps">Maps</button>
+        <button class="btn" type="button" data-view="mods">Mod Maker</button>
+        <button class="btn" type="button" data-view="models">Model Viewer</button>
       </div>
     </nav>
     <div class="grow"></div>
@@ -658,13 +658,13 @@ button.vg:focus-visible{outline:none}
    <div class="fform gut">
     <div class="fld"><label class="lbl" for="show">Ownership</label><select id="show" class="in">
       <option value="all">All items</option><option value="own">Owned</option><option value="miss">Missing</option><option value="dupe">Dupes (own 2 or more)</option></select></div>
-    <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that exist in this quality, ticked off when you own one in it">
+    <div class="fld"><label class="lbl" for="qual">Quality</label><select id="qual" class="in" title="Only items that come in this quality">
       <option value="">Any quality</option><option value="vintage" style="color:#476291">Vintage</option><option value="genuine" style="color:#4D7455">Genuine</option><option value="strange" style="color:#CF6A32">Strange</option><option value="haunted" style="color:#38F3AB">Haunted</option><option value="collectors" style="color:#AA0000">Collector's</option></select></div>
     <div class="fld"><label class="lbl" for="avail">Availability</label><select id="avail" class="in">
       <option value="any">Any</option><option value="ob">Obtainable</option><option value="limited">Limited</option><option value="code">Promo code</option><option value="expired">Expired</option><option value="rare">1 of 1</option><option value="unob">Unobtainable</option><option value="unused">Unreleased</option><option value="craft" title="Cosmetics you can get by crafting">Craft hats</option><option value="achieve" title="Items unlocked by achievements, in TF2 or other games">Achievement items</option></select></div>
     <div class="fld"><label class="lbl" for="grade">Grade</label><select id="grade" class="in"><option value="">All grades</option><option value="6" style="color:#EB4B4B">Elite</option><option value="5" style="color:#D32CE6">Assassin</option><option value="4" style="color:#8847FF">Commando</option><option value="3" style="color:#4B69FF">Mercenary</option><option value="2" style="color:#5E98D9">Freelance</option><option value="1" style="color:#B0C3D9">Civilian</option><option value="any">Any grade</option><option value="0">No grade</option></select></div>
     <div class="fld"><label class="lbl" for="hol"><span class="pk" aria-hidden="true"></span>Halloween</label><select id="hol" class="in" title="Items you can only wear during Halloween or a full moon"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
-    <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Items made for Pyroland: they let you see it, turn into baby bottles there, or get assists in it"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
+    <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Pyroland items"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="itype">Item type</label><select id="itype" class="in"><option value="">Any type</option></select></div>
     <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
     <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
@@ -678,15 +678,15 @@ button.vg:focus-visible{outline:none}
         <label class="chk"><input type="checkbox" data-type="c" checked> Cosmetics</label>
         <label class="chk"><input type="checkbox" data-type="t" checked> Taunts</label>
         <label class="chk"><input type="checkbox" data-type="w"> Weapons</label>
-        <label class="chk" title="Each class's default weapons. Everyone has these, so they count as owned; pick a quality to collect the Strange, Unusual or other copies"><input type="checkbox" data-type="s"> Stock weapons</label>
+        <label class="chk" title="Default weapons. Count as owned"><input type="checkbox" data-type="s"> Stock weapons</label>
         <label class="chk"><input type="checkbox" data-type="p"> War paints</label>
         <label class="chk" title="Weapons that come with a war paint already applied"><input type="checkbox" data-type="d"> Decorated weapons</label>
-        <label class="chk" title="Items for the action slot: noise makers, canteens, spellbooks, gift piles, unlocked crates, the Duck Journal..."><input type="checkbox" data-type="a"> Action items</label>
-        <label class="chk" title="Medals handed out to community members, event organisers and contributors"><input type="checkbox" data-type="m"> Community medals</label>
-        <label class="chk" title="Medals from competitive leagues and tournaments (ETF2L, UGC, RGL, ozfortress...): thousands of them"><input type="checkbox" data-type="mt"> Tournament medals</label>
-        <label class="chk" title="Keys, paints, name tags, Strange Parts and filters, kits and the other tools, and the expired ones (the 2013 spells, transmogrifiers, Cursed Objects)"><input type="checkbox" data-type="l"> Tools</label>
-        <label class="chk" title="Achievement rewards that aren't cosmetics or weapons (the SpaceChem materials, Haunted Metal Scrap, spellbook pages...), and the Barely-Melted Capacitor and Glitched Circuit Board"><input type="checkbox" data-type="o"> Other items</label>
-        <label class="chk" title="Every unusual effect, in sections for cosmetic, taunt, weapon and special effects; collected when any item you own has it"><input type="checkbox" data-type="fx"> Unusual effects</label>
+        <label class="chk" title="Action slot items"><input type="checkbox" data-type="a"> Action items</label>
+        <label class="chk" title="Community medals"><input type="checkbox" data-type="m"> Community medals</label>
+        <label class="chk" title="League and tournament medals"><input type="checkbox" data-type="mt"> Tournament medals</label>
+        <label class="chk" title="Keys, paints, Strange Parts, kits and other tools"><input type="checkbox" data-type="l"> Tools</label>
+        <label class="chk" title="Other achievement rewards"><input type="checkbox" data-type="o"> Other items</label>
+        <label class="chk" title="Unusual effects"><input type="checkbox" data-type="fx"> Unusual effects</label>
       </div>
       <div class="tgrid wopts" id="wopts" aria-label="Weapon options">
         <label class="chk"><input type="checkbox" id="noresk"> Hide reskins</label>
@@ -698,7 +698,7 @@ button.vg:focus-visible{outline:none}
       <div class="tgrid">
         <label class="chk" title="Only show items a single class can use"><input type="checkbox" id="solo"> Hide multi-class items</label>
         <label class="chk"><input type="checkbox" id="hidedone"> Hide completed sections</label>
-        <label class="chk" title="Show the icons of items you don't own in full colour"><input type="checkbox" id="nofade"> Don't fade items you don't own</label>
+        <label class="chk" title="Full colour for unowned items"><input type="checkbox" id="nofade"> Don't fade items you don't own</label>
       </div>
     </div>
    </div>
@@ -710,7 +710,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.17</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.18</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -718,9 +718,9 @@ button.vg:focus-visible{outline:none}
     <section class="mrow"><h3>Sound</h3><label class="chk"><input type="checkbox" id="sndOn"> Play TF2's interface and item sounds</label>
       <label class="vol" for="sndVol"><span>Interface</span><input type="range" id="sndVol" min="0" max="100" step="1" value="100" aria-describedby="sndVolV"><output id="sndVolV">100%</output></label>
       <label class="vol" for="gameVol"><span>Game sounds</span><input type="range" id="gameVol" min="0" max="100" step="1" value="100" aria-describedby="gameVolV"><output id="gameVolV">100%</output></label>
-      <p>Game sounds are what the merc in the store preview makes: gunfire, voice lines, taunt music.</p></section>
+      </section>
     <section class="mrow"><h3>Top bar</h3><label class="chk"><input type="checkbox" id="pinbar"> Bring the top bar back when scrolling up</label>
-      <p>On wide screens the controls stay in the column on the right, so this only changes smaller windows.</p></section>
+      </section>
     <section class="mrow" id="gameSet"></section>
   </div>
 </div>
@@ -1011,7 +1011,7 @@ function fxSection(kind, list, key, title, sub){
   vis = vis.slice().sort(S.sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : S.sort === 'copies' ? (a, b) => fxCount(b) - fxCount(a) || when(a, b) : (a, b) => (S.order === 'asc' ? when(a, b) : when(b, a)));
   key = key || 'fx' + kind;
   return `<section class="sec ${closed[key] ? 'closed' : ''}" data-key="${key}">
-    <div class="sh"><div class="grow"><h2>${esc(title || FX_KIND[kind].replace('effects', 'unusual effects'))}</h2><div class="sub">${sub ? esc(sub) : kind === 'special' ? 'Effects the game puts on any kind of item, like the sparkle on Community and Self-Made items' : 'Collected when any item you own has the effect'}</div></div>
+    <div class="sh"><div class="grow"><h2>${esc(title || FX_KIND[kind].replace('effects', 'unusual effects'))}</h2><div class="sub">${sub ? esc(sub) : ''}</div></div>
       <div class="track mini ${got === total ? 'full' : ''}"><div class="fill" style="width:${pct}%"></div></div>
       <span class="cnt ${got === total ? 'full' : ''}">${got}/${total}</span></div>
     <div class="grid">${vis.map(fxSlot).join('')}</div></section>`;
@@ -1349,7 +1349,7 @@ function render(){
   { const qi = $('#q'); if (qi) qi.placeholder = S.view === 'maps' ? 'Search maps\u2026' : 'Search items\u2026'; }
   // nothing found with no filters in the way (and an item type ticked): the game's files aren't in yet, so a button to sync them
   const nofilt = !activeFilters().length && Object.values(S.types || {}).some(Boolean) && !(window.ZLIVE && ZLIVE.ready);
-  $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>' + (nofilt ? 'Nothing was found, and no filters are hiding anything. Sync your TF2 install and the items come straight from your game.' : 'Try turning on more item types, or change the filters.') + '</p>'
+  $('#main').innerHTML = html || '<div class="empty"><h2>Nothing matches</h2><p>' + (nofilt ? 'Nothing found.' : 'Try turning on more item types, or change the filters.') + '</p>'
     + (nofilt ? '<p><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>' : '') + '</div>';
   if (S.quality){ document.body.dataset.quality = S.quality; document.body.style.setProperty('--qcol', QUAL[S.quality].c); }
   else { delete document.body.dataset.quality; }
@@ -1678,11 +1678,11 @@ let WSL = null;
 async function openWorkshop(){
   const win = $('#wsWin'), msg = $('#wsMsg'), grid = $('#wsGrid');
   win.hidden = false; sfx('panel_open'); grid.innerHTML = '';
-  if (!(window.ZLIVE && ZLIVE.ready && ZLIVE.workshop)) { msg.textContent = 'Link your TF2 folder (Settings > Sync with your game) to see the items you\u2019ve compiled with the Workshop importer.'; WSL = null; return; }
+  if (!(window.ZLIVE && ZLIVE.ready && ZLIVE.workshop)) { msg.textContent = 'Sync with your game to see your Workshop items.'; WSL = null; return; }
   msg.textContent = 'Reading tf/workshop/import_source\u2026';
   const L = await ZLIVE.workshop.list(); WSL = L;
-  if (!L) { msg.textContent = 'Couldn\u2019t read tf/workshop/import_source. Link your TF2 folder again (Settings > Sync with your game) so the page can read it.'; return; }
-  if (!L.length) { msg.textContent = 'No compiled items yet: the Workshop importer saves each item it compiles to tf/workshop/import_source.'; return; }
+  if (!L) { msg.textContent = 'Couldn\u2019t read tf/workshop/import_source. Sync again.'; return; }
+  if (!L.length) { msg.textContent = 'No Workshop items yet.'; return; }
   msg.textContent = L.length + ' compiled item' + (L.length > 1 ? 's' : '') + ' in tf/workshop/import_source, newest first. Click one to see it on the merc.';
   grid.innerHTML = L.map((w, i) => `<div class="slot own" data-ws="${i}" tabindex="0"><div class="wsico"></div><div class="nm">${esc(w.name.replace(/\.zip$/i, '').replace(/_/g, ' '))}</div><div class="wscl"></div></div>`).join('');
   for (let i = 0; i < L.length; i++){
@@ -2041,11 +2041,11 @@ document.addEventListener('paste', e => {
 function gamePanel(msg){
   const on = !!(window.TF2Files && TF2Files.linked), box = $('#gameSet');
   box.innerHTML = `<h3>Sync with your game</h3>
-    <p>${on && TF2Files.saved ? `Using the saved copy of your TF2 folder <span class="path">${esc(TF2Files.name)}</span>: everything you've looked at before loads straight away. To load items you haven't opened yet, link the folder again.`
-      : on ? `Linked to your TF2 folder <span class="path">${esc(TF2Files.name)}</span>. Click any item for the Mann Co. Store preview, then a class portrait to see it on that merc in 3D, read straight from your game files. What the preview reads is saved in this browser, so it's still there after a reload or a page update.`
-      : `Click any item for the Mann Co. Store preview. Point this page at your TF2 folder and it shows the item on the merc in 3D too, read straight from your game files. Your files stay on your computer: the page only reads them, in your browser.`}</p>
-    ${on ? '' : `<p class="sub">Pick your <b>Team Fortress 2</b> folder, usually <span class="path">C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2</span>. The <b>tf</b> folder inside it works too, but some unusual effects use materials from the <b>hl2</b> folder next to it, so those show only part of the effect. Your browser will ask whether to "upload" it. Nothing is sent anywhere; that's just how browsers word letting a page read a folder. What the preview reads is saved in this browser, so it's still there next time.</p>`}
-    ${window.TF2Files && !TF2Files.canKeep && window.claude ? `<p class="sub">In this window, the browser doesn't let this page keep your folder, so it works from the saved copy until you link it again. Open the page in its own tab and link the folder there: the browser remembers it (in Chrome, choose <b>Allow on every visit</b> when it asks) and you won't have to link it again.</p>
+    <p>${on && TF2Files.saved ? `Using the saved copy of <span class="path">${esc(TF2Files.name)}</span>. Link again to load new items.`
+      : on ? `Linked to <span class="path">${esc(TF2Files.name)}</span>.`
+      : `Link your TF2 folder for 3D previews from your game files. Nothing is uploaded.`}</p>
+    ${on ? '' : `<p class="sub">Usually <span class="path">C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2</span></p>`}
+    ${window.TF2Files && !TF2Files.canKeep && window.claude ? `<p class="sub">This window can’t remember the folder. Open in its own tab to keep it linked.</p>
     <div class="row"><a class="btn" href="${esc(location.href)}" target="_blank" rel="noopener">Open in its own tab</a></div>` : ''}
     <div class="row"><button class="btn big" id="tfgo" type="button">${on && TF2Files.saved ? 'Link my TF2 folder again' : on ? 'Pick another folder' : 'Link my TF2 folder'}</button>${on ? '<button class="btn" id="tfoff" type="button">Unlink</button>' : ''}</div>
     <p class="sub" id="tfmsg" style="margin:0;color:var(--AttribNegative)">${msg ? esc(msg) : ''}</p>`;
