@@ -56,6 +56,12 @@
       async list(dir) {
         try { const r = await fetch('api/list?dir=' + encodeURIComponent(dir)); return r.ok ? await r.json() : null; } catch (e) { return null; }
       },
+      // a mod the Mod Maker built, written to tf/custom by the app
+      async writable() { return true; },
+      async custom(name, blob) {
+        const r = await fetch('api/custom?name=' + encodeURIComponent(name), {method: 'POST', headers: {'X-Mannual': '1', 'Content-Type': 'application/octet-stream'}, body: blob});
+        const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('error ' + r.status)); return j.path;
+      },
     };
   }
 
@@ -98,7 +104,10 @@
       async kept(p) { return cget(sig + '|pak|' + p); },
       async keptList() { return (await cget(sig + '|pakidx')) || []; },
       // a folder's file list (the Workshop importer's zips), kept with the saved copy
-      async list(dir) { const L = src.list ? await src.list(dir) : null; if (L) cput(sig + '|ls|' + dir, L); return L; }};
+      async list(dir) { const L = src.list ? await src.list(dir) : null; if (L) cput(sig + '|ls|' + dir, L); return L; },
+      // writing to tf/custom (the Mod Maker), where the folder allows it
+      writable: src.custom ? () => src.writable() : undefined,
+      custom: src.custom ? (n, b) => src.custom(n, b) : undefined};
   }
   function savedSource(sig) {
     return {kind: 'list',

@@ -183,10 +183,20 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const CNAME = {scout: 'Scout', soldier: 'Soldier', pyro: 'Pyro', demo: 'Demoman', heavy: 'Heavy', engineer: 'Engineer', medic: 'Medic', sniper: 'Sniper', spy: 'Spy'};
   const ck = c => { c = String(c || '').toLowerCase(); return c === 'demoman' ? 'demo' : c; };
   const MDLX = ['.mdl', '.vvd', '.dx80.vtx', '.dx90.vtx', '.sw.vtx', '.phy'];
-  const M = {busy: '', err: '', mod: null, pick: null, q: '', note: ''};
+  const M = {busy: '', err: '', mod: null, pick: null, q: '', note: '', zips: null, zq: '', zipsFor: null};
+  try { M.auto = localStorage.getItem('modAuto') === '1'; } catch (e) { M.auto = false; }
   const css = document.createElement('style');
   css.textContent = `
 .modmk .drop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px;border:2px dashed #5b5048;border-radius:6px;margin:10px 12px 6px}
+.modmk .zips{margin:0 12px 6px;padding:8px 10px;background:rgba(0,0,0,.18);border-radius:6px}
+.modmk .zips .zh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.modmk .zips .zh b{font:400 16px TF2Build,TF2,sans-serif;letter-spacing:.5px}
+.modmk .zipl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;max-height:232px;overflow:auto}
+.modmk .zip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;background:#3c352f;border:2px solid transparent;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;cursor:pointer;text-align:left;min-width:0}
+.modmk .zip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.modmk .zip small{color:#a39684;font-size:12px}
+.modmk .zip:hover{background:#4a423a}
+.modmk .zip.on{border-color:#cf6a32}
 .modmk .drop.over{border-color:#cf6a32;background:rgba(207,106,50,.08)}
 .modmk .drop p{margin:0;color:#a39684;font:400 15px TF2Secondary}
 .modmk .modcard{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:12px;margin:6px 12px;background:rgba(0,0,0,.18);border-radius:6px}
@@ -251,6 +261,20 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d'); const im = new ImageData(out, w, h);
     if (desc & 32) x.putImageData(im, 0, 0); else { const t = document.createElement('canvas'); t.width = w; t.height = h; t.getContext('2d').putImageData(im, 0, 0); x.translate(0, h); x.scale(1, -1); x.drawImage(t, 0, 0); }
     return cv.toDataURL('image/png');
+  }
+
+  // the zips TF2's Workshop importer saved (tf/workshop/import_source), newest first, read from the synced install
+  async function zips() {
+    const w = window.ZLIVE && ZLIVE.ready && ZLIVE.workshop; const key = w ? ZLIVE._st && ZLIVE._st.src : null;
+    if (!w || M.zipsFor === key) return; M.zipsFor = key; M.zips = null;
+    try { M.zips = (await w.list()) || []; } catch (e) { M.zips = []; }
+    redraw();
+  }
+  async function loadZip(it) {
+    M.busy = 'Reading ' + it.name + '…'; M.err = ''; redraw();
+    let b = null; try { b = await ZLIVE.workshop.blob(it); } catch (e) { b = null; }
+    if (!b) { M.busy = ''; M.err = 'Couldn’t read ' + it.name + ': link your TF2 folder again (Settings > Sync with your game).'; redraw(); return; }
+    return load({name: it.name, size: b.size, slice: (x, y) => b.slice(x, y)});
   }
 
   async function load(file) {
@@ -354,6 +378,8 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   }
   async function build() {
     const m = M.mod, t = targets().find(x => x.id === M.pick); if (!m || !t) return;
+    const C = M.auto && window.ZLIVE && ZLIVE.custom && ZLIVE.custom.can ? ZLIVE.custom : null;
+    const access = C ? C.access() : null;   // asked first: the browser allows it only straight from the click
     M.busy = 'Building the mod…'; M.err = ''; redraw();
     try {
       const files = new Map(), z = m.z, G = z.root + 'game/';
@@ -374,6 +400,12 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       }
       const safe = s => String(s).toLowerCase().replace(/^the /, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
       const name = 'mod_' + safe(m.name) + '_' + safe(t.name) + '.vpk', blob = vpk(files);
+      if (C) {
+        let where = null, why = '';
+        try { if (await access) where = await C.save(name, blob); else why = 'the browser didn’t allow writing to your TF2 folder'; } catch (e) { why = (e && e.message) || String(e); }
+        if (where) { M.note = `Built ${name} (${(blob.size / 1048576).toFixed(1)} MB, ${files.size} files) and put it in ${where}. Restart TF2 and ${t.name} shows as ${m.name}. Mods like this show only where the server allows custom files.`; M.busy = ''; redraw(); return; }
+        M.err = 'Couldn’t put it in tf/custom (' + why + '), so it’s downloading instead.';
+      }
       let saved = false;
       const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
       if (dl) {   // the page inside another app's frame may offer only a .zip: the .vpk inside it
@@ -395,6 +427,14 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       let h = `<section class="sec modmk"><div class="sh"><div class="grow"><h2>Mod Maker</h2><div class="sub">Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region</div></div></div>
         <div class="drop" data-moddrop><button class="btn big" type="button" data-modpick>Choose a Workshop zip</button><p>or drop one here. Export it from TF2’s Workshop importer once it has compiled. It’s read here, in your browser.</p>
         <input type="file" accept=".zip,application/zip" data-modfile hidden></div>`;
+      if (live && ZLIVE.workshop) {
+        zips();
+        const Z = M.zips, q = M.zq.trim().toLowerCase(), ZL = Z ? (q ? Z.filter(x => x.name.toLowerCase().includes(q)) : Z) : [];
+        const when = t => { try { return new Date(t).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}); } catch (e) { return ''; } };
+        h += `<div class="zips"><div class="zh"><b>Your Workshop zips</b>${Z && Z.length ? `<input class="in" type="search" placeholder="Search ${Z.length} zips…" value="${E(M.zq)}" data-modzq aria-label="Search your Workshop zips">` : ''}<span class="sub">tf/workshop/import_source</span></div>
+          ${!Z ? '<p class="msg">Reading your Workshop zips…</p>' : !Z.length ? '<p class="msg">No zips yet: TF2’s Workshop importer saves each item it compiles there.</p>'
+          : `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}"><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></button>`).join('')}</div>`}</div>`;
+      }
       if (M.busy) h += `<p class="msg">${E(M.busy)}</p>`;
       if (M.err) h += `<p class="msg err">${E(M.err)}</p>`;
       if (m) {
@@ -406,8 +446,10 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
           const t = all.find(x => x.id === M.pick);
           h += `<div class="modbar"><b>Replace</b><input class="in" type="search" placeholder="Search ${all.length} items…" value="${E(M.q)}" data-modq aria-label="Search the items it can replace">
             <label class="chk"><input type="checkbox" data-modicon${M.icon === false ? '' : ' checked'}> Replace its backpack icon too</label>
+            ${ZLIVE.custom && ZLIVE.custom.can ? `<label class="chk"><input type="checkbox" data-modauto${M.auto ? ' checked' : ''}> Put it straight in my custom folder</label>` : ''}
             <button class="btn big" type="button" data-modbuild${t && !M.busy ? '' : ' disabled'}>${t ? 'Build mod for ' + E(t.name) : 'Pick an item to replace'}</button></div>`;
           if (t) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
+          if (!(ZLIVE.custom && ZLIVE.custom.can)) h += `<p class="msg">To put mods straight in tf/custom, use the desktop app, or open this page in its own browser tab and link your TF2 folder there.</p>`;
           if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
           h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.classes.map(c => CNAME[c]).join(', '))}">${icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
             : `<p class="msg">No item ${E(m.classes.map(c => CNAME[c]).join(' or '))} wears in the ${E(m.regions.join(' or '))} region.</p>`;
@@ -421,19 +463,21 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     if (!e.target.closest || !e.target.closest('.modmk')) return;
     if (e.target.closest('[data-modpick]')) { const i = document.querySelector('[data-modfile]'); if (i) i.click(); return; }
     const tg = e.target.closest('[data-modtgt]'); if (tg) { M.pick = tg.dataset.modtgt; M.note = ''; if (typeof sfx === 'function') sfx('buttonclick'); redraw(); return; }
+    const zp = e.target.closest('[data-modzip]'); if (zp) { const it = (M.zips || []).find(x => x.name === zp.dataset.modzip); if (it && !M.busy) { if (typeof sfx === 'function') sfx('buttonclick'); loadZip(it); } return; }
     if (e.target.closest('[data-modbuild]')) { if (typeof sfx === 'function') sfx('buttonclick'); build(); }
   });
   document.addEventListener('change', e => {
     const f = e.target.closest && e.target.closest('[data-modfile]'); if (f && f.files && f.files[0]) { load(f.files[0]); return; }
     const c = e.target.closest && e.target.closest('[data-modicon]'); if (c) M.icon = c.checked;
+    const a = e.target.closest && e.target.closest('[data-modauto]'); if (a) { M.auto = a.checked; try { localStorage.setItem('modAuto', a.checked ? '1' : '0'); } catch (x) {} }
   });
   document.addEventListener('input', e => {
-    const q = e.target.closest && e.target.closest('[data-modq]'); if (!q) return; M.q = q.value;
-    const st = q.selectionStart; redraw(); const n = document.querySelector('[data-modq]'); if (n) { n.focus(); try { n.setSelectionRange(st, st); } catch (x) {} }
+    const q = e.target.closest && e.target.closest('[data-modq],[data-modzq]'); if (!q) return; const zq = q.hasAttribute('data-modzq'); if (zq) M.zq = q.value; else M.q = q.value;
+    const st = q.selectionStart; redraw(); const n = document.querySelector(zq ? '[data-modzq]' : '[data-modq]'); if (n) { n.focus(); try { n.setSelectionRange(st, st); } catch (x) {} }
   });
   for (const ev of ['dragenter', 'dragover']) document.addEventListener(ev, e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (!d) return; e.preventDefault(); d.classList.add('over'); });
   document.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (d) d.classList.remove('over'); });
   document.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) load(f); });
   // the item list arrives when the game's files are synced
-  addEventListener('tf2files', redraw);
+  addEventListener('tf2files', redraw); addEventListener('zlive', () => { M.zipsFor = null; redraw(); });
 })();
