@@ -341,6 +341,7 @@ class Tools:
         self.bin = os.path.join(os.path.dirname(self.tf), "bin")
         self.files = files
         self._prefabs = None
+        self.logfile = None
 
     def ok(self):
         return all(os.path.isfile(os.path.join(self.bin, x)) for x in ("itemtest.com", "studiomdl.exe", "vtex.exe"))
@@ -351,13 +352,20 @@ class Tools:
 
     def run(self, exe, args, timeout=600):
         cmd = ([("wine")] if WINE else []) + [os.path.join(self.bin, exe)] + args
-        env = dict(os.environ, **({"WINEDEBUG": "-all"} if WINE else {}))
+        # itemtest asks Steam who's signed in (the zip's steamid); outside the game Steam needs to be told which game it's for
+        env = dict(os.environ, SteamAppId="440", SteamGameId="440", **({"WINEDEBUG": "-all"} if WINE else {}))
         try:
             r = subprocess.run(cmd, cwd=self.bin, capture_output=True, timeout=timeout, env=env,
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except subprocess.TimeoutExpired:
             return 1, "timed out"
         out = (r.stdout + r.stderr).decode("utf-8", "replace").replace("\x1b[0m", "")
+        if self.logfile:   # every tool run, for when something goes wrong on someone's computer
+            try:
+                with open(self.logfile, "a", encoding="utf-8") as f:
+                    f.write(f"\n==== {exe} {' '.join(args)}\nexit {r.returncode}\n{out[-20000:]}\n")
+            except OSError:
+                pass
         if WINE:   # Wine's console echoes every line twice
             seen, keep = set(), []
             for line in out.splitlines():

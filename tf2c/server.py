@@ -351,6 +351,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {"error": "not allowed"})
         b = self.body()
         T = importer.Tools(APP.tf_dir, APP.files or vpk_mod.TF2Files(APP.tf_dir))
+        T.logfile = os.path.join(USER, "importer.log")
         try:
             if op == "info":
                 loc = kv_mod.parse_loc(T.read_text("resource/tf_english.txt") or "")
@@ -390,6 +391,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404, {"error": "not found"})
         except importer.ImportError_ as e:
             return self.send(200, {"fail": e.token, "var": {k: str(v) for k, v in e.var.items()}})
+        except Exception as e:   # anything else: said, not swallowed (and in userdata/importer.log)
+            try:
+                with open(os.path.join(USER, "importer.log"), "a", encoding="utf-8") as f:
+                    f.write("\n==== error in %s\n%s\n" % (op, traceback.format_exc()))
+            except OSError:
+                pass
+            return self.send(200, {"fail": "#TF_ImportFile_BuildFailedCompile", "var": {"log": "%s: %s" % (type(e).__name__, e)}})
 
     def body(self):
         n = int(self.headers.get("Content-Length") or 0)

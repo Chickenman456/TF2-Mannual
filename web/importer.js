@@ -159,7 +159,7 @@
   }
   const box = (title, body, buttons) => () => `<div class="ov"><div class="box"><h3>${E(title)}</h3>${body}<div class="row">${buttons}</div></div></div>`;
   function message(title, text) { I.modal = box(title, `<pre>${E(text)}</pre>`, `<button class="bt" type="button" data-c="ModalOK">OK</button>`); draw(); }
-  function fail(r) { const t = r.fail; message(/LoadFailed|ImageUnsupported|ImageResolution/.test(t) ? L('TF_ImportFile_LoadFailed') : L('TF_ImportFile_BuildFailed'), r.var && r.var.log ? r.var.log : L(t, r.var)); }
+  function fail(r) { const t = r.fail; message(/LoadFailed|ImageUnsupported|ImageResolution/.test(t) ? L('TF_ImportFile_LoadFailed') : L('TF_ImportFile_BuildFailed'), r.var && r.var.log ? r.var.log + '\n\n(Every tool run is in userdata\\importer.log)' : L(t, r.var)); }
 
   // ---------------------------------------------------------------- the material editor (importmaterialeditdialog.res; "c" is its middle, 300)
   function vmtOf(sk, m) { return g(`Materials/Skins/${SKIN[sk]}/Material${m}/vmt`, '') || I.info.vmt; }
@@ -286,7 +286,7 @@
       I.busy = 'Loading ' + base(f) + '…'; draw();
       try {
         const r = await post('lod', {session: I.s, class: cl, lod: i, file: f});
-        if (r.fail) { I.busy = ''; message(L('TF_ImportFile_LoadFailed'), L(r.fail, r.var)); return; }
+        if (r.fail) { I.busy = ''; message(L('TF_ImportFile_LoadFailed'), (r.var && r.var.log) ? r.var.log + '\n\n(Every tool run is in userdata\\importer.log)' : L(r.fail, r.var)); return; }
         set(`classes/${cl}/LOD${i}`, r.lod);
         r.materials.forEach((n, j) => { if (!g('Materials/Material' + j, '')) set('Materials/Material' + j, n); });
       } catch (e) { I.busy = ''; message(L('TF_ImportFile_LoadFailed'), String(e.message || e)); return; }
@@ -336,7 +336,7 @@
     let b; try { b = await post('preview', {session: I.s}); } catch (e) { b = {fail: 'TF_ImportFile_BuildFailedCompile', var: {log: String(e.message || e)}}; }
     I.pv.running = false;
     if (I.pv.again) { preview(false); return; }
-    if (!(b instanceof Blob)) { I.pv.note = 'The preview didn’t build.'; note(); if (asked) fail(b); return; }
+    if (!(b instanceof Blob)) { I.pv.note = 'The preview didn’t build: ' + ((b.var && b.var.log) ? b.var.log.split('\n').filter(Boolean).slice(-2).join(' ') : L(b.fail, b.var)) + ' Press Preview for the whole log.'; note(); if (asked) fail(b); return; }
     I.pv.blob = b; I.pv.v = n; I.pv.note = ''; note(); dock();
   }
   const note = () => { const x = document.querySelector('.ipv .pvnote'); if (x) { x.textContent = I.pv.note || ''; x.hidden = !I.pv.note; } const h = document.querySelector('.ipv .pvh span'); if (h) h.textContent = I.pv.note ? 'Updating…' : ''; };
