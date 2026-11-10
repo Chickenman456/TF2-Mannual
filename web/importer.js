@@ -1,6 +1,6 @@
 /* Item Importer: TF2's Workshop item importer (resource/ui/importfiledialog.res, game/client/tf/workshop/item_import.cpp),
    laid out as the game lays it out, with the store preview's merc docked beside it and rebuilt as the item changes.
-   The desktop app only: the app's server (tf2c/importer.py) runs the game's own itemtest, studiomdl and vtex. */
+   The desktop app only: the app's server (tf2c/importer.py) reads the model files itself and runs the game's own studiomdl and vtex. */
 (() => {
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const CLS = ['scout', 'sniper', 'soldier', 'demo', 'medic', 'heavy', 'pyro', 'spy', 'engineer'];
@@ -366,7 +366,7 @@
       let h = `<section class="sec impv"><div class="sh"><div class="grow"><h2>Item Importer</h2></div></div>`;
       if (!I.info && !I.err) { load(); return h + '<p class="msg">Loading…</p></section>'; }
       if (I.err) return h + `<p class="msg">${E(I.err)}</p></section>`;
-      if (!I.info.ok) return h + '<p class="msg">TF2’s item tools (bin/itemtest.com, studiomdl.exe, vtex.exe) aren’t in your TF2 install.</p></section>';
+      if (!I.info.ok) return h + '<p class="msg">TF2’s model tools (bin/studiomdl.exe, vtex.exe) aren’t in your TF2 install.</p></section>';
       queueMicrotask(mount);
       return h + '<div data-impslot></div></section>';
     },

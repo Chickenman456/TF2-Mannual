@@ -1,8 +1,8 @@
 """The Workshop item importer, as TF2's own (game/client/tf/workshop/item_import.cpp), driving the game's own tools.
 
-TF2's importer builds through Valve's itemtest library; the game ships it as bin/itemtest.com, which converts the model files
-(FBX, OBJ, SMD, DMX) with the FBX SDK the game ships. Everything after that runs the way the importer runs it: the QC from the
-item type's template (items_game prefabs: qc_template), studiomdl, vtex, the importer's material and icon rules and limits, and
+TF2's importer converts the model files (FBX, OBJ, SMD, DMX) through Valve's itemtest library and Steam; here they're read
+directly (meshconv) into the SMDs studiomdl compiles, so neither Steam nor itemtest is needed. Everything after that runs the
+way the importer runs it: the QC from the item type's template (items_game prefabs: qc_template), studiomdl, vtex, the importer's material and icon rules and limits, and
 the zip and session file it saves to tf/workshop/import_source.
 
 Runs on the computer TF2 is installed on (Windows). TF2C_WINE=1 runs the tools through Wine (for testing on Linux)."""
@@ -16,6 +16,7 @@ import tempfile
 import zlib
 
 from . import kv as kvmod
+from . import meshconv
 
 CLASSES = ["scout", "sniper", "soldier", "demo", "medic", "heavy", "pyro", "spy", "engineer"]   # item_import.cpp kClassFolders
 USABLE = {"demo": "demoman"}                                                                      # the item schema's class names
@@ -344,7 +345,7 @@ class Tools:
         self.logfile = None
 
     def ok(self):
-        return all(os.path.isfile(os.path.join(self.bin, x)) for x in ("itemtest.com", "studiomdl.exe", "vtex.exe"))
+        return all(os.path.isfile(os.path.join(self.bin, x)) for x in ("studiomdl.exe", "vtex.exe"))
 
     def win(self, p):
         p = os.path.abspath(p)
@@ -352,7 +353,6 @@ class Tools:
 
     def run(self, exe, args, timeout=600):
         cmd = ([("wine")] if WINE else []) + [os.path.join(self.bin, exe)] + args
-        # itemtest asks Steam who's signed in (the zip's steamid); outside the game Steam needs to be told which game it's for
         env = dict(os.environ, SteamAppId="440", SteamGameId="440", **({"WINEDEBUG": "-all"} if WINE else {}))
         try:
             r = subprocess.run(cmd, cwd=self.bin, capture_output=True, timeout=timeout, env=env,
@@ -527,7 +527,7 @@ _CONV = {}
 
 
 def convert(tools, cls, name, lods, work):
-    """itemtest's conversion, kept while the files don't change (the live preview converts again only what changed)."""
+    """The conversion, kept while the files don't change (the live preview converts again only what changed)."""
     key = (cls, name, tuple((f, os.path.getmtime(f), os.path.getsize(f)) for f in lods))
     hit = _CONV.get(key)
     if hit and all(os.path.isfile(p) for p in hit[0]):
@@ -536,7 +536,7 @@ def convert(tools, cls, name, lods, work):
             dst = os.path.join(work, os.path.basename(p)); shutil.copyfile(p, dst); got.append(dst)
         return (got,) + hit[1:]
     r = _convert(tools, cls, name, lods, work)
-    keep = tempfile.mkdtemp(prefix="itemtest_")
+    keep = tempfile.mkdtemp(prefix="mannual_conv_")
     kept = []
     for p in r[0]:
         dst = os.path.join(keep, os.path.basename(p)); shutil.copyfile(p, dst); kept.append(dst)
@@ -544,56 +544,60 @@ def convert(tools, cls, name, lods, work):
     return r
 
 
+def read_model(tools, path, work):
+    """A model file as a mesh: FBX, SMD and OBJ read here, DMX through the SDK's dmxconvert (as text) first."""
+    ext = os.path.splitext(path)[1].lower()
+    try:
+        if ext == ".fbx":
+            return meshconv.read_fbx(path)
+        if ext == ".smd":
+            return meshconv.read_smd(path)
+        if ext == ".obj":
+            return meshconv.read_obj(path)
+        if ext == ".dmx":
+            out = os.path.join(work, "kv2_" + os.path.basename(path))
+            rc, log = tools.run("dmxconvert.exe", ["-i", tools.win(path), "-o", tools.win(out), "-oe", "keyvalues2"], 120)
+            if not os.path.isfile(out):
+                raise ImportError_("#TF_ImportFile_LoadFailedBadModel", file=path, log=log[-3000:])
+            with open(out, "r", encoding="latin-1") as f:
+                return meshconv.read_dmx_kv2(f.read())
+    except ImportError_:
+        raise
+    except Exception as e:
+        raise ImportError_("#TF_ImportFile_LoadFailedBadModel", file=path, log=f"{type(e).__name__}: {e}")
+    raise ImportError_("#TF_ImportFile_LoadFailedBadModel", file=path)
+
+
 def _convert(tools, cls, name, lods, work):
-    """Valve's itemtest: the model files in, the content files it writes (DMX, its materials named the importer's way,
-    <name> and <name>_1) and their counts out. Returns (dmx paths, manifest LODs, materials, compiled mdl bytes)."""
-    rc, out = tools.run("itemtest.com", ["-game", tools.win(tools.tf), "-batch", "-class", cls, "-name", name]
-                        + sum((["-lod", tools.win(f)] for f in lods), []) + ["-listmats"], 300)
-    mats = re.findall(r"^Material: (.+)$", out, re.M)
-    if not mats:
-        raise ImportError_("#TF_ImportFile_LoadFailedBadModel", file=lods[0], log=out[-3000:])
-    dummy = os.path.join(work, "dummy.tga")
-    write_tga(dummy, 4, 4, b"\x80\x80\x80\xff" * 16)
-    zp = os.path.join(work, "itemtest.zip")
-    args = ["-game", tools.win(tools.tf), "-batch", "-class", cls, "-name", name] + sum((["-lod", tools.win(f)] for f in lods), [])
-    for i, m in enumerate(mats[:MATS]):
-        args += ["-mat", m, "-mattype", "primary" if i == 0 else "secondary", "-tex", tools.win(dummy), "-textype", "common"]
-    rc, out = tools.run("itemtest.com", args + ["-output", tools.win(zp)])
-    if not os.path.isfile(zp):
-        raise ImportError_("#TF_ImportFile_BuildFailedCompile", log=out[-3000:])
-    import zipfile
-    z = zipfile.ZipFile(zp)
-    names = {n.replace("\\", "/"): n for n in z.namelist()}
-    man = kv_load(z.read("manifest.txt").decode("latin-1"), esc=False)
-    asset = next(iter(man.values()))
-    got, mdl = [], None
-    for n, real in names.items():
-        if n.startswith("content/models/") and n.endswith((".dmx", ".smd")):
-            dst = os.path.join(work, os.path.basename(n))
-            with open(dst, "wb") as f:
-                f.write(z.read(real))
-            got.append(dst)
-        elif n.endswith(".mdl"):
-            mdl = z.read(real)
-    got.sort(key=lambda p: (0 if not re.search(r"_lod\d\.", p) else int(re.search(r"_lod(\d)\.", p).group(1))))
-    counts = [kget(asset, f"lod{i}") or {} for i in range(len(lods))]
-    # what itemtest left in the game folder (its compile output and content), so it doesn't stay behind
-    for n in names:
-        p = os.path.join(tools.tf, *n.split("/")[1:]) if n.startswith("game/") else \
-            os.path.join(tools.tf, "workshop", "content", *n.split("/")[1:]) if n.startswith("content/") else None
-        if p and os.path.isfile(p):
-            try:
-                os.remove(p)
-            except OSError:
-                pass
-    return got, counts, mats[:MATS + 1], mdl
+    """The model files in, the SMDs studiomdl compiles out (<name>.smd, <name>_lod1.smd ..., their materials named the
+    importer's way: <name>, <name>_1), with their counts. Returns (smd paths, counts, materials, weighted bone names)."""
+    got, counts, mats, bones = [], [], None, set()
+    for i, f in enumerate(lods):
+        mesh = read_model(tools, f, work)
+        if not mesh["tris"]:
+            raise ImportError_("#TF_ImportFile_LoadFailedBadModel", file=f)
+        m = meshconv.materials(mesh)
+        if mats is None:
+            mats = m
+        mesh = meshconv.rename(mesh, [name if k == 0 else f"{name}_{k}" for k in range(len(m))])
+        for _, vs in mesh["tris"]:
+            for v in vs:
+                for b, w in v[3]:
+                    if w > 0:
+                        bones.add(mesh["bones"][b][0])
+        c = meshconv.counts(mesh)
+        counts.append({"polyCount": str(c["polyCount"]), "vertexCount": str(c["vertexCount"]), "materials": len(m)})
+        p = os.path.join(work, f"{name}{'' if i == 0 else f'_lod{i}'}.smd")
+        meshconv.write_smd(mesh, p)
+        got.append(p)
+    return got, counts, mats or [], sorted(bones)
 
 
 def check_lod(tools, sess, cls, lod, path):
     """SetLOD: loads, fits the type's triangle budget, adds no more than the custom bones allowed, at most two materials."""
     prefab = sess.get("prefab") or "hat"
     with tempfile.TemporaryDirectory() as work:
-        got, counts, mats, mdl = convert(tools, cls, "temp", [path], work)
+        got, counts, mats, used = convert(tools, cls, "temp", [path], work)
     c = counts[0]
     tris = int(c.get("polyCount") or 0)
     lim = tri_budget(tools, prefab, lod)
@@ -601,7 +605,7 @@ def check_lod(tools, sess, cls, lod, path):
         raise ImportError_("#TF_ImportFile_BuildFailedComplexModel", file=path, count=tris, limit=lim)
     cb = tools.files.read(f"models/player/{CLASS_MDL.get(cls, cls)}.mdl") if tools.files else None
     own = set(mdl_bones(cb)) if cb else set()
-    custom = [b for b in mdl_bones(mdl) if own and b not in own]
+    custom = [b for b in used if own and b not in own]
     blim = bone_budget(tools, prefab)
     if len(custom) > blim:
         raise ImportError_("#TF_ImportFile_LoadFailedTooManyBones", file=path, count=len(custom), limit=blim, custom_bones=", ".join(custom))
@@ -671,7 +675,7 @@ def build(tools, sess, steamid, stage="final", log=print):
     def put(zpath, data):
         zipped.append((zpath, data))
 
-    # the models first (itemtest's conversion writes and clears its own files in the game folder): per class, itemtest's DMX,
+    # the models first: per class, the converted SMDs,
     # the type's QC (or the class's own), studiomdl. They go in the zip after the icon and the materials, as the importer's do.
     mzip = []
     mput = lambda zp, data: mzip.append((zp, data))
@@ -687,7 +691,7 @@ def build(tools, sess, steamid, stage="final", log=print):
                 raise ImportError_("#TF_ImportFile_BuildFailedBadModel", file=f)
         log(f"Converting {c}")
         with tempfile.TemporaryDirectory() as work:
-            got, counts, mats, mdl0 = convert(tools, c, name, lods, work)
+            got, counts, mats, _ = convert(tools, c, name, lods, work)
             if len(got) != len(lods):
                 raise ImportError_("#TF_ImportFile_BuildFailedBadModel", file=lods[0])
             for i, cnt in enumerate(counts):
@@ -819,7 +823,7 @@ def build(tools, sess, steamid, stage="final", log=print):
     schema["used_by_classes"] = {USABLE.get(c, c): "1" for c in cls}
     session["ItemSchema"] = schema
 
-    # manifest.txt: the session, then what itemtest records of the asset (its last class's LODs, its materials)
+    # manifest.txt: the session, then what the importer records of the asset (its last class's LODs, its materials)
     c, lods, files, counts, mats = last
     tail = [f'\t"name"\t\t"{name}"\n', f'\t"class"\t\t"{cf}"\n', f'\t"steamid"\t\t"0x{int(steamid) & 0xFFFFFFFF:08x}"\n']
     for i, f in enumerate(files):

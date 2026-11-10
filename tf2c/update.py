@@ -48,10 +48,11 @@ def run(home):
             f.write(z.read(exe_name))
         bat = os.path.join(tempfile.gettempdir(), "mannual_update.bat")
         with open(bat, "w", newline="\r\n") as f:
-            f.write(f'@echo off\n:wait\ntasklist /fi "PID eq {os.getpid()}" | find "{os.getpid()}" >nul && (timeout /t 1 /nobreak >nul & goto wait)\n'
-                    f'move /y "{new}" "{exe}" >nul\nstart "" "{exe}" --no-browser\ndel "%~f0"\n')
-        subprocess.Popen(["cmd", "/c", bat], creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0) | getattr(subprocess, "DETACHED_PROCESS", 0),
-                         close_fds=True)
+            # waits for this one to quit (ping: timeout needs a console to read from), then swaps the exe in and starts it
+            f.write(f'@echo off\n:wait\nping -n 2 127.0.0.1 >nul\ntasklist /fi "PID eq {os.getpid()}" | find "{os.getpid()}" >nul && goto wait\n'
+                    f':swap\nmove /y "{new}" "{exe}" >nul || (ping -n 2 127.0.0.1 >nul & goto swap)\n'
+                    f'start "" "{exe}" --no-browser\ndel "%~f0"\n')
+        subprocess.Popen(["cmd", "/c", bat], creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), close_fds=True)
     else:
         z = zipfile.ZipFile(io.BytesIO(_get(rel["zipball_url"], 600)))
         names = z.namelist()
