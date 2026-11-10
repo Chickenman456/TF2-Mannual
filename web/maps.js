@@ -303,9 +303,34 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       str(nm); const e = new DataView(new ArrayBuffer(18));
       e.setUint32(0, crc32(b), true); e.setUint16(4, 0, true); e.setUint16(6, 0x7fff, true); e.setUint32(8, off, true); e.setUint32(12, b.length, true); e.setUint16(16, 0xffff, true);
       parts.push(new Uint8Array(e.buffer)); data.push(b); off += b.length; } str(''); } str(''); } str('');
-    const treeLen = parts.reduce((a, x) => a + x.length, 0);
-    const h = new DataView(new ArrayBuffer(12)); h.setUint32(0, 0x55aa1234, true); h.setUint32(4, 1, true); h.setUint32(8, treeLen, true);
-    return new Blob([h.buffer, ...parts, ...data], {type: 'application/octet-stream'});
+    // version 2, as TF2's own vpk.exe writes it: the engine reads data kept in this file (0x7fff) as starting after a 28-byte
+    // header, so a version 1 file (12-byte header) gives it every file 16 bytes off
+    const cat = a => { const o = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of a) { o.set(x, i); i += x.length; } return o; };
+    const treeB = cat(parts), dataB = cat(data);
+    const h = new DataView(new ArrayBuffer(28)); h.setUint32(0, 0x55aa1234, true); h.setUint32(4, 2, true); h.setUint32(8, treeB.length, true);
+    h.setUint32(12, dataB.length, true); h.setUint32(16, 0, true); h.setUint32(20, 48, true); h.setUint32(24, 0, true);
+    const hB = new Uint8Array(h.buffer), m1 = md5(treeB), m2 = md5(new Uint8Array(0));
+    const m3 = md5(cat([hB, treeB, dataB, m1, m2]));
+    return new Blob([hB, treeB, dataB, m1, m2, m3], {type: 'application/octet-stream'});
+  }
+  function md5(b) {
+    const K = [], S = [7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21];
+    for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+    const n = ((b.length + 8 >>> 6) + 1) << 6, m = new Uint8Array(n); m.set(b); m[b.length] = 0x80;
+    const dv = new DataView(m.buffer); dv.setUint32(n - 8, (b.length * 8) >>> 0, true); dv.setUint32(n - 4, Math.floor(b.length / 536870912), true);
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    for (let o = 0; o < n; o += 64) {
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        let F, g;
+        if (i < 16) { F = (B & C) | (~B & D); g = i; } else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+        else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; } else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+        F = (F + A + K[i] + dv.getUint32(o + g * 4, true)) >>> 0; A = D; D = C; C = B;
+        const r = S[(i >> 4) * 4 + (i & 3)]; B = (B + ((F << r) | (F >>> (32 - r)))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    const r = new DataView(new ArrayBuffer(16)); [a0, b0, c0, d0].forEach((v, i) => r.setUint32(i * 4, v, true)); return new Uint8Array(r.buffer);
   }
   // a zip holding one file, stored (for where the page may only offer a .zip)
   async function zip1(name, blob) {
