@@ -183,7 +183,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const CNAME = {scout: 'Scout', soldier: 'Soldier', pyro: 'Pyro', demo: 'Demoman', heavy: 'Heavy', engineer: 'Engineer', medic: 'Medic', sniper: 'Sniper', spy: 'Spy'};
   const ck = c => { c = String(c || '').toLowerCase(); return c === 'demoman' ? 'demo' : c; };
   const MDLX = ['.mdl', '.vvd', '.dx80.vtx', '.dx90.vtx', '.sw.vtx', '.phy'];
-  const M = {busy: '', err: '', mod: null, pick: null, q: '', note: '', zips: null, zq: '', zipsFor: null};
+  const M = {busy: '', err: '', mod: null, pick: null, q: '', note: '', zips: null, zq: '', zipsFor: null, fit: '', ic: {}};
   try { M.auto = localStorage.getItem('modAuto') === '1'; } catch (e) { M.auto = false; }
   const css = document.createElement('style');
   css.textContent = `
@@ -193,6 +193,9 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
 .modmk .zips .zh b{font:400 16px TF2Build,TF2,sans-serif;letter-spacing:.5px}
 .modmk .zipl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;max-height:232px;overflow:auto}
 .modmk .zip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;background:#3c352f;border:2px solid transparent;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;cursor:pointer;text-align:left;min-width:0}
+.modmk .zip{flex-direction:row;align-items:center;gap:8px}
+.modmk .zip img,.modmk .zip i{width:40px;height:40px;flex:none;object-fit:contain}
+.modmk .zip div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .modmk .zip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .modmk .zip small{color:#a39684;font-size:12px}
 .modmk .zip:hover{background:#4a423a}
@@ -268,8 +271,19 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     const w = window.ZLIVE && ZLIVE.ready && ZLIVE.workshop; const key = w ? ZLIVE._st && ZLIVE._st.src : null;
     if (!w || M.zipsFor === key) return; M.zipsFor = key; M.zips = null;
     try { M.zips = (await w.list()) || []; } catch (e) { M.zips = []; }
-    redraw();
+    redraw(); zipIcons(M.zips);
   }
+  // backpack icons, read from the install: a zip's own (it's opened the way the Workshop window opens it) or one by its path
+  const setIc = (k, u) => { M.ic[k] = u || ''; if (u) document.querySelectorAll('.modmk img[data-modic]').forEach(i => { if (i.dataset.modic === k) { i.src = u; i.hidden = false; } }); };
+  async function zipIcons(L) {
+    for (const it of L) {
+      if (M.zips !== L) return; const k = 'zip:' + it.name; if (k in M.ic) continue; M.ic[k] = '';
+      try { const w = await ZLIVE.workshop.open(it); setIc(k, await ZLIVE.iconLoad('#' + w.id)); } catch (e) {}
+    }
+  }
+  function pathIcon(ip) { const k = 'at:' + ip; if (!(k in M.ic) && ZLIVE.iconAt) { M.ic[k] = ''; ZLIVE.iconAt(ip).then(u => setIc(k, u)).catch(() => {}); } return k; }
+  const icImg = k => `<img class="ico" alt="" data-modic="${E(k)}"${M.ic[k] ? ` src="${M.ic[k]}"` : ' hidden'}>`;
+
   async function loadZip(it) {
     M.busy = 'Reading ' + it.name + '…'; M.err = ''; redraw();
     let b = null; try { b = await ZLIVE.workshop.blob(it); } catch (e) { b = null; }
@@ -298,17 +312,24 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   }
 
   // the items the mod can replace: worn by one of its classes, in one of its equip regions, with a model for that class
+  // the MvM Power Up Canteen: one model for every class, swapped for another by the charge it holds
+  const CANT = [['generic', 'Power Up Canteen', 'backpack/player/items/all_class/powerupbottle'], ['krit', 'Power Up Canteen (Crit Boost)'], ['uber', 'Power Up Canteen (ÜberCharge)'],
+    ['tele', 'Power Up Canteen (Recall)'], ['ammo', 'Power Up Canteen (Refill Ammo)'], ['build', 'Power Up Canteen (Building Upgrade)']]
+    .map(([k, n, ic]) => ({id: 'canteen:' + k, name: n, canteen: true, classes: CLS.slice(), r: {}, dsts: ['models/player/items/mvm_loot/all_class/mvm_flask_' + k + '.mdl'], invs: [ic || 'backpack/player/items/mvm_loot/all_class/mvm_flask_' + k]}));
+  CANT.unshift({id: 'canteen:all', name: 'Every Power Up Canteen', canteen: true, classes: CLS.slice(), r: {}, dsts: CANT.flatMap(x => x.dsts), invs: CANT.flatMap(x => x.invs), ic: CANT[0].invs[0]});
   function targets() {
     const st = window.ZLIVE && ZLIVE.ready && ZLIVE._st; const m = M.mod; if (!st || !st.byId || !m) return [];
     const out = [];
+    // a canteen mod can replace the MvM canteens (any class carries them, all with the one model)
+    if (/canteen/i.test(m.name)) out.push(...CANT);
     for (const e of st.byId.values()) {
-      if (e.k !== 'cos') continue; const r = e.r;
+      if (e.k !== 'cos' || e.ws) continue; const r = e.r;
       if (!regions(r).some(x => m.regions.includes(x))) continue;
       // every class that wears it has to get the mod's model: a Medic-only mod can't replace an all-class or multi-class item
       const cs = classesOf(r); if (!cs.every(c => m.models[c] && modelsFor(r, c).length)) continue;
       out.push({id: e.id, name: e.dn || r.name || ('#' + e.id), classes: cs, r});
     }
-    return out.sort((a, b) => a.name.localeCompare(b.name));
+    return out.sort((a, b) => (b.canteen ? 1 : 0) - (a.canteen ? 1 : 0) || a.name.localeCompare(b.name));
   }
 
   // ---- the .vpk (version 1, one file: its directory, then the files' data; ArchiveIndex 0x7fff = right after the directory) ----
@@ -376,6 +397,8 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     if (h2 > 0 && h2 + 24 <= b.length) { out.set(en, end); dv.setInt32(h2 + 20, end - h2, true); dv.setInt32(76, out.length, true); }
     return out;
   }
+  // the one model a canteen gets, from the class the mod was fitted to that the user picked (every class wears the same one)
+  const fitClass = m => m.models[M.fit] ? M.fit : (m.models.soldier ? 'soldier' : Object.keys(m.models)[0]);
   async function build() {
     const m = M.mod, t = targets().find(x => x.id === M.pick); if (!m || !t) return;
     const C = M.auto && window.ZLIVE && ZLIVE.custom && ZLIVE.custom.can ? ZLIVE.custom : null;
@@ -386,12 +409,14 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       // its materials, where its model looks for them (models/workshop/..., backpack/workshop/...)
       for (const n of z.Z.keys()) if (n.startsWith(G + 'materials/')) { const b = await z.get(n); if (b) files.set(n.slice(G.length), b); }
       // its model, as each model the replaced item's classes wear (every style)
-      const put = []; for (const c of t.classes) for (const dst of modelsFor(t.r, c)) put.push([m.models[c], dst.slice(0, -4)]);
+      const put = [];
+      if (t.canteen) { const src = m.models[fitClass(m)]; for (const dst of t.dsts) put.push([src, dst.slice(0, -4)]); }
+      else for (const c of t.classes) for (const dst of modelsFor(t.r, c)) put.push([m.models[c], dst.slice(0, -4)]);
       for (const [src, dst] of put) for (const x of MDLX) { let b = z.Z.has(src + x) ? await z.get(src + x) : null; if (!b) continue; if (x === '.mdl') b = rename(b, dst + '.mdl'); files.set(dst + x, b); }
       // its backpack icon over the replaced item's
-      const tinv = t.r.image_inventory ? String(t.r.image_inventory).replace(/\\/g, '/').toLowerCase() : '';
+      const tinvs = t.invs || (t.r.image_inventory ? [String(t.r.image_inventory).replace(/\\/g, '/').toLowerCase()] : []);
       // (its textures too, under the replaced item's names, with materials that point at them: the backpack reads the icon by that name)
-      if (M.icon !== false && m.inv && tinv) for (const sfx of ['', '_large']) {
+      if (M.icon !== false && m.inv) for (const tinv of tinvs) for (const sfx of ['', '_large']) {
         const vtf = files.get('materials/' + m.inv + sfx + '.vtf'); if (!vtf) continue;
         files.set('materials/' + tinv + sfx + '.vtf', vtf);
         const vm = files.get('materials/' + m.inv + sfx + '.vmt');
@@ -433,7 +458,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
         const when = t => { try { return new Date(t).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}); } catch (e) { return ''; } };
         h += `<div class="zips"><div class="zh"><b>Your Workshop zips</b>${Z && Z.length ? `<input class="in" type="search" placeholder="Search ${Z.length} zips…" value="${E(M.zq)}" data-modzq aria-label="Search your Workshop zips">` : ''}<span class="sub">tf/workshop/import_source</span></div>
           ${!Z ? '<p class="msg">Reading your Workshop zips…</p>' : !Z.length ? '<p class="msg">No zips yet: TF2’s Workshop importer saves each item it compiles there.</p>'
-          : `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}"><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></button>`).join('')}</div>`}</div>`;
+          : `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}">${icImg('zip:' + x.name)}<div><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></div></button>`).join('')}</div>`}</div>`;
       }
       if (M.busy) h += `<p class="msg">${E(M.busy)}</p>`;
       if (M.err) h += `<p class="msg err">${E(M.err)}</p>`;
@@ -448,10 +473,12 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
             <label class="chk"><input type="checkbox" data-modicon${M.icon === false ? '' : ' checked'}> Replace its backpack icon too</label>
             ${ZLIVE.custom && ZLIVE.custom.can ? `<label class="chk"><input type="checkbox" data-modauto${M.auto ? ' checked' : ''}> Put it straight in my custom folder</label>` : ''}
             <button class="btn big" type="button" data-modbuild${t && !M.busy ? '' : ' disabled'}>${t ? 'Build mod for ' + E(t.name) : 'Pick an item to replace'}</button></div>`;
-          if (t) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
+          if (t && t.canteen && Object.keys(m.models).length > 1) { const fc = fitClass(m);
+            h += `<p class="msg">Every class carries a canteen with the same model. Use the version fitted to <select class="in" data-modfit aria-label="Class version to use">${Object.keys(m.models).map(c => `<option value="${c}"${c === fc ? ' selected' : ''}>${E(CNAME[c])}</option>`).join('')}</select></p>`; }
+          if (t && !t.canteen) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
           if (!(ZLIVE.custom && ZLIVE.custom.can)) h += `<p class="msg">To put mods straight in tf/custom, use the desktop app, or open this page in its own browser tab and link your TF2 folder there.</p>`;
           if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
-          h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.classes.map(c => CNAME[c]).join(', '))}">${icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
+          h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.canteen ? 'Every class' : x.classes.map(c => CNAME[c]).join(', '))}">${x.canteen ? icImg(pathIcon(x.ic || x.invs[0])) : icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
             : `<p class="msg">No item ${E(m.classes.map(c => CNAME[c]).join(' or '))} wears in the ${E(m.regions.join(' or '))} region.</p>`;
         }
       } else if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
@@ -469,6 +496,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   document.addEventListener('change', e => {
     const f = e.target.closest && e.target.closest('[data-modfile]'); if (f && f.files && f.files[0]) { load(f.files[0]); return; }
     const c = e.target.closest && e.target.closest('[data-modicon]'); if (c) M.icon = c.checked;
+    const fs = e.target.closest && e.target.closest('[data-modfit]'); if (fs) { M.fit = fs.value; return; }
     const a = e.target.closest && e.target.closest('[data-modauto]'); if (a) { M.auto = a.checked; try { localStorage.setItem('modAuto', a.checked ? '1' : '0'); } catch (x) {} }
   });
   document.addEventListener('input', e => {
