@@ -538,3 +538,82 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   // the item list arrives when the game's files are synced
   addEventListener('tf2files', redraw); addEventListener('zlive', () => { M.zipsFor = null; for (const k in M.ic) if (!M.ic[k]) delete M.ic[k]; redraw(); });
 })();
+
+/* Model Viewer: every model in the game's files (tf2_misc and hl2_misc), by folder or found by name; one opens in the store
+   preview's window (preview.js openNpc) on its own skeleton, with every animation it has and its skins */
+(() => {
+  const E = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const V = {dir: 'models', q: '', all: null, at: null};
+  try { V.dir = localStorage.getItem('mdlDir') || 'models'; } catch (e) {}
+  const css = document.createElement('style');
+  css.textContent = `.mdlv .mbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px}
+.mdlv .mbar .in{flex:1 1 260px;max-width:420px}
+.mdlv .crumbs{display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center;padding:2px 12px 8px;font:400 15px TF2Secondary;color:#a39684}
+.mdlv .crumbs button{background:none;border:0;padding:2px 4px;color:#ebe2ca;font:inherit;cursor:pointer;border-radius:3px}
+.mdlv .crumbs button:hover{background:rgba(255,255,255,.08)}
+.mdlv .mlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;padding:0 12px 24px}
+.mdlv .mrow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#3c352f;border:0;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;text-align:left;cursor:pointer;min-width:0}
+.mdlv .mrow:hover{background:#4a423a}
+.mdlv .mrow .gi{width:16px;height:16px;flex:none;color:#a39684}
+.mdlv .mrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mdlv .mrow small{margin-left:auto;color:#a39684;font-size:12px;flex:none}
+.mdlv .mrow.dir{background:#2f2a26}
+.mdlv .mrow .gi.up{transform:rotate(180deg)}
+.mdlv .mrow .gi.eye{--g:url(data:image/webp;base64,UklGRngDAABXRUJQVlA4TGsDAAAvL8ALENVQlm3btZvw/z89G+89SUXPvel8YaPjHA7pOodjFigQ5DriOkIBAADE/////////////zcB3mAECOAxv0cADndLrd0Ds06ohgo92uTg7QCk3O1TC3BgdNRJTAULTyb55j+8gKZ+BOUUSLVmAQodBhDoON6w48ZVEn74DH4Q4UMrq5xwzAY9BMOuo4SFccKeOOoYQ2gYTs745S/ZeOc5B1da4BKgIeTcsoe6jiMNUeM+Z1sO3iIfp+trbEllM+EDT+ciLC2UgmY/VF0ck7Ps3za+YHMvcJg8T0h2Lr5L2LrtODD8lrVlXfnbyZpvAj4GIEPBoC0hxD4/snIWXlG17+ninrMtR2w5BaVKrS5gdxKkvBKD3Ewwt6tdjMJPCzcIYU8XT9namqx5IiDuDkFgd/sfyAkg8JxlbXlkdwgbn62toUHFMEm2dd1uXVTt2EUzQcMrKci6tYaEo0BkNy1rcJ5AF7H5cJuhJI+CpWNP1RUrG9Ve1WVa2sYtVEpJ1mQLYs7JTMi1EKX+ZsLSVdWOQ+LD1jv9J0n4CXNAfcqabHkEtYLMRXAZgCjMZHEXDBwH0Ar34CnEfGRL1pDN4bbt3IdIP3ATdOxjKoTE0H1RtQ/p8A6pgv3jTmvsf07beQ+JvuQ6GNl1DgUXeA8gFd5u6r887An2cPC9Z4VJgeMk+BUgqnN4sBdW/F+DqVC0JI0/9l9LWdakBeXvALr0bzRaO1oHppSEWUCnCGRLzoKx9ZbH1nIWQgVCgsPT2zn3HJz1lauQ7PN6krOsYWjMIVb885UWJmr406OQ5nK0LlFpcNmlM2tr96F01vA1/3yFvzOYapH88ImMy1EW/+A9n+0F2WW2s6Dn0JrvvuRszZVLfT0Pd/A7R+3UGMLCebh5XIvE5Ows+NtVpyAynJuND+hchOdOeHyq1pylovklb5B08fGL9SxEOtw7BY7GrO23ObqIcp7QjBzIqiAiRW3CAwr2Lq3bllNn7XMqQWty6tJ9QHeSczqo+J12DpMwDpN98Uny6V9nebjKvxhOsBHA4XzK0KPsbUxi9tGuZwktDxweuYbzz8cb4YtThR4T4sn5lQTMYJk6HPiGXpR0eNyp/kAEhiBUDY84qoDFiBgYtKbHr1EKJDBqzdHH6GOWCtQ7reEJz+GJjukNXQA=)}
+.mdlv .msg{padding:4px 12px;color:#a39684;font:400 15px TF2Secondary}`;
+  document.head.appendChild(css);
+  const MAX = 600;
+  const list = () => { const st = window.ZLIVE && ZLIVE.ready && ZLIVE._st; if (!st) return null; if (V.at !== st.vpk) { V.at = st.vpk; V.all = ZLIVE.models ? ZLIVE.models() : []; } return V.all; };
+  // a folder's sub-folders (with how many models each holds) and its own models
+  function folder(all, dir) {
+    const pre = dir + '/', sub = new Map(), here = [];
+    for (const p of all) { if (!p.startsWith(pre)) continue; const r = p.slice(pre.length), i = r.indexOf('/'); if (i < 0) here.push(p); else { const d = r.slice(0, i); sub.set(d, (sub.get(d) || 0) + 1); } }
+    return {sub: [...sub].sort((a, b) => a[0].localeCompare(b[0])), here};
+  }
+  const base = p => p.split('/').pop().replace(/\.mdl$/, '');
+  // TF2's main menu glyph for viewing (vgui/glyph_view), and its arrow turned up for the folder above
+  const EYE = '<span class="gi eye"></span>', UP = '<span class="gi up" style="--g:url(ui/gi_arrow.webp)"></span>';
+  const redraw = () => { if (typeof S !== 'undefined' && S.view === 'models' && typeof render === 'function') render(); };
+  window.MDLVIEW = {
+    render() {
+      let h = `<section class="sec mdlv"><div class="sh"><div class="grow"><h2>Model Viewer</h2><div class="sub">Every model in the game’s files. Click one to see it in the store preview, with its animations and skins</div></div></div>`;
+      const all = list();
+      if (!all) return h + `<p class="msg">Sync your TF2 folder to browse its models: they’re read from your game’s own files.</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p></section>`;
+      if (!all.length) return h + '<p class="msg">No models found in your TF2 files.</p></section>';
+      h += `<div class="mbar"><input class="in" type="search" placeholder="Search ${all.length.toLocaleString()} models…" value="${E(V.q)}" data-mdlq aria-label="Search the models"></div>`;
+      const q = V.q.trim().toLowerCase();
+      if (q) {
+        const L = all.filter(p => p.includes(q));
+        h += `<p class="msg">${L.length.toLocaleString()} model${L.length === 1 ? '' : 's'}${L.length > MAX ? `, the first ${MAX} shown: search for more of the name or folder` : ''}</p>`;
+        h += `<div class="mlist">${L.slice(0, MAX).map(p => `<button class="mrow" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span><small>${E(p.split('/').slice(1, -1).join('/'))}</small></button>`).join('')}</div>`;
+      } else {
+        let dir = V.dir; let F = folder(all, dir); if (!F.sub.length && !F.here.length) { dir = V.dir = 'models'; F = folder(all, dir); }
+        const parts = dir.split('/');
+        h += `<div class="crumbs">${parts.map((x, i) => `${i ? '<span>/</span>' : ''}<button type="button" data-mdldir="${E(parts.slice(0, i + 1).join('/'))}">${E(x)}</button>`).join('')}</div>`;
+        h += `<div class="mlist">${parts.length > 1 ? `<button class="mrow dir" type="button" data-mdldir="${E(parts.slice(0, -1).join('/'))}">${UP}<span>..</span></button>` : ''}`
+          + F.sub.map(([d, n]) => `<button class="mrow dir" type="button" data-mdldir="${E(dir + '/' + d)}"><span>${E(d)}</span><small>${n.toLocaleString()}</small></button>`).join('')
+          + F.here.slice(0, 2000).map(p => `<button class="mrow" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span></button>`).join('') + '</div>';
+      }
+      return h + '</section>';
+    },
+    async open(p) {
+      if (!window.ItemPreview || !ItemPreview.openNpc) return;
+      const snd = typeof sfx === 'function' ? sfx : () => {};
+      let n = 1; try { n = await ZLIVE.mdlSkins(p); } catch (e) {}
+      const def = {mdl: p, allSeqs: true, skin: 0, nofloor: false};
+      if (n > 1) def.fam = Array.from({length: Math.min(n, 64)}, (_, i) => ['Skin ' + (i + 1), i]);
+      snd('panel_open');
+      ItemPreview.openNpc({name: base(p), level: p, def, esc: E, sfx: snd, close: () => snd('panel_close'), link: typeof linkGame === 'function' ? linkGame : null});
+    },
+  };
+  document.addEventListener('click', e => {
+    if (!e.target.closest || !e.target.closest('.mdlv')) return;
+    const d = e.target.closest('[data-mdldir]'); if (d) { V.dir = d.dataset.mdldir; try { localStorage.setItem('mdlDir', V.dir); } catch (x) {} if (typeof sfx === 'function') sfx('buttonclick'); redraw(); scrollTo({top: 0}); return; }
+    const m = e.target.closest('[data-mdl]'); if (m) MDLVIEW.open(m.dataset.mdl);
+  });
+  document.addEventListener('input', e => {
+    const q = e.target.closest && e.target.closest('[data-mdlq]'); if (!q) return; V.q = q.value;
+    clearTimeout(V.t); V.t = setTimeout(() => { const st = q.selectionStart; redraw(); const n = document.querySelector('[data-mdlq]'); if (n) { n.focus(); try { n.setSelectionRange(st, st); } catch (x) {} } }, 150);
+  });
+  addEventListener('zlive', redraw); addEventListener('tf2files', redraw);
+})();

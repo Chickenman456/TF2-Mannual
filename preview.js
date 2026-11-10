@@ -766,6 +766,12 @@
         const has = n => { const q = seqs.find(x => x.name.toLowerCase() === String(n).toLowerCase()); return q && q.name; };
         fireQ = (def.fire || []).map(has).filter(Boolean); voiceQ = def.voice && def.voice.seq ? has(def.voice.seq) : null;
         const rows = ST.el.querySelector('.spv-rows'); if (rows) rows.innerHTML = charRows(o, keysOf(!!runQ, fireQ.length || def.fireSnd, def.voice && (voiceQ || def.voice.snd)));
+        // the Model Viewer: every sequence the model has, to play any of them
+        if (st0.seqSel && keep.some(q => q.name === st0.seqSel.value)) idleQ = st0.seqSel.value;   // a new skin keeps the animation picked
+        if (def.allSeqs && !st0.seqSel && keep.length) { const b = bar('', 'Animation'); st0.seqSel = b;
+          b.innerHTML = keep.map(q => `<option value="${E(q.name)}">${E(q.name)}</option>`).join(''); if (idleQ) b.value = idleQ;
+          if (sty || fam || skin) { b.parentElement.classList.add('spv-fxsel'); } placeBars();
+          b.onchange = () => { o.sfx('buttonclick'); busy++; running = false; idleQ = b.value; Store3D.npc.play(idleQ); }; }
         if (idleQ) Store3D.npc.play(idleQ); else Store3D.npc.refit();
         if (!st0.sndOn) { st0.sndOn = 1; if (def.open) Store3D.npc.sound(def.open); }
         if (def.loop) Store3D.npc.sound(def.loop, true);   // a reload (a skin, a style) stopped it
