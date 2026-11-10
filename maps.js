@@ -185,11 +185,25 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const MDLX = ['.mdl', '.vvd', '.dx80.vtx', '.dx90.vtx', '.sw.vtx', '.phy'];
   const M = {busy: '', err: '', mod: null, pick: null, q: '', note: '', zips: null, zq: '', zipsFor: null, fit: '', ic: {}};
   try { M.auto = localStorage.getItem('modAuto') === '1'; } catch (e) { M.auto = false; }
+  try { M.zclosed = localStorage.getItem('modZips') === '0'; } catch (e) { M.zclosed = false; }
+  // the zips' icons, small, kept in this browser: they show straight away next time, even from the saved copy of your files
+  let ZIC = {}; try { ZIC = JSON.parse(localStorage.getItem('modZipIcons') || '{}') || {}; } catch (e) { ZIC = {}; }
+  const zkey = it => it.name + '|' + it.size + '|' + it.t;
+  function keepIc(it, u) {
+    const im = new Image(); im.onload = () => { try {
+      const c = document.createElement('canvas'); c.width = c.height = 48; c.getContext('2d').drawImage(im, 0, 0, 48, 48);
+      ZIC[zkey(it)] = c.toDataURL('image/webp', .85); const ks = Object.keys(ZIC); if (ks.length > 400) delete ZIC[ks[0]];
+      localStorage.setItem('modZipIcons', JSON.stringify(ZIC)); } catch (e) {} }; im.src = u;
+  }
   const css = document.createElement('style');
   css.textContent = `
 .modmk .drop{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px;border:2px dashed #5b5048;border-radius:6px;margin:10px 12px 6px}
 .modmk .zips{margin:0 12px 6px;padding:8px 10px;background:rgba(0,0,0,.18);border-radius:6px}
 .modmk .zips .zh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.modmk .zips .zh .ztog{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;color:inherit;cursor:pointer}
+.modmk .zips .zh .ztog .gi{width:12px;height:12px;transition:transform .15s}
+.modmk .zips.closed .zh .ztog .gi{transform:rotate(-90deg)}
+.modmk .zips.closed .zh{margin-bottom:0}
 .modmk .zips .zh b{font:400 16px TF2Build,TF2,sans-serif;letter-spacing:.5px}
 .modmk .zipl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;max-height:232px;overflow:auto}
 .modmk .zip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;background:#3c352f;border:2px solid transparent;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;cursor:pointer;text-align:left;min-width:0}
@@ -270,7 +284,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   // the zips TF2's Workshop importer saved (tf/workshop/import_source), newest first, read from the synced install
   async function zips() {
     const w = window.ZLIVE && ZLIVE.ready && ZLIVE.workshop; const key = w ? ZLIVE._st && ZLIVE._st.src : null;
-    if (!w || M.zipsFor === key) return; M.zipsFor = key; M.zips = null;
+    if (!w || M.zipsFor === key) return; M.zipsFor = key; M.zips = null; M.zread = true;
     try { M.zips = (await w.list()) || []; } catch (e) { M.zips = []; }
     redraw(); zipIcons(M.zips);
   }
@@ -278,12 +292,13 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const setIc = (k, u) => { M.ic[k] = u || ''; if (u) document.querySelectorAll('.modmk img[data-modic]').forEach(i => { if (i.dataset.modic === k) { i.src = u; i.hidden = false; } }); };
   async function zipIcons(L) {
     for (const it of L) {
-      if (M.zips !== L) return; const k = 'zip:' + it.name; if (k in M.ic) continue; M.ic[k] = '';
-      try { const w = await ZLIVE.workshop.open(it); setIc(k, await ZLIVE.iconLoad('#' + w.id)); } catch (e) {}
+      if (M.zips !== L) return; const k = 'zip:' + it.name; if (M.ic[k]) continue; M.ic[k] = '';
+      try { const w = await ZLIVE.workshop.open(it); const u = await ZLIVE.iconLoad('#' + w.id); if (u) { setIc(k, u); keepIc(it, u); } }
+      catch (e) { M.zread = false; if (!ZIC[zkey(it)]) redraw(); }
     }
   }
   function pathIcon(ip) { const k = 'at:' + ip; if (!(k in M.ic) && ZLIVE.iconAt) { M.ic[k] = ''; ZLIVE.iconAt(ip).then(u => setIc(k, u)).catch(() => {}); } return k; }
-  const icImg = k => `<img class="ico" alt="" data-modic="${E(k)}"${M.ic[k] ? ` src="${M.ic[k]}"` : ' hidden'}>`;
+  const icImg = (k, kept) => { const u = M.ic[k] || kept; return `<img class="ico" alt="" data-modic="${E(k)}"${u ? ` src="${u}"` : ' hidden'}>`; };
 
   async function loadZip(it) {
     M.busy = 'Reading ' + it.name + '…'; M.err = ''; redraw();
@@ -453,13 +468,23 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       let h = `<section class="sec modmk"><div class="sh"><div class="grow"><h2>Mod Maker</h2><div class="sub">Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region</div></div></div>
         <div class="drop" data-moddrop><button class="btn big" type="button" data-modpick>Choose a Workshop zip</button><p>or drop one here. Export it from TF2’s Workshop importer once it has compiled. It’s read here, in your browser.</p>
         <input type="file" accept=".zip,application/zip" data-modfile hidden></div>`;
-      if (live && ZLIVE.workshop) {
-        zips();
-        const Z = M.zips, q = M.zq.trim().toLowerCase(), ZL = Z ? (q ? Z.filter(x => x.name.toLowerCase().includes(q)) : Z) : [];
+      {
+        const ok = live && ZLIVE.workshop; if (ok) zips();
+        const Z = ok ? M.zips : null, q = M.zq.trim().toLowerCase(), ZL = Z ? (q ? Z.filter(x => x.name.toLowerCase().includes(q)) : Z) : [];
         const when = t => { try { return new Date(t).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}); } catch (e) { return ''; } };
-        h += `<div class="zips"><div class="zh"><b>Your Workshop zips</b>${Z && Z.length ? `<input class="in" type="search" placeholder="Search ${Z.length} zips…" value="${E(M.zq)}" data-modzq aria-label="Search your Workshop zips">` : ''}<span class="sub">tf/workshop/import_source</span></div>
-          ${!Z ? '<p class="msg">Reading your Workshop zips…</p>' : !Z.length ? '<p class="msg">No zips yet: TF2’s Workshop importer saves each item it compiles there.</p>'
-          : `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}">${icImg('zip:' + x.name)}<div><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></div></button>`).join('')}</div>`}</div>`;
+        const sync = t => `<p class="msg">${t}</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
+        const saved = !!(window.TF2Files && TF2Files.saved);
+        h += `<div class="zips${M.zclosed ? ' closed' : ''}"><div class="zh"><button class="ztog" type="button" data-modztog aria-expanded="${!M.zclosed}"><span class="gi" style="--g:url(ui/gi_arrow.webp)"></span><b>Your Workshop zips</b></button>${Z && Z.length && !M.zclosed ? `<input class="in" type="search" placeholder="Search ${Z.length} zips…" value="${E(M.zq)}" data-modzq aria-label="Search your Workshop zips">` : ''}<span class="sub">tf/workshop/import_source${Z && Z.length ? ' · ' + Z.length : ''}</span></div>`;
+        if (!M.zclosed) {
+          if (!ok) h += sync('Sync your TF2 folder to list the zips TF2’s Workshop importer saved, and pick one here.');
+          else if (!Z) h += '<p class="msg">Reading your Workshop zips…</p>';
+          else if (!Z.length) h += sync('No zips found in tf/workshop/import_source. If you’ve compiled items with the Workshop importer, sync your TF2 folder again so the page can see them.');
+          else {
+            if (!M.zread || saved) h += `<p class="msg">${saved ? 'This is the saved copy of your TF2 files, which doesn’t hold the zips themselves: ' : 'Some zips couldn’t be read: '}sync your TF2 folder again to show their icons and open them. <button class="btn" type="button" data-tfsync>Sync with your game</button></p>`;
+            h += `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}">${icImg('zip:' + x.name, ZIC[zkey(x)])}<div><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></div></button>`).join('')}</div>`;
+          }
+        }
+        h += '</div>';
       }
       if (M.busy) h += `<p class="msg">${E(M.busy)}</p>`;
       if (M.err) h += `<p class="msg err">${E(M.err)}</p>`;
@@ -493,6 +518,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
     if (!e.target.closest || !e.target.closest('.modmk')) return;
     if (e.target.closest('[data-modpick]')) { const i = document.querySelector('[data-modfile]'); if (i) i.click(); return; }
     const tg = e.target.closest('[data-modtgt]'); if (tg) { M.pick = tg.dataset.modtgt; M.note = ''; if (typeof sfx === 'function') sfx('buttonclick'); redraw(); return; }
+    if (e.target.closest('[data-modztog]')) { M.zclosed = !M.zclosed; try { localStorage.setItem('modZips', M.zclosed ? '0' : '1'); } catch (x) {} if (typeof sfx === 'function') sfx('buttonclick'); redraw(); return; }
     const zp = e.target.closest('[data-modzip]'); if (zp) { const it = (M.zips || []).find(x => x.name === zp.dataset.modzip); if (it && !M.busy) { if (typeof sfx === 'function') sfx('buttonclick'); loadZip(it); } return; }
     if (e.target.closest('[data-modbuild]')) { if (typeof sfx === 'function') sfx('buttonclick'); build(); }
   });
@@ -510,5 +536,5 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   document.addEventListener('dragleave', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (d) d.classList.remove('over'); });
   document.addEventListener('drop', e => { const d = e.target.closest && e.target.closest('[data-moddrop]'); if (!d) return; e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) load(f); });
   // the item list arrives when the game's files are synced
-  addEventListener('tf2files', redraw); addEventListener('zlive', () => { M.zipsFor = null; redraw(); });
+  addEventListener('tf2files', redraw); addEventListener('zlive', () => { M.zipsFor = null; for (const k in M.ic) if (!M.ic[k]) delete M.ic[k]; redraw(); });
 })();
