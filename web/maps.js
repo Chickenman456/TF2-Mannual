@@ -462,7 +462,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const redraw = () => { if (typeof S !== 'undefined' && S.view === 'mods' && typeof render === 'function') render(); };
   const icon = id => { try { const it = typeof ITEMS !== 'undefined' && ITEMS[id]; if (it && typeof iconHtml === 'function') return iconHtml(it); } catch (e) {} return '<div class="ph">?</div>'; };
 
-  const CAMCMD = 'sv_cheats 1; firstperson; cam_idealdist 100; cam_idealdistright 0; cam_idealdistup -25; cam_idealpitch 0; cam_idealyaw 0; cam_ideallag 0; thirdperson; thirdperson_mayamode';
+  const CAMCMD = 'sv_cheats 1; firstperson; cam_idealdist 75; cam_idealdistright 0; cam_idealdistup -50; cam_idealpitch 0; cam_idealyaw 0; cam_ideallag 0; thirdperson; thirdperson_mayamode';
   const copyBox = t => `<button type="button" class="modcopy" data-copy="${E(t)}" title="Click to copy" onclick="modCopy(this)"><code>${E(t)}</code><span>Copy</span></button>`;
   window.modCopy = b => {
     const t = b.dataset.copy, done = () => { b.classList.add('ok'); b.querySelector('span').textContent = 'Copied'; setTimeout(() => { b.classList.remove('ok'); b.querySelector('span').textContent = 'Copy'; }, 1500); };
