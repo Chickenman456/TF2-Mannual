@@ -698,7 +698,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.19</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.20</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1434,13 +1434,29 @@ async function checkUpdate(byHand){
   if (byHand) { btn.disabled = false; btn.textContent = 'Check for updates'; }
   const cur = 'Version ' + esc(APPVER || 'unknown');
   if (rel && APPVER && newer(rel.tag_name, APPVER)) {
-    msg.innerHTML = cur + '. <b>' + esc(rel.name || rel.tag_name) + ' is out.</b> <a href="' + esc(rel.html_url) + '" target="_blank" rel="noopener">Download it from GitHub</a>';
+    msg.innerHTML = cur + '. <b>' + esc(rel.name || rel.tag_name) + ' is out.</b> <button class="btn" type="button" id="updNow">Update now</button> <a href="' + esc(rel.html_url) + '" target="_blank" rel="noopener">See what\u2019s new</a>';
+    $('#updNow').onclick = () => updateNow(rel.tag_name);
     $('#setBtn').classList.add('upd'); $('#setBtn').title = 'Settings (an update is available)';
     return true;
   }
   $('#setBtn').classList.remove('upd'); $('#setBtn').title = 'Settings';
   if (byHand || rel || err === 'none') msg.innerHTML = cur + (rel ? '. You have the latest version.' : err === 'none' ? '. No releases on GitHub yet.' : '. ' + esc(err) + ', try again later.');
   return false;
+}
+// the app updates itself (tf2c/update.py), quits, and starts again; the page reloads when the new version answers
+async function updateNow(tag){
+  sfx('buttonclick');
+  const msg = $('#updMsg'), was = APPVER;
+  msg.textContent = 'Downloading ' + tag + '\u2026';
+  let r; try { r = await (await fetch('/api/update', {method: 'POST', headers: {'X-Mannual': '1', 'Content-Type': 'application/json'}, body: '{}'})).json(); } catch (e) { r = {error: 'The app couldn\u2019t be reached.'}; }
+  if (r.error) { msg.textContent = 'Couldn\u2019t update: ' + r.error; return; }
+  msg.textContent = 'Installing ' + tag + ' and restarting\u2026';
+  const t0 = Date.now();
+  const poll = async () => {
+    try { const v = (await (await fetch('/api/status', {cache: 'no-store'})).json()).version; if (v && v !== was) { location.reload(); return; } } catch (e) {}
+    if (Date.now() - t0 < 120000) setTimeout(poll, 1500); else msg.textContent = 'The update is installed. If the app didn\u2019t come back, start it again.';
+  };
+  setTimeout(poll, 2500);
 }
 $('#updBtn').addEventListener('click', () => { sfx('buttonclick'); checkUpdate(true); });
 setTimeout(() => checkUpdate(false), 3000);   // once each time the app starts

@@ -489,6 +489,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.save_custom(url)
         if path.startswith("/api/imp/"):
             return self.importer(path[9:])
+        if path == "/api/update":
+            if self.headers.get("X-Mannual") != "1":
+                return self.send(403, {"error": "not allowed"})
+            from . import update
+            try:
+                return self.send(200, {"tag": update.run(HOME)})
+            except Exception as e:
+                return self.send(200, {"error": str(e)})
         b = self.body()
         try:
             if path == "/api/tfdir":
