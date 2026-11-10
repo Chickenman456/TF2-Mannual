@@ -552,15 +552,27 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
 .mdlv .crumbs button{background:none;border:0;padding:2px 4px;color:#ebe2ca;font:inherit;cursor:pointer;border-radius:3px}
 .mdlv .crumbs button:hover{background:rgba(255,255,255,.08)}
 .mdlv .mlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;padding:0 12px 24px}
-.mdlv .mrow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#3c352f;border:0;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;text-align:left;cursor:pointer;min-width:0}
-.mdlv .mrow:hover{background:#4a423a}
-.mdlv .mrow .gi{width:16px;height:16px;flex:none;color:#a39684}
-.mdlv .mrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.mdlv .mrow small{margin-left:auto;color:#a39684;font-size:12px;flex:none}
-.mdlv .mrow.dir{background:#2f2a26}
-.mdlv .mrow .gi.up{transform:rotate(180deg)}
-.mdlv .mrow .gi.eye{--g:url(data:image/webp;base64,UklGRngDAABXRUJQVlA4TGsDAAAvL8ALENVQlm3btZvw/z89G+89SUXPvel8YaPjHA7pOodjFigQ5DriOkIBAADE/////////////zcB3mAECOAxv0cADndLrd0Ds06ohgo92uTg7QCk3O1TC3BgdNRJTAULTyb55j+8gKZ+BOUUSLVmAQodBhDoON6w48ZVEn74DH4Q4UMrq5xwzAY9BMOuo4SFccKeOOoYQ2gYTs745S/ZeOc5B1da4BKgIeTcsoe6jiMNUeM+Z1sO3iIfp+trbEllM+EDT+ciLC2UgmY/VF0ck7Ps3za+YHMvcJg8T0h2Lr5L2LrtODD8lrVlXfnbyZpvAj4GIEPBoC0hxD4/snIWXlG17+ninrMtR2w5BaVKrS5gdxKkvBKD3Ewwt6tdjMJPCzcIYU8XT9namqx5IiDuDkFgd/sfyAkg8JxlbXlkdwgbn62toUHFMEm2dd1uXVTt2EUzQcMrKci6tYaEo0BkNy1rcJ5AF7H5cJuhJI+CpWNP1RUrG9Ve1WVa2sYtVEpJ1mQLYs7JTMi1EKX+ZsLSVdWOQ+LD1jv9J0n4CXNAfcqabHkEtYLMRXAZgCjMZHEXDBwH0Ar34CnEfGRL1pDN4bbt3IdIP3ATdOxjKoTE0H1RtQ/p8A6pgv3jTmvsf07beQ+JvuQ6GNl1DgUXeA8gFd5u6r887An2cPC9Z4VJgeMk+BUgqnN4sBdW/F+DqVC0JI0/9l9LWdakBeXvALr0bzRaO1oHppSEWUCnCGRLzoKx9ZbH1nIWQgVCgsPT2zn3HJz1lauQ7PN6krOsYWjMIVb885UWJmr406OQ5nK0LlFpcNmlM2tr96F01vA1/3yFvzOYapH88ImMy1EW/+A9n+0F2WW2s6Dn0JrvvuRszZVLfT0Pd/A7R+3UGMLCebh5XIvE5Ows+NtVpyAynJuND+hchOdOeHyq1pylovklb5B08fGL9SxEOtw7BY7GrO23ObqIcp7QjBzIqiAiRW3CAwr2Lq3bllNn7XMqQWty6tJ9QHeSczqo+J12DpMwDpN98Uny6V9nebjKvxhOsBHA4XzK0KPsbUxi9tGuZwktDxweuYbzz8cb4YtThR4T4sn5lQTMYJk6HPiGXpR0eNyp/kAEhiBUDY84qoDFiBgYtKbHr1EKJDBqzdHH6GOWCtQ7reEJz+GJjukNXQA=)}
-.mdlv .msg{padding:4px 12px;color:#a39684;font:400 15px TF2Secondary}`;
+.mdlv .mdr{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#3c352f;border:0;border-radius:4px;color:#ebe2ca;font:400 14px TF2Secondary;text-align:left;cursor:pointer;min-width:0}
+.mdlv .mdr:hover{background:#4a423a}
+.mdlv .mdr .gi{width:16px;height:16px;flex:none;color:#a39684}
+.mdlv .mdr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mdlv .mdr small{margin-left:auto;color:#a39684;font-size:12px;flex:none}
+.mdlv .mdr.dir{background:#2f2a26}
+.mdlv .mdr .gi.up{transform:rotate(180deg)}
+.mdlv .mdr .gi.eye{--g:url(data:image/webp;base64,UklGRngDAABXRUJQVlA4TGsDAAAvL8ALENVQlm3btZvw/z89G+89SUXPvel8YaPjHA7pOodjFigQ5DriOkIBAADE/////////////zcB3mAECOAxv0cADndLrd0Ds06ohgo92uTg7QCk3O1TC3BgdNRJTAULTyb55j+8gKZ+BOUUSLVmAQodBhDoON6w48ZVEn74DH4Q4UMrq5xwzAY9BMOuo4SFccKeOOoYQ2gYTs745S/ZeOc5B1da4BKgIeTcsoe6jiMNUeM+Z1sO3iIfp+trbEllM+EDT+ciLC2UgmY/VF0ck7Ps3za+YHMvcJg8T0h2Lr5L2LrtODD8lrVlXfnbyZpvAj4GIEPBoC0hxD4/snIWXlG17+ninrMtR2w5BaVKrS5gdxKkvBKD3Ewwt6tdjMJPCzcIYU8XT9namqx5IiDuDkFgd/sfyAkg8JxlbXlkdwgbn62toUHFMEm2dd1uXVTt2EUzQcMrKci6tYaEo0BkNy1rcJ5AF7H5cJuhJI+CpWNP1RUrG9Ve1WVa2sYtVEpJ1mQLYs7JTMi1EKX+ZsLSVdWOQ+LD1jv9J0n4CXNAfcqabHkEtYLMRXAZgCjMZHEXDBwH0Ar34CnEfGRL1pDN4bbt3IdIP3ATdOxjKoTE0H1RtQ/p8A6pgv3jTmvsf07beQ+JvuQ6GNl1DgUXeA8gFd5u6r887An2cPC9Z4VJgeMk+BUgqnN4sBdW/F+DqVC0JI0/9l9LWdakBeXvALr0bzRaO1oHppSEWUCnCGRLzoKx9ZbH1nIWQgVCgsPT2zn3HJz1lauQ7PN6krOsYWjMIVb885UWJmr406OQ5nK0LlFpcNmlM2tr96F01vA1/3yFvzOYapH88ImMy1EW/+A9n+0F2WW2s6Dn0JrvvuRszZVLfT0Pd/A7R+3UGMLCebh5XIvE5Ows+NtVpyAynJuND+hchOdOeHyq1pylovklb5B08fGL9SxEOtw7BY7GrO23ObqIcp7QjBzIqiAiRW3CAwr2Lq3bllNn7XMqQWty6tJ9QHeSczqo+J12DpMwDpN98Uny6V9nebjKvxhOsBHA4XzK0KPsbUxi9tGuZwktDxweuYbzz8cb4YtThR4T4sn5lQTMYJk6HPiGXpR0eNyp/kAEhiBUDY84qoDFiBgYtKbHr1EKJDBqzdHH6GOWCtQ7reEJz+GJjukNXQA=)}
+.mdlv .msg{padding:4px 12px;color:#a39684;font:400 15px TF2Secondary}
+.mdlv .mwrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0 12px;align-items:start}
+.mdlv .mwrap .mlist{padding-right:0}
+.mdlv .mslot{position:sticky;top:12px;margin:0 12px 24px 0}
+.mdlv .mpv{background:#1e1b19;border:2px solid #4a423a;border-radius:6px;overflow:hidden}
+.mdlv .mpv .stage{position:relative;width:100%;aspect-ratio:1;background:radial-gradient(#3a332e,#1e1b19)}
+.mdlv .mpv .stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.mdlv .mpv .stage .note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#a39684;font:400 15px TF2Secondary;pointer-events:none}
+.mdlv .mpv .cap{padding:8px 10px;font:400 14px TF2Secondary;color:#ebe2ca;min-height:50px}
+.mdlv .mpv .cap b{display:block;font:400 16px TF2Build,TF2,sans-serif;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdlv .mpv .cap small{display:block;color:#a39684;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdlv .mdr.cur{outline:2px solid #cf6a32;outline-offset:-2px}
+@media (max-width:760px){.mdlv .mwrap{grid-template-columns:1fr}.mdlv .mslot{position:static;margin:0 12px 10px;order:-1}.mdlv .mpv .stage{aspect-ratio:16/10}}`;
   document.head.appendChild(css);
   const MAX = 600;
   const list = () => { const st = window.ZLIVE && ZLIVE.ready && ZLIVE._st; if (!st) return null; if (V.at !== st.vpk) { V.at = st.vpk; V.all = ZLIVE.models ? ZLIVE.models() : []; } return V.all; };
@@ -574,6 +586,54 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   // TF2's main menu glyph for viewing (vgui/glyph_view), and its arrow turned up for the folder above
   const EYE = '<span class="gi eye"></span>', UP = '<span class="gi up" style="--g:url(ui/gi_arrow.webp)"></span>';
   const redraw = () => { if (typeof S !== 'undefined' && S.view === 'models' && typeof render === 'function') render(); };
+
+  // ---- the live preview: the model under the mouse, turning slowly and playing its idle, in a panel beside the list. One model
+  // at a time, on the store preview's own renderer (Store3D.npc), which the full window takes back when a model is opened ----
+  const P = {el: null, stage: null, note: null, cap: null, cur: null, tok: 0, t: 0, raf: 0, drag: false};
+  function panel() {
+    if (P.el) return P.el;
+    const el = P.el = document.createElement('div'); el.className = 'mpv';
+    el.innerHTML = '<div class="stage"><div class="note">Point at a model to preview it here. Click it to open it in the store preview.</div></div><div class="cap"></div>';
+    P.stage = el.querySelector('.stage'); P.note = el.querySelector('.note'); P.cap = el.querySelector('.cap');
+    P.stage.addEventListener('pointerdown', () => { P.drag = true; }); addEventListener('pointerup', () => { P.drag = false; });
+    return el;
+  }
+  const mine = () => { const V3 = window.Store3D && Store3D.V; return !!(V3 && V3.r && P.stage && V3.r.domElement.parentElement === P.stage); };
+  // put the panel where the list was drawn (each redraw makes a new spot for it), and keep the renderer going there
+  function mount() {
+    const slot = document.querySelector('.mdlv [data-mdlpanel]'); if (!slot) return;
+    slot.appendChild(panel()); if (mine()) { try { Store3D.V.go(); } catch (e) {} }
+    document.querySelectorAll('.mdlv .mdr.cur').forEach(x => x.classList.remove('cur'));
+    if (P.cur) document.querySelectorAll('.mdlv [data-mdl]').forEach(x => { if (x.dataset.mdl === P.cur) x.classList.add('cur'); });
+    if (!P.raf) P.raf = requestAnimationFrame(spin);
+  }
+  function spin(t) {
+    // gone from the page (another view): let the renderer go, unless the store preview's window has it
+    if (!P.el || !P.el.isConnected) { P.raf = 0; P.last = 0; if (mine()) { try { Store3D.npc.close(); } catch (e) {} } return; }
+    P.raf = requestAnimationFrame(spin);
+    const dt = P.last ? Math.min(.1, (t - P.last) / 1000) : 0; P.last = t;
+    if (mine() && !P.drag && !document.querySelector('.spv')) Store3D.npc.turn(dt * .5);
+  }
+  async function preview(p) {
+    if (!window.Store3D || !Store3D.npc || document.querySelector('.spv')) return;
+    const tok = ++P.tok; P.cur = p; panel(); mount();
+    P.cap.innerHTML = `<b>${E(base(p))}</b><small>${E(p)}</small>`; P.note.textContent = 'Loading…'; P.note.hidden = false;
+    try {
+      const seqs = await Store3D.npc.show(P.stage, {mdl: p, skin: 0}, 'RED');
+      if (tok !== P.tok) return;
+      if (!seqs) return;
+      P.note.hidden = true;
+      const pri = [/^idle$/i, /^ref$/i, /^stand_primary$/i, /^stand_melee$/i, /^idle/i, /^stand/i, /idle|stand/i];
+      let q = null; for (const re of pri) { q = seqs.find(x => re.test(x.name)); if (q) break; } q = q || seqs[0];
+      if (q) Store3D.npc.play(q.name); else Store3D.npc.refit();
+    } catch (e) { if (tok === P.tok) { P.note.textContent = 'Couldn’t preview this model' + (e && e.message && e.message !== 'link' ? ': ' + e.message : '') + '.'; P.note.hidden = false; } }
+  }
+  let hoverT = 0;
+  document.addEventListener('pointerover', e => {
+    const m = e.target.closest && e.target.closest('.mdlv [data-mdl]'); if (!m || e.pointerType === 'touch') return;
+    clearTimeout(hoverT); const p = m.dataset.mdl; if (p === P.cur && mine()) return;
+    hoverT = setTimeout(() => { if (m.matches(':hover')) { document.querySelectorAll('.mdlv .mdr.cur').forEach(x => x.classList.remove('cur')); m.classList.add('cur'); preview(p); } }, 220);
+  });
   window.MDLVIEW = {
     render() {
       let h = `<section class="sec mdlv"><div class="sh"><div class="grow"><h2>Model Viewer</h2><div class="sub">Every model in the game’s files. Click one to see it in the store preview, with its animations and skins</div></div></div>`;
@@ -585,15 +645,16 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       if (q) {
         const L = all.filter(p => p.includes(q));
         h += `<p class="msg">${L.length.toLocaleString()} model${L.length === 1 ? '' : 's'}${L.length > MAX ? `, the first ${MAX} shown: search for more of the name or folder` : ''}</p>`;
-        h += `<div class="mlist">${L.slice(0, MAX).map(p => `<button class="mrow" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span><small>${E(p.split('/').slice(1, -1).join('/'))}</small></button>`).join('')}</div>`;
+        h += `<div class="mwrap"><div class="mlist">${L.slice(0, MAX).map(p => `<button class="mdr" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span><small>${E(p.split('/').slice(1, -1).join('/'))}</small></button>`).join('')}</div><div class="mslot" data-mdlpanel></div></div>`;
       } else {
         let dir = V.dir; let F = folder(all, dir); if (!F.sub.length && !F.here.length) { dir = V.dir = 'models'; F = folder(all, dir); }
         const parts = dir.split('/');
         h += `<div class="crumbs">${parts.map((x, i) => `${i ? '<span>/</span>' : ''}<button type="button" data-mdldir="${E(parts.slice(0, i + 1).join('/'))}">${E(x)}</button>`).join('')}</div>`;
-        h += `<div class="mlist">${parts.length > 1 ? `<button class="mrow dir" type="button" data-mdldir="${E(parts.slice(0, -1).join('/'))}">${UP}<span>..</span></button>` : ''}`
-          + F.sub.map(([d, n]) => `<button class="mrow dir" type="button" data-mdldir="${E(dir + '/' + d)}"><span>${E(d)}</span><small>${n.toLocaleString()}</small></button>`).join('')
-          + F.here.slice(0, 2000).map(p => `<button class="mrow" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span></button>`).join('') + '</div>';
+        h += `<div class="mwrap"><div class="mlist">${parts.length > 1 ? `<button class="mdr dir" type="button" data-mdldir="${E(parts.slice(0, -1).join('/'))}">${UP}<span>..</span></button>` : ''}`
+          + F.sub.map(([d, n]) => `<button class="mdr dir" type="button" data-mdldir="${E(dir + '/' + d)}"><span>${E(d)}</span><small>${n.toLocaleString()}</small></button>`).join('')
+          + F.here.slice(0, 2000).map(p => `<button class="mdr" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span></button>`).join('') + '</div><div class="mslot" data-mdlpanel></div></div>';
       }
+      queueMicrotask(mount);
       return h + '</section>';
     },
     async open(p) {
@@ -603,7 +664,9 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       const def = {mdl: p, allSeqs: true, skin: 0, nofloor: false};
       if (n > 1) def.fam = Array.from({length: Math.min(n, 64)}, (_, i) => ['Skin ' + (i + 1), i]);
       snd('panel_open');
-      ItemPreview.openNpc({name: base(p), level: p, def, esc: E, sfx: snd, close: () => snd('panel_close'), link: typeof linkGame === 'function' ? linkGame : null});
+      P.tok++;
+      ItemPreview.openNpc({name: base(p), level: p, def, esc: E, sfx: snd, link: typeof linkGame === 'function' ? linkGame : null,
+        close: () => { snd('panel_close'); P.cur = p; setTimeout(() => { if (P.el && P.el.isConnected && !document.querySelector('.spv')) preview(p); }, 60); }});
     },
   };
   document.addEventListener('click', e => {
