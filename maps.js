@@ -462,6 +462,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const redraw = () => { if (typeof S !== 'undefined' && S.view === 'mods' && typeof render === 'function') render(); };
   const icon = id => { try { const it = typeof ITEMS !== 'undefined' && ITEMS[id]; if (it && typeof iconHtml === 'function') return iconHtml(it); } catch (e) {} return '<div class="ph">?</div>'; };
 
+  const CAMCMD = 'sv_cheats 1; firstperson; cam_idealdist 100; cam_idealdistright 0; cam_idealdistup -25; cam_idealpitch 0; cam_idealyaw 0; cam_ideallag 0; thirdperson; thirdperson_mayamode';
   window.MODVIEW = {
     render() {
       const m = M.mod, live = !!(window.ZLIVE && ZLIVE.ready);
@@ -510,7 +511,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
             : `<p class="msg">Nothing to replace</p>`;
         }
       } else if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
-      return h + '</section>';
+      return h + `<p class="msg modcam">Recording an in-game promo for your Workshop item? This console command puts you in third person: <code>${CAMCMD}</code></p></section>`;
     },
   };
 
