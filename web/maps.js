@@ -463,6 +463,12 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   const icon = id => { try { const it = typeof ITEMS !== 'undefined' && ITEMS[id]; if (it && typeof iconHtml === 'function') return iconHtml(it); } catch (e) {} return '<div class="ph">?</div>'; };
 
   const CAMCMD = 'sv_cheats 1; firstperson; cam_idealdist 100; cam_idealdistright 0; cam_idealdistup -25; cam_idealpitch 0; cam_idealyaw 0; cam_ideallag 0; thirdperson; thirdperson_mayamode';
+  const copyBox = t => `<button type="button" class="modcopy" data-copy="${E(t)}" title="Click to copy" onclick="modCopy(this)"><code>${E(t)}</code><span>Copy</span></button>`;
+  window.modCopy = b => {
+    const t = b.dataset.copy, done = () => { b.classList.add('ok'); b.querySelector('span').textContent = 'Copied'; setTimeout(() => { b.classList.remove('ok'); b.querySelector('span').textContent = 'Copy'; }, 1500); };
+    const old = () => { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); done(); } catch {} a.remove(); };
+    try { navigator.clipboard.writeText(t).then(done, old); } catch { old(); }
+  };
   window.MODVIEW = {
     render() {
       const m = M.mod, live = !!(window.ZLIVE && ZLIVE.ready);
@@ -511,7 +517,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
             : `<p class="msg">Nothing to replace</p>`;
         }
       } else if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
-      return h + `<p class="msg modcam">Recording an in-game promo for your Workshop item? This console command puts you in third person: <code>${CAMCMD}</code></p></section>`;
+      return h + `<div class="msg modcam">Recording an in-game promo for your Workshop item? Third person:${copyBox(CAMCMD)}Hide the HUD:${copyBox('cl_drawhud 0')}</div></section>`;
     },
   };
 
