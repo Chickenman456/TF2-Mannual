@@ -273,6 +273,35 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(chunk)
                 left -= len(chunk)
 
+    def save_custom(self, url):
+        """A mod the Mod Maker built, written to tf/custom. Only from the page itself: the header it sends makes any other
+        site's request a CORS preflight, which this server never allows."""
+        name = urllib.parse.parse_qs(url.query).get("name", [""])[0]
+        if self.headers.get("X-Mannual") != "1" or not APP.tf_dir:
+            return self.send(403, {"error": "not allowed"})
+        if not re.fullmatch(r"[a-z0-9_]{1,120}\.vpk", name):
+            return self.send(400, {"error": "bad file name"})
+        n = int(self.headers.get("Content-Length") or 0)
+        if n <= 0 or n > 1 << 30:
+            return self.send(400, {"error": "bad size"})
+        d = os.path.join(APP.tf_dir, "custom")
+        os.makedirs(d, exist_ok=True)
+        fp = os.path.join(d, name)
+        tmp = fp + ".tmp"
+        with open(tmp, "wb") as f:
+            left = n
+            while left:
+                c = self.rfile.read(min(left, 1 << 20))
+                if not c:
+                    break
+                f.write(c)
+                left -= len(c)
+        if left:
+            os.remove(tmp)
+            return self.send(400, {"error": "upload cut short"})
+        os.replace(tmp, fp)
+        return self.send(200, {"path": "tf/custom/" + name})
+
     def body(self):
         n = int(self.headers.get("Content-Length") or 0)
         try:
@@ -365,7 +394,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(500, {"error": str(e)})
 
     def do_POST(self):
-        path = urllib.parse.urlsplit(self.path).path
+        url = urllib.parse.urlsplit(self.path)
+        path = url.path
+        if path == "/api/custom":
+            return self.save_custom(url)
         b = self.body()
         try:
             if path == "/api/tfdir":
