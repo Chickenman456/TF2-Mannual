@@ -214,6 +214,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
 .modmk .tgt.on{border-color:#cf6a32;background:rgba(207,106,50,.12)}
 .modmk .tgt .ico,.modmk .tgt .ph{width:80px;height:80px;object-fit:contain}
 .modmk .msg{padding:4px 12px;color:#a39684;font:400 15px TF2Secondary}
+.modmk .msg a{color:#cf6a32}
 .modmk .err{color:var(--AttribNegative,#ff4040)}
 @media (max-width:600px){.modmk .modgrid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}}`;
   document.head.appendChild(css);
@@ -476,7 +477,9 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
           if (t && t.canteen && Object.keys(m.models).length > 1) { const fc = fitClass(m);
             h += `<p class="msg">Every class carries a canteen with the same model. Use the version fitted to <select class="in" data-modfit aria-label="Class version to use">${Object.keys(m.models).map(c => `<option value="${c}"${c === fc ? ' selected' : ''}>${E(CNAME[c])}</option>`).join('')}</select></p>`; }
           if (t && !t.canteen) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
-          if (!(ZLIVE.custom && ZLIVE.custom.can)) h += `<p class="msg">To put mods straight in tf/custom, use the desktop app, or open this page in its own browser tab and link your TF2 folder there.</p>`;
+          if (!(ZLIVE.custom && ZLIVE.custom.can)) h += window.claude
+            ? `<p class="msg">In this window the browser only lets the page hand you a .zip, and it can’t write to your folders. For the .vpk itself, saved straight to tf/custom, use the desktop app or <a href="https://chickenman456.github.io/TF2-Mannual/" target="_blank" rel="noopener">open the Mann-ual in its own tab</a> and link your TF2 folder there.</p>`
+            : `<p class="msg">To put mods straight in tf/custom, use the desktop app, or open this page in its own browser tab and link your TF2 folder there.</p>`;
           if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
           h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.canteen ? 'Every class' : x.classes.map(c => CNAME[c]).join(', '))}">${x.canteen ? icImg(pathIcon(x.ic || x.invs[0])) : icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
             : `<p class="msg">No item ${E(m.classes.map(c => CNAME[c]).join(' or '))} wears in the ${E(m.regions.join(' or '))} region.</p>`;
