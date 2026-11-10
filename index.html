@@ -309,6 +309,13 @@ body.nofade .slot.miss .ico,body.nofade .slot.miss .fxi{filter:none}
   .top .meter #ptxt{flex-basis:100%}
   .top .tools{flex-direction:column;align-items:stretch;gap:10px}
   .top .tools>.grow{display:none}
+  /* your backpack, wishlist and the item search on top; the checklist views, then characters, maps and the Mod Maker */
+  .top .views{display:contents}
+  .top .views .tabs[aria-label=Yours]{order:1}
+  .top .finder{order:2}
+  body.vnpc .top .finder{display:none}   /* Characters and the Mod Maker have no search: no gap where it was */
+  .top .views .tabs[aria-label=Checklist]{order:3}
+  .top .views .tabs[aria-label=Explore]{order:4}
   .top .finder{width:100%}
   .top .finder .search{flex:1}
   .top .search{width:100%}
@@ -622,18 +629,20 @@ button.vg:focus-visible{outline:none}
   </div>
   <div class="tools gut">
     <nav class="views" aria-label="Views">
+      <div class="tabs" role="group" aria-label="Yours">
+        <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
+        <button class="btn" type="button" data-view="wishlist"><span class="gi tabg" style="--g:url(ui/gi_star.webp)"></span> Wishlist <span id="wcount"></span></button>
+      </div>
       <div class="tabs" role="group" aria-label="Checklist">
         <button class="btn" type="button" data-view="class" title="Every item, grouped by the class that uses it">By Class</button>
         <button class="btn" type="button" data-view="year" title="Every item, grouped by release year">By Year</button>
         <button class="btn" type="button" data-view="case" title="Every item, grouped by its case, crate or collection">Cases &amp; Collections</button>
         <button class="btn" type="button" data-view="set" title="The item sets, each with the items in it">Item Sets</button>
+      </div>
+      <div class="tabs" role="group" aria-label="Explore">
         <button class="btn" type="button" data-view="npc" title="The game's characters: the Mann vs. Machine robots and the Halloween bosses, with their animations">Characters</button>
         <button class="btn" type="button" data-view="maps" title="Every map in the game, by game mode, year or name, with its loading screen">Maps</button>
         <button class="btn" type="button" data-view="mods" title="Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region">Mod Maker</button>
-      </div>
-      <div class="tabs" role="group" aria-label="Yours">
-        <button class="btn" type="button" data-view="backpack" title="Every item in your backpack, from your last sync">My Backpack</button>
-        <button class="btn" type="button" data-view="wishlist"><span class="gi tabg" style="--g:url(ui/gi_star.webp)"></span> Wishlist <span id="wcount"></span></button>
       </div>
     </nav>
     <div class="grow"></div>
@@ -699,7 +708,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.14</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.10.15</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
