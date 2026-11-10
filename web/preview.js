@@ -59,7 +59,7 @@
       <div class="spv-cycle pl" style="${box(48, 24, 126, 28)}"></div>
       <button type="button" class="spv-glyph pl" data-spv="options" style="${box(193, 27, 11, 11)};--g:url(${IMG}glyph_options.webp)" aria-label="Paint and style" title="Paint and style"></button>
       <button type="button" class="spv-glyph pl" data-spv="full" style="${box(209, 27, 11, 11)};--g:url(${IMG}store_fullscreen.webp)" aria-label="Full screen" title="Full screen"></button>
-      <button type="button" class="spv-lod pl" data-spv="lod" style="${box(180, 41, 40, 10)}" title="Level of detail: the merc and his items the way the game draws them from farther away (LOD 0, 1, 2)" hidden>LOD 0</button>
+      <button type="button" class="spv-lod pl" data-spv="lod" style="${box(180, 41, 40, 10)}" title="Level of detail" hidden>LOD 0</button>
       <button type="button" class="spv-rot pl" data-rot="-1" style="${box(16, 100, 20, 20)}" aria-label="Turn left">&lt;</button>
       <button type="button" class="spv-rot pl" data-rot="1" style="${box(205, 100, 20, 20)}" aria-label="Turn right">&gt;</button>
       <button type="button" class="spv-tb pl" data-spv="tplay" style="${box(16, 187, 13, 13)}" hidden aria-label="Pause the taunt" title="Pause">${TICON.pause}</button>

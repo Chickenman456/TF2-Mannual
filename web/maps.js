@@ -29,17 +29,17 @@
   const byName = (a, b) => a.n.localeCompare(b.n) || a.f.localeCompare(b.f);
   const count = n => n + (n === 1 ? ' map' : ' maps');
   function sections(L) {
-    if (group === 'az') return [['All maps', L.length + ' maps, A to Z', [...L].sort(byName)]];
+    if (group === 'az') return [['All maps', count(L.length), [...L].sort(byName)]];
     if (group === 'year' || group === 'update') {
       // newest first; an update's maps under its name, with the day it came out
       const key = m => group === 'year' ? m.d.slice(0, 4) : m.u, G = {};
       L.forEach(m => (G[key(m)] = G[key(m)] || []).push(m));
       const first = k => G[k].reduce((a, m) => m.d < a ? m.d : a, '9999');
-      return Object.keys(G).sort((a, b) => first(b).localeCompare(first(a)) || a.localeCompare(b)).map(k => [k === 'Launch' ? 'Launch (the game’s release)' : k,
+      return Object.keys(G).sort((a, b) => first(b).localeCompare(first(a)) || a.localeCompare(b)).map(k => [k,
         group === 'year' ? count(G[k].length) : count(G[k].length) + ' · ' + when({d: first(k)}), G[k].sort((a, b) => b.d.localeCompare(a.d) || byName(a, b))]);
     }
     if (group === 'maker') {
-      return [['Valve', 'Made by Valve'], ['Community', 'Made by the community, from the Steam Workshop']].map(([k, sub]) => [k, sub, L.filter(m => m.s === k).sort(byName)]).filter(x => x[2].length);
+      return ['Valve', 'Community'].map(k => { const F = L.filter(m => m.s === k).sort(byName); return [k, count(F.length), F]; }).filter(x => x[2].length);
     }
     const M = {}; L.forEach(m => (M[m.m] = M[m.m] || []).push(m));
     const keys = Object.keys(M).sort((a, b) => ((MORDER.indexOf(a) + 1) || 99) - ((MORDER.indexOf(b) + 1) || 99) || a.localeCompare(b));
@@ -303,7 +303,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   async function loadZip(it) {
     M.busy = 'Reading ' + it.name + '…'; M.err = ''; redraw();
     let b = null; try { b = await ZLIVE.workshop.blob(it); } catch (e) { b = null; }
-    if (!b) { M.busy = ''; M.err = 'Couldn’t read ' + it.name + ': link your TF2 folder again (Settings > Sync with your game).'; redraw(); return; }
+    if (!b) { M.busy = ''; M.err = 'Couldn’t read ' + it.name + '. Sync again.'; redraw(); return; }
     return load({name: it.name, size: b.size, slice: (x, y) => b.slice(x, y)});
   }
 
@@ -444,8 +444,8 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       if (C) {
         let where = null, why = '';
         try { if (await access) where = await C.save(name, blob); else why = 'the browser didn’t allow writing to your TF2 folder'; } catch (e) { why = (e && e.message) || String(e); }
-        if (where) { M.note = `Built ${name} (${(blob.size / 1048576).toFixed(1)} MB, ${files.size} files) and put it in ${where}. Restart TF2 and ${t.name} shows as ${m.name}. Mods like this show only where the server allows custom files.`; M.busy = ''; redraw(); return; }
-        M.err = 'Couldn’t put it in tf/custom (' + why + '), so it’s downloading instead.';
+        if (where) { M.note = `Saved to ${where}. Restart TF2.`; M.busy = ''; redraw(); return; }
+        M.err = 'Couldn’t save to tf/custom (' + why + '). Downloading instead.';
       }
       let saved = false;
       const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
@@ -454,7 +454,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
         catch (e) { if (e && e.code === 'declined') { M.busy = ''; redraw(); return; } }
       }
       if (!saved) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
-      M.note = `Built ${name} (${(blob.size / 1048576).toFixed(1)} MB, ${files.size} files)${dl ? ', in a .zip: take the .vpk out of it' : ''}. Put it in Team Fortress 2/tf/custom, and ${t.name} shows as ${m.name}. Mods like this show only where the server allows custom files.`;
+      M.note = `Built ${name}${dl ? ' (in a .zip)' : ''}. Put it in tf/custom.`;
     } catch (e) { M.err = (e && e.message) || String(e); }
     M.busy = ''; redraw();
   }
@@ -465,22 +465,22 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   window.MODVIEW = {
     render() {
       const m = M.mod, live = !!(window.ZLIVE && ZLIVE.ready);
-      let h = `<section class="sec modmk"><div class="sh"><div class="grow"><h2>Mod Maker</h2><div class="sub">Turn a compiled Workshop item into a mod that replaces an item of the same class and equip region</div></div></div>
-        <div class="drop" data-moddrop><button class="btn big" type="button" data-modpick>Choose a Workshop zip</button><p>or drop one here. Export it from TF2’s Workshop importer once it has compiled. It’s read here, in your browser.</p>
+      let h = `<section class="sec modmk"><div class="sh"><div class="grow"><h2>Mod Maker</h2><div class="sub">Workshop zip to .vpk</div></div></div>
+        <div class="drop" data-moddrop><button class="btn big" type="button" data-modpick>Choose a Workshop zip</button><p>or drop one here</p>
         <input type="file" accept=".zip,application/zip" data-modfile hidden></div>`;
       {
         const ok = live && ZLIVE.workshop; if (ok) zips();
         const Z = ok ? M.zips : null, q = M.zq.trim().toLowerCase(), ZL = Z ? (q ? Z.filter(x => x.name.toLowerCase().includes(q)) : Z) : [];
         const when = t => { try { return new Date(t).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}); } catch (e) { return ''; } };
-        const sync = t => `<p class="msg">${t}</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
+        const sync = t => `${t ? `<p class="msg">${t}</p>` : ''}<p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
         const saved = !!(window.TF2Files && TF2Files.saved);
         h += `<div class="zips${M.zclosed ? ' closed' : ''}"><div class="zh"><button class="ztog" type="button" data-modztog aria-expanded="${!M.zclosed}"><span class="gi" style="--g:url(ui/gi_arrow.webp)"></span><b>Your Workshop zips</b></button>${Z && Z.length && !M.zclosed ? `<input class="in" type="search" placeholder="Search ${Z.length} zips…" value="${E(M.zq)}" data-modzq aria-label="Search your Workshop zips">` : ''}<span class="sub">tf/workshop/import_source${Z && Z.length ? ' · ' + Z.length : ''}</span></div>`;
         if (!M.zclosed) {
-          if (!ok) h += sync('Sync your TF2 folder to list the zips TF2’s Workshop importer saved, and pick one here.');
+          if (!ok) h += sync('');
           else if (!Z) h += '<p class="msg">Reading your Workshop zips…</p>';
-          else if (!Z.length) h += sync('No zips found in tf/workshop/import_source. If you’ve compiled items with the Workshop importer, sync your TF2 folder again so the page can see them.');
+          else if (!Z.length) h += sync('No zips found.');
           else {
-            if (!M.zread || saved) h += `<p class="msg">${saved ? 'This is the saved copy of your TF2 files, which doesn’t hold the zips themselves: ' : 'Some zips couldn’t be read: '}sync your TF2 folder again to show their icons and open them. <button class="btn" type="button" data-tfsync>Sync with your game</button></p>`;
+            if (!M.zread || saved) h += `<p class="msg">Sync again to load these. <button class="btn" type="button" data-tfsync>Sync with your game</button></p>`;
             h += `<div class="zipl">${ZL.map(x => `<button class="zip${m && m.file.name === x.name ? ' on' : ''}" type="button" data-modzip="${E(x.name)}" title="${E(x.name)}">${icImg('zip:' + x.name, ZIC[zkey(x)])}<div><span>${E(x.name.replace(/\.zip$/i, ''))}</span><small>${E(when(x.t))} · ${(x.size / 1048576).toFixed(1)} MB</small></div></button>`).join('')}</div>`;
           }
         }
@@ -491,23 +491,23 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
       if (m) {
         h += `<div class="modcard">${m.icon ? `<img alt="" src="${m.icon}">` : ''}<div><h3>${E(m.name)}</h3><div class="sub">${E(m.file.name)}</div>
           <div class="tags">${m.classes.map(c => `<span class="tag">${E(CNAME[c])}</span>`).join('')}${m.regions.map(r => `<span class="tag">Equip region: ${E(r)}</span>`).join('')}${m.groups.map(g => `<span class="tag">Hides: ${E(g)}</span>`).join('')}</div></div></div>`;
-        if (!live) h += `<p class="msg">Sync your TF2 install to see the items it can replace: the items and their model paths come from your game.</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
+        if (!live) h += `<p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p>`;
         else {
           const all = targets(), q = M.q.trim().toLowerCase(), L = q ? all.filter(x => x.name.toLowerCase().includes(q)) : all;
           const t = all.find(x => x.id === M.pick);
           h += `<div class="modbar"><b>Replace</b><input class="in" type="search" placeholder="Search ${all.length} items…" value="${E(M.q)}" data-modq aria-label="Search the items it can replace">
-            <label class="chk"><input type="checkbox" data-modicon${M.icon === false ? '' : ' checked'}> Replace its backpack icon too</label>
-            ${ZLIVE.custom && ZLIVE.custom.can ? `<label class="chk"><input type="checkbox" data-modauto${M.auto ? ' checked' : ''}> Put it straight in my custom folder</label>` : ''}
+            <label class="chk"><input type="checkbox" data-modicon${M.icon === false ? '' : ' checked'}> Replace backpack icon</label>
+            ${ZLIVE.custom && ZLIVE.custom.can ? `<label class="chk"><input type="checkbox" data-modauto${M.auto ? ' checked' : ''}> Save to tf/custom</label>` : ''}
             <button class="btn big" type="button" data-modbuild${t && !M.busy ? '' : ' disabled'}>${t ? 'Build mod for ' + E(t.name) : 'Pick an item to replace'}</button></div>`;
           if (t && t.canteen && Object.keys(m.models).length > 1) { const fc = fitClass(m);
-            h += `<p class="msg">Every class carries a canteen with the same model. Use the version fitted to <select class="in" data-modfit aria-label="Class version to use">${Object.keys(m.models).map(c => `<option value="${c}"${c === fc ? ' selected' : ''}>${E(CNAME[c])}</option>`).join('')}</select></p>`; }
-          if (t && !t.canteen) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">${E(t.name)} ${tg.length ? 'hides ' + E(tg.join(', ')) : 'hides nothing'}, and ${E(m.name)} ${m.groups.length ? 'hides ' + E(m.groups.join(', ')) : 'hides nothing'}: the game goes by ${E(t.name)}’s.</p>`; }
+            h += `<p class="msg">Use the <select class="in" data-modfit aria-label="Class version to use">${Object.keys(m.models).map(c => `<option value="${c}"${c === fc ? ' selected' : ''}>${E(CNAME[c])}</option>`).join('')}</select> version</p>`; }
+          if (t && !t.canteen) { const tg = groupsOf(t.r), same = tg.join() === m.groups.join(); if (!same) h += `<p class="msg">Hides ${tg.length ? E(tg.join(', ')) : 'nothing'} (yours: ${m.groups.length ? E(m.groups.join(', ')) : 'nothing'})</p>`; }
           if (!(ZLIVE.custom && ZLIVE.custom.can)) h += window.claude
-            ? `<p class="msg">In this window the browser only lets the page hand you a .zip, and it can’t write to your folders. For the .vpk itself, saved straight to tf/custom, use the desktop app or <a href="https://chickenman456.github.io/TF2-Mannual/" target="_blank" rel="noopener">open the Mann-ual in its own tab</a> and link your TF2 folder there.</p>`
-            : `<p class="msg">To put mods straight in tf/custom, use the desktop app, or open this page in its own browser tab and link your TF2 folder there.</p>`;
+            ? `<p class="msg">Downloads as .zip here. <a href="https://chickenman456.github.io/TF2-Mannual/" target="_blank" rel="noopener">Open in a new tab</a> for .vpk and saving to tf/custom.</p>`
+            : '';
           if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
           h += all.length ? `<div class="modgrid">${L.map(x => `<button class="tgt${x.id === M.pick ? ' on' : ''}" type="button" data-modtgt="${E(x.id)}" title="${E(x.canteen ? 'Every class' : x.classes.map(c => CNAME[c]).join(', '))}">${x.canteen ? icImg(pathIcon(x.ic || x.invs[0])) : icon(x.id)}<span>${E(x.name)}</span></button>`).join('')}</div>`
-            : `<p class="msg">No item ${E(m.classes.map(c => CNAME[c]).join(' or '))} wears in the ${E(m.regions.join(' or '))} region.</p>`;
+            : `<p class="msg">Nothing to replace</p>`;
         }
       } else if (M.note) h += `<p class="msg">${E(M.note)}</p>`;
       return h + '</section>';
@@ -593,7 +593,7 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   function panel() {
     if (P.el) return P.el;
     const el = P.el = document.createElement('div'); el.className = 'mpv';
-    el.innerHTML = '<div class="stage"><div class="note">Point at a model to preview it here. Click it to open it in the store preview.</div></div><div class="cap"></div>';
+    el.innerHTML = '<div class="stage"><div class="note">Hover a model</div></div><div class="cap"></div>';
     P.stage = el.querySelector('.stage'); P.note = el.querySelector('.note'); P.cap = el.querySelector('.cap');
     P.stage.addEventListener('pointerdown', () => { P.drag = true; }); addEventListener('pointerup', () => { P.drag = false; });
     return el;
@@ -636,15 +636,15 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   });
   window.MDLVIEW = {
     render() {
-      let h = `<section class="sec mdlv"><div class="sh"><div class="grow"><h2>Model Viewer</h2><div class="sub">Every model in the game’s files. Click one to see it in the store preview, with its animations and skins</div></div></div>`;
+      let h = `<section class="sec mdlv"><div class="sh"><div class="grow"><h2>Model Viewer</h2></div></div>`;
       const all = list();
-      if (!all) return h + `<p class="msg">Sync your TF2 folder to browse its models: they’re read from your game’s own files.</p><p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p></section>`;
+      if (!all) return h + `<p class="msg"><button class="btn big" type="button" data-tfsync>Sync with your game</button></p></section>`;
       if (!all.length) return h + '<p class="msg">No models found in your TF2 files.</p></section>';
       h += `<div class="mbar"><input class="in" type="search" placeholder="Search ${all.length.toLocaleString()} models…" value="${E(V.q)}" data-mdlq aria-label="Search the models"></div>`;
       const q = V.q.trim().toLowerCase();
       if (q) {
         const L = all.filter(p => p.includes(q));
-        h += `<p class="msg">${L.length.toLocaleString()} model${L.length === 1 ? '' : 's'}${L.length > MAX ? `, the first ${MAX} shown: search for more of the name or folder` : ''}</p>`;
+        h += `<p class="msg">${L.length.toLocaleString()} model${L.length === 1 ? '' : 's'}${L.length > MAX ? ` (showing ${MAX})` : ''}</p>`;
         h += `<div class="mwrap"><div class="mlist">${L.slice(0, MAX).map(p => `<button class="mdr" type="button" data-mdl="${E(p)}" title="${E(p)}">${EYE}<span>${E(base(p))}</span><small>${E(p.split('/').slice(1, -1).join('/'))}</small></button>`).join('')}</div><div class="mslot" data-mdlpanel></div></div>`;
       } else {
         let dir = V.dir; let F = folder(all, dir); if (!F.sub.length && !F.here.length) { dir = V.dir = 'models'; F = folder(all, dir); }
