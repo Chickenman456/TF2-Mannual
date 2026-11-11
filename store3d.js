@@ -1720,6 +1720,19 @@ async function soundscripts(){if(SNDS)return SNDS;return SNDS=(async()=>{const o
 const sndPath=w=>'sound/'+String(w).replace(/\\/g,'/').replace(/^[*#@<>^)}$!?(]+/,'');
 async function waves(name){const S=await soundscripts();const e=S[String(name).toLowerCase()];if(!e)return[];let W=[];const add=v=>W=W.concat(v);
  if(e.wave)add(e.wave);if(e.rndwave&&e.rndwave.wave)add(e.rndwave.wave);return W.filter(Boolean)}
+// a voice line's lip sync: its sentence data in scripts/game_sounds_vo_phonemes.txt (the game's voice mp3s carry none of their own):
+// WORDS' phonemes as [code, start, end] and EMPHASIS as [time, value], what the faces' visemes play (as the packaged taunts' lines have)
+let PHT=null;
+async function phonemes(w){if(!PHT)PHT=(async()=>{let b=null;try{b=await read('scripts/game_sounds_vo_phonemes.txt')}catch(e){}const M={};if(!b)return M;
+  const L=text(b).split(/\r?\n/);let cur=null,depth=0,sec='';
+  for(let i=0;i<L.length;i++){const l=L[i].trim();if(!l)continue;
+   if(!cur){if(/\.(mp3|wav)$/i.test(l)){cur={ph:[],em:[]};M[l.replace(/\//g,'\\').toLowerCase()]=cur;depth=0}continue}
+   if(l==='{'){depth++;continue}if(l==='}'){depth--;if(depth<=0)cur=null;else if(depth===1)sec='';continue}
+   if(depth===1){sec=l.split(/\s+/)[0].toUpperCase();continue}
+   if(sec==='WORDS'&&depth===3){const m=/^(\d+)\s+\S+\s+(-?[\d.]+)\s+(-?[\d.]+)/.exec(l);if(m)cur.ph.push([+m[1],+m[2],+m[3]])}
+   else if(sec==='EMPHASIS'&&depth===2){const m=/^(-?[\d.]+)\s+(-?[\d.]+)$/.exec(l);if(m)cur.em.push([+m[1],+m[2]])}}
+  return M})();
+ const M=await PHT;const k=sndPath(w).slice(6).replace(/\//g,'\\').toLowerCase();const e=M[k];return e?{ph:e.ph,em:e.em}:{ph:[],em:[]}}
 const AUD={};
 const VOC=/^sound\/vo\/(taunts\/)?(scout|soldier|pyro|demoman|heavy|engineer|medic|sniper|spy)_([^/]+)$/i;
 function robotVo(p){const m=VOC.exec(p);if(!m)return null;const r=ROBO[m[2].toLowerCase()];if(!r)return null;if(/sentry_buster/i.test(r))return '';return 'sound/vo/mvm/norm/'+(m[1]||'')+m[2].toLowerCase()+'_mvm_'+m[3]}
@@ -1852,12 +1865,12 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rk
  const cand=[...(sname?['layer_'+sname,sname]:[]),'layer_'+base+'_'+SHORT[c],base+'_'+SHORT[c],'layer_'+base,base];
  const A=await seqClip(c,[...new Set(cand)],clipName,boneSet);if(!A)return null;
  const dur=A.clip.duration;const ev=[{t:'seq',s:seqEv?seqEv.s:0,e:seqEv&&seqEv.e>0?seqEv.e:dur,n:clipName}];const urls={};
- for(const x of (evs||[])){if(x.type=='speak'&&x.p1){const W=/\.(wav|mp3)$/i.test(x.p1)?[x.p1]:await waves(x.p1);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,ph:[],em:[]})}}
+ for(const x of (evs||[])){if(x.type=='speak'&&x.p1){const W=/\.(wav|mp3)$/i.test(x.p1)?[x.p1]:await waves(x.p1);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,...await phonemes(f)})}}
    if(w.length)ev.push({t:'speak',s:x.s,e:x.e>x.s?x.e:x.s+8,v:1,w})}
   else if(x.type=='expression'&&x.p2)ev.push({t:'expr',s:x.s,e:x.e,file:String(x.p1||'').replace(/\\/g,'/').split('/').pop(),name:x.p2,ramp:x.ramp});
   else if(x.type=='flexanimation'&&x.tr)ev.push({t:'flex',s:x.s,e:x.e,ramp:x.ramp,tr:x.tr.map(t=>({n:t.n,c:!!(t.fl&2),min:t.min,max:t.max,s0:t.s0,s1:t.s1}))})}
  // the sounds the taunt's animation fires itself (most taunts' music and effects), at their point in the sequence
- const soundOf=async name=>{const W=/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,ph:[],em:[]})}}return w};
+ const soundOf=async name=>{const W=/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,...await phonemes(f)})}}return w};
  const s0=seqEv?seqEv.s:0,sd=seqEv&&seqEv.e>seqEv.s?seqEv.e-seqEv.s:dur;
 // the scene's own sequence carries the events even when its motion came from a layer sequence
  let SE=A.events||[];if(sname&&A.seq&&A.seq.toLowerCase()!==sname.toLowerCase()){for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const E=seqEvents(b,sname);if(E.length){SE=E.concat(SE);break}}}
