@@ -643,6 +643,7 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
   const cont=!!(F&&F.cont&&tok);
   if(G){const g={g:pickW(G),t:0,loop:cont};m._gest=[g];if(cont)tok.ga=g}
   if(!F)return null;
+  if(!F.spin&&window.ZFACE)ZFACE.fired(m);
   if(F.urls.length){const au=new Audio(F.urls[(Math.random()*F.urls.length)|0]);let v=1;try{v=window.ZVOL?Math.max(0,Math.min(1,+ZVOL()||0)):1}catch(e){}au.volume=v*.6;if(cont){au.loop=true;tok.au=au}if(v>0)au.play().catch(()=>{})}
   if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wn);if(o){const sc=()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1};ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),sc).catch(()=>{})}}
   return F}
@@ -657,16 +658,17 @@ const KCTL=(()=>{const st=c=>{const m=M[c];return m?(m._mv||(m._mv={run:false,cr
    // the Huntsman is drawn while the trigger is held (the deployed stance, the bow's pull sound) and looses its arrow on release
    if(F0&&F0.hold){tok.hold=m;m._spin=1;move(c);tok.au=sound(F0.hold.pull);return}
    if(F0&&F0.spin){tok.spin=m;m._spin=1;move(c);gest(c,m,'PREFIRE');tok.au=sound(F0.spin.up);await new Promise(r=>tok.t=setTimeout(r,F0.spin.time*1000));if(FT!==tok)return;if(tok.au){try{tok.au.pause()}catch(e){}tok.au=null}}}
+  if(tok.spin&&window.ZFACE)ZFACE.minigun(tok.spin,true);
   const F=await fire(c,tok);if(FT!==tok||!F)return;
   const step=async()=>{if(FT!==tok)return;const m=M[c];if(!m||busy(m)){fireUp();return}
-   if(F.cont){if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wname(m));if(o&&FT===tok)ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}}
+   if(F.cont){if(!F.spin&&window.ZFACE)ZFACE.fired(m);if(F.muzzle&&window.ZPFX&&ZPFX.burst){const o=await muzzleOf(m,c,wname(m));if(o&&FT===tok)ZPFX.burst(F.muzzle,()=>({obj:o,merc:m.o}),()=>{const v=new THREE.Vector3();m.o.getWorldScale(v);return v.y||1}).catch(()=>{})}}
    else await fire(c,tok);
    if(FT===tok)tok.t=setTimeout(step,F.rate*1000)};
   tok.t=setTimeout(step,F.rate*1000)}
  function fireUp(quiet){const t=FT;FT=null;if(!t)return;clearTimeout(t.t);if(t.au&&!t.hold){try{t.au.pause()}catch(e){}}if(t.ga)t.ga.stop=true;
   {const m=t.hold;if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!quiet&&!busy(m))fire(t.c).catch(()=>{})}}}
   // the minigun winds down: the spool-down gesture out of the deployed stance, the wind-down sound
-  const m=t.spin;if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!busy(m)){gest(t.c,m,'POSTFIRE');const wn=wname(m);if(wn)ZLIVE.fireInfo(t.c,wn).then(F=>{if(F&&F.spin)sound(F.spin.down)}).catch(()=>{})}}}}
+  const m=t.spin;if(m&&window.ZFACE)ZFACE.minigun(m,false);if(m&&m._spin){m._spin=0;if(M[t.c]===m){move(t.c);if(!busy(m)){gest(t.c,m,'POSTFIRE');const wn=wname(m);if(wn)ZLIVE.fireInfo(t.c,wn).then(F=>{if(F&&F.spin)sound(F.spin.down)}).catch(()=>{})}}}}
  // the weapon's muzzle attachment, from the mesh (a weapon read from the install) or from its model in the install (the page's own stock models)
  async function muzzleOf(m,c,wn){const w=(m.wmesh||[])[0];if(!w||!w.skeleton)return null;if(w.userData._matt&&w.userData._matt.parent)return w.userData._matt;
   let t=null;for(const x of m.wmesh){t=(x.userData.att||[]).find(a=>/^muzzle$/i.test(a.name));if(t)break}
@@ -963,7 +965,26 @@ async function start(c,m,clip,action){killAll();const tok=TOK;const k=c=='Demoma
  const Sx={clip,sc:Object.assign({dur:end},sc),action,off,scale,started:new Set(),voices:[],music:null};
  if(sc.mu){const a=audio(sc.mu.k);a.volume=Math.min(1,sc.mu.v*.42)*zv();a.loop=true;a.play().catch(()=>{});Sx.music=a}
  R.scene=Sx;LIVE.add(R);R.live=true}
-function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.M[x]===m);if(c){ZFACE.preload(c);const k=c=='Demoman'?'demo':c.toLowerCase();if(k!='pyro')pack(k).then(h=>{if(h&&!m.face)m.face=rig(m,h);else if(!h)m._nof=1})}}const R=m.face||m._face;if(!R)return;const S=R.scene;
+// ---- the player's own expressions (tf_player.cpp) ----
+// UpdateExpression: once the last expression and the last firing scene are over (m_flNextRandomExpressionTime, m_flNextSpeakWeaponFire),
+// ClearExpression and start the scene TLK_PLAYER_EXPRESSION picks (the class's idle loop; the Heavy's firing face while his minigun has
+// been firing), again whenever it ends. SpeakWeaponFire: a shot starts the TLK_FIREWEAPON scene (attack01) unless the last one is still
+// playing, in one of MAX_FIRE_WEAPON_SCENES (4) slots. The scenes come from scenes.json (xp) or, linked, from the game's own files.
+const XPD={};
+function xpLoad(m){const k=m._xk;if(!k||k=='pyro')return;const X=m._xp||(m._xp={idle:null,fire:[null,null,null,null],nf:0,next:0,nextX:0,mini:-1,d:null,at:0});
+ if(X.d||X.busy)return;const now=performance.now()/1000;if(now<X.at)return;X.busy=1;
+ (XPD[k]||(XPD[k]=(async()=>{const J=await scenes();if(J.xp&&J.xp[k])return J.xp[k];if(window.ZLIVE&&ZLIVE.ready&&ZLIVE.expressions)return await ZLIVE.expressions(k);return null})()))
+  .then(d=>{X.busy=0;if(d)X.d=d;else{delete XPD[k];X.at=performance.now()/1000+5}}).catch(()=>{X.busy=0;delete XPD[k];X.at=performance.now()/1000+5})}
+const xpPick=L=>L&&L.length?L[(Math.random()*L.length)|0]:null;
+function xpThink(m){xpLoad(m);const X=m._xp;if(!X||!X.d)return[];const now=performance.now()/1000;
+ if(now>X.next&&now>X.nextX){X.idle=null;X.fire.fill(null);const sc=xpPick(X.mini>=0&&now-X.mini>=.05&&X.d.minigun||X.d.idle);
+  if(sc){X.idle={sc,t0:now};X.nextX=now+sc.dur}else X.nextX=now+30+Math.random()*10}
+ const out=[];for(const x of [X.idle,...X.fire]){if(!x)continue;const st=now-x.t0;if(st<=x.sc.dur)out.push({sc:x.sc,st})}return out}
+function xpFired(m){const X=m&&m._xp;if(!X)return;const now=performance.now()/1000;if(X.next>now)return;X.next=now+5;const sc=X.d&&xpPick(X.d.attack);if(!sc)return;
+ X.fire[X.nf]={sc,t0:now};X.next=now+sc.dur;X.nf=(X.nf+1)%4}
+// the minigun: firing (SpeakWeaponFire TLK_FIREMINIGUN, no scene of its own: 5 s before the next expression) and stopping (ClearWeaponFireScene)
+function xpMinigun(m,on){const X=m&&m._xp;if(!X)return;const now=performance.now()/1000;if(on){X.next=now+5;X.mini=now}else{X.next=now;X.mini=-1}}
+function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.M[x]===m);if(c){m._xk=c=='Demoman'?'demo':c.toLowerCase();ZFACE.preload(c);const k=c=='Demoman'?'demo':c.toLowerCase();if(k!='pyro')pack(k).then(h=>{if(h&&!m.face)m.face=rig(m,h);else if(!h)m._nof=1})}}const R=m.face||m._face;if(!R)return;const S=R.scene;
  if(S){const a=S.action;if(m.cn!==S.clip)stopScene(R,false,!/^(taunt|live:)/.test(m.cn||''));else if(!a.isRunning()&&!a.paused)stopScene(R,true,true)}
  const sc=R.scene;let st=0;if(sc){st=sc.off+sc.action.time*sc.scale;
   // a held taunt's loop jumped back: what starts inside the loop plays again
@@ -974,13 +995,20 @@ function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.
    const vfb=!!m.zskin;if(vfb){a.preservesPitch=false;a.mozPreservesPitch=false;a.webkitPreservesPitch=false;a.playbackRate=.8}
    const past=st-e.s;if(past>.05)a.currentTime=past*(vfb?.8:1);a.play().catch(()=>{});sc.voices.push({a,v:w,t0:performance.now()/1000-past})})}
  if(!R.h)return;const h=R.h,fw=R.fw,g=R.g,ctl=h.ctl;
- const dec=Math.pow(.95,dt*60);let act=!!sc;for(let i=0;i<fw.length;i++){const c=ctl[i],r=c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i],v=r*dec;fw[i]=c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v;if(Math.abs(v)>1e-4)act=true}
+ const XS=xpThink(m);
+ const dec=Math.pow(.95,dt*60);let act=!!sc||XS.length>0;for(let i=0;i<fw.length;i++){const c=ctl[i],r=c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i],v=r*dec;fw[i]=c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v;if(Math.abs(v)>1e-4)act=true}
  if(!act&&!R.live)return;
  const norm=(i,v)=>{const c=ctl[i];return c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v},unnorm=i=>{const c=ctl[i];return c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i]};
  if(sc)for(const e of sc.sc.ev){if(e.t!='flex'||st<e.s||st>e.e)continue;const w=evIntensity(e,st,sc.sc);
   for(const tr of e.tr){if(tr.c){[['right_',0],['left_',1]].forEach(([pre,side])=>{const ci=h.cname[(pre+tr.n).toLowerCase()];if(ci==null)return;fw[ci]=norm(ci,unnorm(ci)*(1-w)+trackIntensity(tr,e,st,side)*w)})}
    else{const ci=h.cname[tr.n.toLowerCase()];if(ci==null)continue;fw[ci]=norm(ci,unnorm(ci)*(1-w)+trackIntensity(tr,e,st,0)*w)}}}
+ for(const x of XS)for(const e of x.sc.ev){if(e.t!='flex'||x.st<e.s||x.st>e.e)continue;const w=evIntensity(e,x.st,x.sc);
+  for(const tr of e.tr){if(tr.c){[['right_',0],['left_',1]].forEach(([pre,side])=>{const ci=h.cname[(pre+tr.n).toLowerCase()];if(ci==null)return;fw[ci]=norm(ci,unnorm(ci)*(1-w)+trackIntensity(tr,e,x.st,side)*w)})}
+   else{const ci=h.cname[tr.n.toLowerCase()];if(ci==null)continue;fw[ci]=norm(ci,unnorm(ci)*(1-w)+trackIntensity(tr,e,x.st,0)*w)}}}
  for(let i=0;i<g.length;i++)g[i]=unnorm(i);
+ // the player's expression scenes first, a taunt's own expressions over them
+ for(const x of XS)for(const e of x.sc.ev){if(e.t!='expr'||x.st<e.s||x.st>e.e)continue;const set=h.vfe[e.file]&&h.vfe[e.file][e.name.toLowerCase()];if(!set)continue;const sca=evIntensity(e,x.st,x.sc);
+  for(const [j,w,inf] of set){const s=Math.min(1,Math.max(0,sca*inf));g[j]=g[j]*(1-s)+w*s}}
  if(sc)for(const e of sc.sc.ev){if(e.t!='expr'||st<e.s||st>e.e)continue;const set=h.vfe[e.file]&&h.vfe[e.file][e.name.toLowerCase()];if(!set)continue;const sca=evIntensity(e,st,sc.sc);
   for(const [j,w,inf] of set){const s=Math.min(1,Math.max(0,sca*inf));g[j]=g[j]*(1-s)+w*s}}
  if(sc)sc.voices=sc.voices.filter(x=>{const a=x.a;const t=a.paused&&a.currentTime===0?performance.now()/1000-x.t0:a.currentTime;if(a.ended)return false;visemes(R,x.v,t);return true});
@@ -998,7 +1026,7 @@ async function attach(c,m,key,meshes){if(/^live:/.test(key)){const ih=window.ZLI
  if(!m.face&&h)m.face=rig(m,h);m.faceItems=(m.faceItems||[]).filter(x=>x.meshes.every(y=>y.parent));m.faceItems.push({R,map,meshes});if(m.face)m.face.live=true}
 // pausing a taunt holds its voices and music where they are
 function pauseScene(m,p){const R=m&&(m.face||m._face);const S=R&&R.scene;if(!S)return;const A=[...S.voices.map(x=>x.a),S.music].filter(Boolean);A.forEach(a=>{try{if(p)a.pause();else if(!a.ended)a.play().catch(()=>{})}catch(e){}})}
-window.ZFACE={pause:pauseScene,addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false);TAIL.forEach(a=>{try{a.pause()}catch(e){}});TAIL.clear()},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
+window.ZFACE={fired:xpFired,minigun:xpMinigun,pause:pauseScene,addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false);TAIL.forEach(a=>{try{a.pause()}catch(e){}});TAIL.clear()},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
 })();
 
 // ============ jiggle bones ============
@@ -1767,6 +1795,25 @@ async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)r
     tracks.push(new THREE.QuaternionKeyframeTrack(B.name+'.quaternion',times,QV),new THREE.VectorKeyframeTrack(B.name+'.position',times,PV))});
    return{clip:new THREE.AnimationClip(clipName,(F.length-1)/A.fps,tracks),seq:n,events:seqEvents(b,n)}}}
 const TAUNT={};
+// the player's own expressions, as the response rules in scripts/talker/tf.txt pick them (CTFPlayer::UpdateExpression for
+// TLK_PLAYER_EXPRESSION, CTFPlayer::SpeakWeaponFire for TLK_FIREWEAPON): idle (Is<Class> alone), attack (the scene a shot starts) and
+// minigun (Is<Class> + IsFiringMinigun); each a list of scenes (a response can name several), their expression and flex events
+const XPC={scout:'Scout',soldier:'Soldier',pyro:'Pyro',demo:'Demoman',heavy:'Heavy',engineer:'Engineer',medic:'Medic',sniper:'Sniper',spy:'Spy'};let XPR=null;
+async function expressions(k){const C=XPC[k];if(!C)return null;
+ if(!XPR)XPR=(async()=>{const b=await read('scripts/talker/tf.txt');if(!b)return null;const t=text(b).replace(/\/\/[^\n]*/g,'');const resp={},rules=[];let m;
+  const re=/\b(response|rule)\s+"?([\w.]+)"?\s*\{([^{}]*)\}/gi;
+  while((m=re.exec(t))){const body=m[3];if(m[1].toLowerCase()=='response'){const sc=[];const r2=/\bscene\s+"([^"]+)"/gi;let q;while((q=r2.exec(body)))sc.push(q[1]);resp[m[2].toLowerCase()]=sc}
+   else{const cm=/\bcriteri(?:a|on)\s+([^\n]*)/i.exec(body),rm=/\bresponse\s+"?([\w.]+)/i.exec(body);if(cm&&rm)rules.push({c:cm[1].trim().split(/\s+/).map(x=>x.toLowerCase()),r:rm[1].toLowerCase()})}}
+  return{resp,rules}})();
+ const R=await XPR;if(!R)return null;const is='is'+C.toLowerCase();
+ const pick=want=>{const W=want.map(x=>x.toLowerCase());const r=R.rules.find(x=>x.c.length===W.length&&W.every(w=>x.c.includes(w)));return r?R.resp[r.r]||[]:[]};
+ const conv=async p=>{let evs=null;try{evs=await scene(p)}catch(e){return null}if(!evs)return null;const ev=[];
+  for(const x of evs){if(x.type=='expression'&&x.p2)ev.push({t:'expr',s:x.s,e:x.e,file:String(x.p1||'').replace(/\\/g,'/').split('/').pop(),name:x.p2,ramp:x.ramp});
+   else if(x.type=='flexanimation'&&x.tr)ev.push({t:'flex',s:x.s,e:x.e,ramp:x.ramp,tr:x.tr.map(t=>({n:t.n,c:!!(t.fl&2),min:t.min,max:t.max,s0:t.s0,s1:t.s1}))})}
+  return ev.length?{ev,dur:Math.max(...evs.map(x=>x.e))}:null};
+ const out={};for(const [key,want] of [['idle',['ConceptPlayerExpression',is]],['attack',['ConceptFireWeapon',is]],['minigun',['ConceptPlayerExpression',is,'IsFiringMinigun']]]){
+  const L=(await Promise.all(pick(want).map(conv))).filter(Boolean);if(L.length)out[key]=L}
+ return out}
 async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rkey(c);if(TAUNT[key])return TAUNT[key];return TAUNT[key]=(async()=>{
  // '@scene:<vcd>': a weapon taunt's scene (weaponTaunt), played as it is
  const at=/^@scene:/.test(n);const e=at?{r:{taunt:{}},dn:n,k:'taunt'}:entry(n);if(!e||e.k!='taunt')return null;
@@ -2138,7 +2185,7 @@ function seqWeights(b,name,clip){if(!clip||clip.zskip)return;const S=seqList(b).
  const wl=dv.getInt32(S.o+156,true),nb=dv.getInt32(156,true),bi=dv.getInt32(160,true);if(!wl)return;const z=new Set();for(let k=0;k<nb;k++)if(dv.getFloat32(S.o+wl+4*k,true)===0){const q=bi+k*216;z.add(cstr(b,q+dv.getInt32(q,true)))}
  if(!z.size||z.size>=nb)return;clip.zskip=z;clip.tracks=clip.tracks.filter(t=>!z.has(t.name.split('.')[0]))}
 window.ZLIVE={zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
- mdlSkins:async p=>{const b=await mdlBuf(p);if(!b||b.length<232)return 1;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);return Math.max(1,dv.getInt32(224,true))},iconAt,workshop:{list:wsList,open:wsOpen,blob:it=>srcBlob(WSDIR+'/'+it.name.toLowerCase())},custom:{get can(){return !!(ST.src&&ST.src.custom)},access:()=>ST.src&&ST.src.writable?ST.src.writable():Promise.resolve(false),save:(n,b)=>ST.src.custom(n,b)},source,gesture,mercAtts,tauntSound,tauntWeaponModel,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
+ mdlSkins:async p=>{const b=await mdlBuf(p);if(!b||b.length<232)return 1;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);return Math.max(1,dv.getInt32(224,true))},iconAt,workshop:{list:wsList,open:wsOpen,blob:it=>srcBlob(WSDIR+'/'+it.name.toLowerCase())},custom:{get can(){return !!(ST.src&&ST.src.custom)},access:()=>ST.src&&ST.src.writable?ST.src.writable():Promise.resolve(false),save:(n,b)=>ST.src.custom(n,b)},source,gesture,mercAtts,tauntSound,tauntWeaponModel,expressions,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
 // tint animated through each spell's colour ramp (RED and BLU ramps differ for Spectral Spectrum), from Chickenman's TF2 UI redesign prototype
