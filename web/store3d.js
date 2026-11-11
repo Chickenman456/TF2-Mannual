@@ -1758,6 +1758,33 @@ function findSeqO(b,name){const dv=new DataView(b.buffer,b.byteOffset,b.byteLeng
 function findSeq(b,name,P){const o=findSeqO(b,name);return o<0?-1:seqAnim(b,o,P)}
 // a sequence whose own animation is an empty placeholder plays its motion through its autolayers (mstudioseqdesc_t numautolayers 148,
 // autolayerindex 152 -> mstudioautolayer_t {short iSequence, short iPose, int flags, float start, peak, tail, end}): their animations
+// a sequence's autolayers (mstudioautolayer_t: iSequence, iPose, flags, start, peak, tail, end), each with its sequence's flags,
+// per-bone weights (weightlistindex) and decoded animation
+function autoLayers(b,name,ani){const o=findSeqO(b,name);if(o<0)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+ const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true),si=dv.getInt32(192,true),ns=dv.getInt32(188,true),nb=dv.getInt32(156,true),out=[];
+ for(let k=0;k<n&&k<16;k++){const a=o+li+k*24,q=dv.getInt16(a,true);if(q<0||q>=ns)continue;const so=si+q*212,wl=so+dv.getInt32(so+156,true);
+  const w=[];for(let i=0;i<nb;i++)w.push(dv.getFloat32(wl+i*4,true));
+  out.push({fl:dv.getInt32(a+4,true),s:dv.getFloat32(a+8,true),p:dv.getFloat32(a+12,true),t:dv.getFloat32(a+16,true),e:dv.getFloat32(a+20,true),
+   sfl:dv.getInt32(so+12,true),w,A:decodeAnim(b,seqAnim(b,so),ani)})}return out}
+// a placeholder sequence played with its autolayers, frame by frame, as CBoneSetup::AddSequenceLayers does: each layer's weight from its
+// start / peak / tail / end ramp over the sequence's cycle (SimpleSpline'd for STUDIO_AL_SPLINE), its own cycle mapped onto that range,
+// then blended in order onto the bones' rest pose (the sequence's own animation is all zeros) (SlerpBones: a delta layer multiplied in, post-multiplied for STUDIO_POST)
+function composeLayers(A,LY){const nb=A.bones.length,F=[];const spline=x=>x*x*(3-2*x);
+ const qa=new THREE.Quaternion(),qb=new THREE.Quaternion(),qi=new THREE.Quaternion();
+ const sample=(L,c)=>{const nf=L.A.nf;if(nf<2)return L.A.frame(0);const x=Math.max(0,Math.min(1,c))*(nf-1),f0=Math.floor(x),f1=Math.min(nf-1,f0+1),t=x-f0;
+  const a=L.A.frame(f0),bb=f1===f0?a:L.A.frame(f1);if(!a||!bb)return null;if(t===0||bb===a)return a;const P=[],Q=[];
+  for(let i=0;i<nb;i++){qa.set(...a.Q[i]);qb.set(...bb.Q[i]);qa.slerp(qb,t);Q.push([qa.x,qa.y,qa.z,qa.w]);P.push(a.P[i].map((v,k)=>v+(bb.P[i][k]-v)*t))}return{P,Q}};
+ for(let f=0;f<A.nf;f++){const c=A.nf>1?f/(A.nf-1):0;const P=A.bones.map(B=>B.pos.slice()),Q=A.bones.map(B=>B.q.slice());
+  for(const L of LY){if(L.fl&0x1000)continue;let lc=c,wt=1;
+   if(L.s!==L.e){if(L.fl&0x4000)continue;if(c<L.s||c>=L.e)continue;let s=1;if(c<L.p&&L.s!==L.p)s=(c-L.s)/(L.p-L.s);else if(c>L.t&&L.e!==L.t)s=(L.e-c)/(L.e-L.t);
+    if(L.fl&0x40)s=spline(s);wt=(L.fl&0x80)&&c>L.t?1:s;lc=(c-L.s)/(L.e-L.s)}
+   if(wt<=0)continue;const X=sample(L,lc);if(!X)return null;const delta=L.sfl&4,post=L.sfl&0x10;
+   for(let i=0;i<nb;i++){const w=wt*(L.w[i]==null?1:L.w[i]);if(w<=0)continue;qa.set(...Q[i]);qb.set(...X.Q[i]);
+    if(delta){qi.set(0,0,0,1).slerp(qb,Math.min(1,w));if(post)qa.multiply(qi);else qa.premultiply(qi);for(let k=0;k<3;k++)P[i][k]+=X.P[i][k]*w}
+    else{qa.slerp(qb,Math.min(1,w));for(let k=0;k<3;k++)P[i][k]+=(X.P[i][k]-P[i][k])*Math.min(1,w)}
+    Q[i]=[qa.x,qa.y,qa.z,qa.w]}}
+  F.push({P,Q})}
+ return F}
 function layerAnims(b,name){const o=findSeqO(b,name);if(o<0)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true),si=dv.getInt32(192,true),ns=dv.getInt32(188,true),out=[];
  for(let k=0;k<n&&k<16;k++){const q=dv.getInt16(o+li+k*24,true);if(q>=0&&q<ns)out.push(seqAnim(b,si+q*212))}return out}
 // the sequence's animation events (mstudioseqdesc_t numevents/eventindex -> mstudioevent_t: cycle, event, type, options[64], szeventindex)
@@ -1795,8 +1822,10 @@ async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)r
    // a delta / all-zeros placeholder: the motion lives in its layer (an autolayer, or a "layer_" sequence tried next)
    // the layer runs on the sequence's own clock (an autolayer's cycle is the sequence's), not its own frame rate: the Pyro's taunt02
    // layer has 86 frames at 46 fps but plays over the sequence's 106 frames at 30
-   if(A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L}
-   const F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}if(!F.length)return null;
+   let F=null;
+   if(A.flags&0x24){const LY=autoLayers(b,n,ani);if(LY.some(l=>l.s!==l.e)){F=composeLayers(A,LY);if(!F)return null}}
+   if(!F&&A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L}
+   if(!F){F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}}if(!F.length)return null;
    const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
    const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];const q=new THREE.Quaternion(),v=new THREE.Vector3();
    A.bones.forEach((B,bi)=>{if(boneSet&&!boneSet.has(B.name))return;const QV=new Float32Array(F.length*4),PV=new Float32Array(F.length*3);let prev=null;
