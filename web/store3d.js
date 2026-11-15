@@ -1259,7 +1259,9 @@ function mdlFor(e,cl,si,team){const r=e.r,c=clsKey(cl);if(!usedBy(r,c))return nu
  if(e.k=='action'&&!cand.length){const x=xwOf(e);if(x)cand.push(x)}
  for(const p of cand)if(has(p))return p;return null}
 // CEconItemView::GetSkin: the style's per-team (or single) skin, then visuals "skin", then the team's own family
-function skinFor(e,si,team,nfam){const st=styleOf(e,si);// a skin past the model's families draws family 0, as studiorender does (the Wrap Assassin's visuals_red skin 2 on a two-family model)
+// CTFPowerupBottle::GetSkin: a canteen's skin is 1 while it holds charges, else 0, on either team (its _blue family is the charged look)
+const isCanteen=e=>!!e&&String(e.r.item_class||'').toLowerCase()=='tf_powerup_bottle';
+function skinFor(e,si,team,nfam){if(isCanteen(e))return si===1&&nfam>1?1:0;const st=styleOf(e,si);// a skin past the model's families draws family 0, as studiorender does (the Wrap Assassin's visuals_red skin 2 on a two-family model)
  const pick=v=>v==null?null:(+v>=nfam||+v<0?0:+v);
  if(st){const t=team=='BLU'?st.skin_blu:st.skin_red;if(t!=null)return pick(t);if(st.skin!=null)return pick(st.skin)}
  {const vt=team=='BLU'?e.r.visuals_blu:e.r.visuals_red;if(vt&&vt.skin!=null)return pick(vt.skin)}
@@ -1269,7 +1271,7 @@ function skinFor(e,si,team,nfam){const st=styleOf(e,si);// a skin past the model
 const PYROLAND=100;
 // a tf_wearable_levelable_item (the Grandmaster) shows its "level" bodygroup by the wearer's killstreak (CTFWearableLevelableItem);
 // each submodel of that bodygroup is offered as a style KSTREAK+n, named from the submodel (chess_scout_bg_rook_red -> Rook)
-const KSTREAK=200;const levelable=e=>!!e&&String(e.r.item_class||'')=='tf_wearable_levelable_item';ST.lvl={};
+const KSTREAK=200;const levelable=e=>!!e&&String(e.r.item_class||'')=='tf_wearable_levelable_item';ST.lvl={};ST.cnt={};
 function lvlNames(e){const id=e.id;if(id in ST.lvl)return ST.lvl[id];ST.lvl[id]=null;
  (async()=>{let p=null;for(const c of ['scout','soldier','pyro','demoman','heavy','engineer','medic','sniper','spy']){p=mdlFor(e,c,0,'RED');if(p)break}
   let L=[];const b=p&&await read(p);if(b){const M=new DataView(b.buffer,b.byteOffset,b.byteLength),I=o=>M.getInt32(o,true);const nbp=I(232),bpi=I(236);
@@ -1277,8 +1279,19 @@ function lvlNames(e){const id=e.id;if(id in ST.lvl)return ST.lvl[id];ST.lvl[id]=
     for(let j=0;j<nm;j++){const sn=cstr(b,o+mi+j*148).toLowerCase();const m=/_bg_([a-z]+)/.exec(sn);const w=m?m[1]:('Level '+(j+1));L.push({i:KSTREAK+j,name:w[0].toUpperCase()+w.slice(1)})}}}
   ST.lvl[id]=L;if(window.ZSTYLETABS)ZSTYLETABS()})().catch(()=>{ST.lvl[id]=[]});return null}
 const styleLabel=n=>{const e=entry(n);if(levelable(e))return 'Killstreak';if(e&&pvModel(e))return 'Pyroland';return 'Style'};
-function styles(n){const e=entry(n);if(levelable(e)){const L=lvlNames(e);return L&&L.length>1?L:[]}const S=e&&e.r.visuals&&e.r.visuals.styles;
- let L=S?Object.keys(S).filter(k=>/^\d+$/.test(k)&&String(S[k].selectable)!=='0').sort((a,b)=>a-b).map(k=>({i:+k,name:locs(S[k].name)||('Style '+(+k+1))})):[];
+// a canteen: Empty / Charged, when its model has the second skin family (the plain Power Up Canteen's has one)
+function canteenStyles(e){const id=e.id;if(id in ST.cnt)return ST.cnt[id];ST.cnt[id]=null;
+ (async()=>{let p=null;for(const c of ['scout','soldier','pyro','demoman','heavy','engineer','medic','sniper','spy']){p=mdlFor(e,c,0,'RED');if(p)break}
+  const b=p&&await read(p);let n=0;if(b){const M=new DataView(b.buffer,b.byteOffset,b.byteLength);n=M.getInt32(224,true)}
+  ST.cnt[id]=n>1?[{i:0,name:'Empty'},{i:1,name:'Charged'}]:[];if(window.ZSTYLETABS)ZSTYLETABS()})().catch(()=>{ST.cnt[id]=[]});return null}
+// "style changes on strange level": the styles aren't picked, the item's Strange level unlocks them (the ConTracker's bronze, silver, gold)
+const strangeStyled=e=>{for(const b of ['attributes','static_attrs']){const B=e.r[b];if(B&&typeof B=='object')for(const k in B)if(k.toLowerCase()=='style changes on strange level')return true}return false};
+const styleWord=(e,S,k)=>{const im=String(S[k].image_inventory||''),b0=String((S[0]||{}).image_inventory||e.r.image_inventory||'');
+ if(+k===0)return 'Default';if(im&&b0&&im.startsWith(b0+'_')){const w=im.slice(b0.length+1).replace(/_/g,' ');return w[0].toUpperCase()+w.slice(1)}return 'Style '+(+k+1)};
+function styles(n){const e=entry(n);if(levelable(e)){const L=lvlNames(e);return L&&L.length>1?L:[]}
+ if(isCanteen(e)){const L=canteenStyles(e);return L||[]}
+ const S=e&&e.r.visuals&&e.r.visuals.styles,all=e&&strangeStyled(e);
+ let L=S?Object.keys(S).filter(k=>/^\d+$/.test(k)&&(all||String(S[k].selectable)!=='0')).sort((a,b)=>a-b).map(k=>({i:+k,name:locs(S[k].name)||(all?styleWord(e,S,k):'Style '+(+k+1))})):[];
  if(e&&pvModel(e)){if(L.length<2)L=[{i:0,name:'Normal'}];L.push({i:PYROLAND,name:pyroOnly(e)?'Outside Pyrovision':'Pyroland'})}return L.length>1?L:[]}
 // a Pyroland item (the Rainblower, the Lollichop: vision opt in flags / vision_filter_flags with TF_VISION_FILTER_PYRO) is itself the
 // Pyroland look; its model_vision_filtered is what players outside Pyrovision see (the plain Flame Thrower, the Fire Axe)
