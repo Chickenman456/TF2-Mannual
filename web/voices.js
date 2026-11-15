@@ -26,10 +26,12 @@
 .vov .vc.on{filter:none;border-color:var(--va);box-shadow:0 0 0 2px #0008,0 0 14px #EBE2CA55}
 .vov .vmid{align-items:center;justify-content:flex-end;position:relative;padding-top:10px}
 .vov .vdock{flex:1;width:100%;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
-.vov .vdin{width:calc(100% - 24px);margin:0 12px}
-.vov .vdock .spv.dock{position:relative;inset:auto;z-index:auto;display:block;overflow:hidden;margin:0 auto}
-.vov .vdock .spv.dock .spv-bg,.vov .vdock .spv.dock .spv-back,.vov .vdock .spv.dock .spv-details,.vov .vdock .spv.dock .spv-name{display:none}
-.vov .vdock .spv.dock .spv-frame{margin:0}
+/* the merc as the item preview renders him, without its window: only the model's view, filling the panel */
+.vov .vdin{position:absolute;inset:28px 0 0}
+.vov .vdock .spv.dock{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;display:block;overflow:hidden;margin:0;background:none}
+.vov .vdock .spv.dock .spv-frame{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;margin:0!important;background:none!important;border:0!important;box-shadow:none!important;transform:none!important}
+.vov .vdock .spv.dock .spv-frame>*:not(.spv-model),.vov .vdock .spv.dock>*:not(.spv-frame){display:none!important}
+.vov .vdock .spv.dock .spv-model{left:0!important;top:0!important;width:100%!important;height:100%!important;background:none!important}
 .vov .vspin{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:4px solid #EBE2CA33;border-top-color:var(--TanLight);animation:vospin .8s linear infinite;z-index:3;pointer-events:none}
 .vov .vdock.ready .vspin{display:none}
 .vov .vdock .spv{opacity:0;transition:opacity .25s}.vov .vdock.ready .spv{opacity:1}
@@ -178,5 +180,9 @@
     if (e.target.closest('[data-vrand]')) { random(); return; }
     const l = e.target.closest('[data-vo]'); if (l) { play(l.dataset.vo, l.dataset.vc); return; }
   });
+  const inDock = e => e.target && e.target.closest && e.target.closest('.vov .vdock');
+  document.addEventListener('wheel', e => { if (inDock(e)) e.stopPropagation(); }, true);
+  ['pointerdown', 'mousedown'].forEach(t => document.addEventListener(t, e => { if (inDock(e) && e.button !== 0) { e.stopPropagation(); e.preventDefault(); } }, true));
+  ['dblclick', 'contextmenu'].forEach(t => document.addEventListener(t, e => { if (inDock(e)) { e.stopPropagation(); e.preventDefault(); } }, true));
   document.addEventListener('input', e => { if (!e.target.matches || !e.target.matches('.vov [data-vq]')) return; V.q = e.target.value; clearTimeout(V.qt); V.qt = setTimeout(() => draw(true), 120); });
 })();
