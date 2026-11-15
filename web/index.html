@@ -118,6 +118,15 @@ label.chk input{accent-color:var(--TFOrange)}
 .fna:hover,.fna:focus-within{opacity:.6}
 .fld>.lbl{font-size:11px;letter-spacing:.1em;display:flex;align-items:center;gap:5px}
 .fld .in{width:100%}
+/* a long choice scrolls across its box, back and forth, instead of being cut off */
+.mqw{position:relative;display:block;min-width:0}
+.mqw select.in{color:transparent}
+.mqw select.in option{color:var(--TanLight);background:#1F1C1B}
+.mq{position:absolute;top:1px;bottom:1px;left:9px;right:26px;overflow:hidden;pointer-events:none;display:flex;align-items:center;font-family:var(--head);font-size:14px;white-space:nowrap;color:var(--TanLight)}
+.mq>span{flex:none}
+.mq>span.run{animation:mqrun var(--d,6s) linear infinite alternate}
+@keyframes mqrun{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--o,0))}}
+@media (prefers-reduced-motion:reduce){.mq>span.run{animation:none}.mq{text-overflow:ellipsis}}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fld .seg{flex-wrap:wrap}
 .fld .seg .btn{flex:1 1 auto;justify-content:center;text-align:center}
@@ -662,7 +671,7 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Pyroland items"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="itype">Item type</label><select id="itype" class="in"><option value="">Any type</option></select></div>
     <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
-    <div class="fld"><label class="lbl" for="attr">Attribute</label><select id="attr" class="in"><option value="">Any attribute</option></select></div>
+    <div class="fld"><label class="lbl" for="attr">Attribute</label><span class="mqw"><select id="attr" class="in"><option value="">Any attribute</option></select><span class="mq" aria-hidden="true"><span>Any attribute</span></span></span></div>
     <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
     <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
       <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="attr">Attribute value</option><option value="copies">Most copies</option><option value="name">Name</option><option value="date">Date added</option></select></div>
@@ -706,7 +715,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.1</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.2</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -755,6 +764,13 @@ let EQUIP = {}, GAMES = {}, ACHINFO = {}, ACHALT = {}, ACHICON = {}, ACHROWS = 1
 let IATTR = {}, ATTRL = [];
 function attrOptions(){ const n = new Map(); for (const id of ALL_IDS){ const m = IATTR[id]; if (m) for (const i of m.keys()) n.set(i, (n.get(i) || 0) + 1); }
   $('#attr').innerHTML = '<option value="">Any attribute</option>' + [...n.keys()].sort((a, b) => ATTRL[a].localeCompare(ATTRL[b])).map(i => `<option value="${i}">${esc(ATTRL[i])} (${n.get(i)})</option>`).join(''); attrOptions.done = 1; }
+function mqSync(){ const sel = $('#attr'); if (!sel) return; const t = sel.parentNode.querySelector('.mq>span'); if (!t) return;
+  t.textContent = (sel.selectedOptions[0] || {}).text || 'Any attribute'; t.classList.remove('run');
+  const o = t.scrollWidth - t.parentNode.clientWidth;
+  if (o > 2){ t.style.setProperty('--o', -o + 'px'); t.style.setProperty('--d', (2 + o / 45).toFixed(1) + 's'); t.classList.add('run'); }
+  sel.title = t.textContent; }
+try { new ResizeObserver(() => mqSync()).observe($('#attr')); } catch (e) {}
+$('#attr').addEventListener('change', mqSync);
 function initCatalog(raw){
 RAW = raw;
 for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd,wslot] of RAW.items){
@@ -1415,7 +1431,7 @@ function syncControls(){
   if (S.region && ![...$('#region').options].some(o => o.value === S.region)) S.region = '';
   $('#region').value = S.region || ''; $('#wslot').value = S.wslot || '';
   if (!attrOptions.done) attrOptions();
-  if (S.attr && ![...$('#attr').options].some(o => o.value === String(S.attr))) S.attr = ''; $('#attr').value = S.attr || '';
+  if (S.attr && ![...$('#attr').options].some(o => o.value === String(S.attr))) S.attr = ''; $('#attr').value = S.attr || ''; mqSync();
   syncMute();
   filterSummary();
   $('#grade').style.color = S.grade && RAR[+S.grade] ? RAR[+S.grade].c : '';
