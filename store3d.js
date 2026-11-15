@@ -470,7 +470,10 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
   function aimBone(B,P0,P1){B.updateMatrixWorld(true);const o=B.getWorldPosition(new THREE.Vector3()),d0=P0.clone().sub(o),d1=P1.clone().sub(o);if(d0.lengthSq()<1e-10||d1.lengthSq()<1e-10)return;
    const r=new THREE.Quaternion().setFromUnitVectors(d0.normalize(),d1.normalize()),wq=B.getWorldQuaternion(new THREE.Quaternion()),pq=B.parent.getWorldQuaternion(new THREE.Quaternion());
    B.quaternion.copy(pq.invert().multiply(r.multiply(wq)));B.updateMatrixWorld(true)}
-  function whideTick(m){const a=m.act,W=a&&/^live:/.test(m.cn||'')&&a.getClip().zwhide;const h=!!(W&&!m._wmOff&&W.some(w=>a.time>=w.s&&a.time<w.e))||(!!m._wtHide&&m.cn===m._wtHide);if(h===!!m._whid)return;m._whid=h;(m.wmesh||[]).forEach(x=>x.visible=!h)}
+  function whideTick(m){const a=m.act,W=a&&/^live:/.test(m.cn||'')&&a.getClip().zwhide;
+   // a taunt prop that rides the merc is what he holds through the taunt, so AE_WPN_HIDE puts it away too (CTFPlayerModelPanel::FireEvent
+   // disables the held item's model: the Hippocratic Hypocrite's bottle goes once he's had it)
+   {const r=m._tprop;if(r&&!r.pa){const ph=!!(W&&W.some(w=>a.time>=w.s&&a.time<w.e));if(r._wh!==ph){r._wh=ph;r.meshes.forEach(x=>x.visible=!ph)}}}const h=!!(W&&!m._wmOff&&W.some(w=>a.time>=w.s&&a.time<w.e))||(!!m._wtHide&&m.cn===m._wtHide);if(h===!!m._whid)return;m._whid=h;(m.wmesh||[]).forEach(x=>x.visible=!h)}
   function invisTick(m){const a=m.act,IV=a&&/^live:/.test(m.cn||'')&&a.getClip().zinvis;const hid=!!(IV&&IV.some(w=>w.v>=1&&a.time>=w.s&&a.time<w.e));if(hid===!!m._inv)return;m._inv=hid;
    const keep=new Set((m._tprop&&m._tprop.meshes)||[]);m.o.traverse(n=>{if(!n.isMesh||keep.has(n))return;if(hid){n.userData._iv=n.visible;n.visible=false}else if('_iv' in n.userData){n.visible=n.userData._iv;delete n.userData._iv}})}
   // custom_taunt_prop_per_class: bonemerged for the taunt's length (put on again at another LOD)
@@ -804,7 +807,8 @@ function npcFit(){const g=NPC.g;if(!g)return;g.updateMatrixWorld(true);const B=n
  // center: a character made away from its model's origin (Cachoeira's piranhas, a school round a point off to one side) brought to the
  // middle, by its root bones (so it still turns about itself); with inplace, as nothing then moves them back
  if(NPC.def&&NPC.def.center&&!g.userData.zc){g.userData.zc=1;const d=new THREE.Vector3(c.x,B.min.y,c.z);g.worldToLocal(d.add(g.getWorldPosition(new THREE.Vector3())));g.children.forEach(x=>{if(x.isBone)x.position.sub(d)});return npcFit()}
- c.y+=sz.y*.1;const h=Math.max(sz.y*1.45,sz.x*1.1,sz.z*.8,20);let d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.1;d+=Math.max(0,sz.z/2-h/4);// a long one (the Tank) stands back far enough for its near end
+ c.y+=sz.y*.1;const h=Math.max(sz.y*1.45,sz.x*1.1,sz.z*.8,20)*((NPC.def&&NPC.def.zoom)||1);// zoom: a prop seen from further off (a case)
+ let d=h/2/Math.tan(V.cam.fov*Math.PI/360)*1.1;d+=Math.max(0,sz.z/2-h/4);// a long one (the Tank) stands back far enough for its near end
  NPC.fr={c,h,d};if(V.storeCam){V.storeApply();return}V.ctl.target.copy(c);V.cam.position.set(c.x,c.y,c.z+d);V.ctl.minDistance=d*.25;V.ctl.maxDistance=d*3;V.ctl.update()}
 async function npcPlay(name,once){const g=NPC.g,def=NPC.def;if(!g)return false;const tok=NPC.ptok=(NPC.ptok||0)+1;const r=await ZLIVE.npcClip(def.mdl,name,NPC.bones);if(!r||NPC.ptok!==tok||NPC.g!==g)return false;
  // inplace: a bone whose travel is left out, so a character that swims a path round its map (Cachoeira's piranhas) swims where it stands
@@ -1717,7 +1721,9 @@ async function scene(path){const S=await sceneImage();if(!S)return null;const ke
 let SNDS=null;
 async function soundscripts(){if(SNDS)return SNDS;return SNDS=(async()=>{const out={};const mf=await read('scripts/game_sounds_manifest.txt');const files=[];
  if(mf){const t=text(mf);const re=/"(?:precache_file|preload_file|declare_file)"\s+"([^"]+)"/gi;let m;while((m=re.exec(t)))files.push(m[1])}
- for(const f of files){try{const b=await read(f);if(!b)continue;const R=KV(text(b),false,true);for(const k in R)if(!(k in out))out[k]=R[k]}catch(e){}}return out})()}
+ // read together, merged in the manifest's order (the first file to name a sound keeps it)
+ const B=await Promise.all(files.map(f=>read(f).catch(()=>null)));
+ for(const b of B){try{if(!b)continue;const R=KV(text(b),false,true);for(const k in R)if(!(k in out))out[k]=R[k]}catch(e){}}return out})()}
 const sndPath=w=>'sound/'+String(w).replace(/\\/g,'/').replace(/^[*#@<>^)}$!?(]+/,'');
 async function waves(name){const S=await soundscripts();const e=S[String(name).toLowerCase()];if(!e)return[];let W=[];const add=v=>W=W.concat(v);
  if(e.wave)add(e.wave);if(e.rndwave&&e.rndwave.wave)add(e.rndwave.wave);return W.filter(Boolean)}
@@ -1828,7 +1834,10 @@ async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)r
    // the layer runs on the sequence's own clock (an autolayer's cycle is the sequence's), not its own frame rate: the Pyro's taunt02
    // layer has 86 frames at 46 fps but plays over the sequence's 106 frames at 30
    let F=null;
-   if(A.flags&0x24){const LY=autoLayers(b,n,ani);if(LY.some(l=>l.s!==l.e)){F=composeLayers(A,LY);if(!F)return null}}
+   if(A.flags&0x24){const LY=autoLayers(b,n,ani);
+    // only a sequence no one layer spans (an in pose, an interior, an out pose: the Shred Alert, the Yeti Smash); a taunt whose layer
+    // is the whole taunt with a blend in and out (most of them) plays that layer, as before
+    if(LY.some(l=>l.s!==l.e)&&!LY.some(l=>!(l.sfl&4)&&(l.s===l.e||(l.s<=.001&&l.e>=.999)))){F=composeLayers(A,LY)||null}}
    if(!F&&A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L}
    if(!F){F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}}if(!F.length)return null;
    const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
@@ -1866,12 +1875,15 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rk
  const cand=[...(sname?['layer_'+sname,sname]:[]),'layer_'+base+'_'+SHORT[c],base+'_'+SHORT[c],'layer_'+base,base];
  const A=await seqClip(c,[...new Set(cand)],clipName,boneSet);if(!A)return null;
  const dur=A.clip.duration;const ev=[{t:'seq',s:seqEv?seqEv.s:0,e:seqEv&&seqEv.e>0?seqEv.e:dur,n:clipName}];const urls={};
- for(const x of (evs||[])){if(x.type=='speak'&&x.p1){const W=/\.(wav|mp3)$/i.test(x.p1)?[x.p1]:await waves(x.p1);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,...await phonemes(f)})}}
+ // a line's waves, all read at once (one at a time, a taunt with many lines took long to start)
+ const wavesOf=async name=>{const W=/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);const R=await Promise.all(W.map(async f=>{const u=await audioURL(f);if(!u)return null;const k='live_'+sndPath(f);urls[k]=u;return {k,...await phonemes(f)}}));return R.filter(Boolean)};
+ const SPK=await Promise.all((evs||[]).map(x=>x.type=='speak'&&x.p1?wavesOf(x.p1):null));
+ for(const [i,x] of (evs||[]).entries()){if(x.type=='speak'&&x.p1){const w=SPK[i]||[];
    if(w.length)ev.push({t:'speak',s:x.s,e:x.e>x.s?x.e:x.s+8,v:1,w})}
   else if(x.type=='expression'&&x.p2)ev.push({t:'expr',s:x.s,e:x.e,file:String(x.p1||'').replace(/\\/g,'/').split('/').pop(),name:x.p2,ramp:x.ramp});
   else if(x.type=='flexanimation'&&x.tr)ev.push({t:'flex',s:x.s,e:x.e,ramp:x.ramp,tr:x.tr.map(t=>({n:t.n,c:!!(t.fl&2),min:t.min,max:t.max,s0:t.s0,s1:t.s1}))})}
  // the sounds the taunt's animation fires itself (most taunts' music and effects), at their point in the sequence
- const soundOf=async name=>{const W=/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);const w=[];for(const f of W){const u=await audioURL(f);if(u){const k='live_'+sndPath(f);urls[k]=u;w.push({k,...await phonemes(f)})}}return w};
+ const soundOf=wavesOf;
  const s0=seqEv?seqEv.s:0,sd=seqEv&&seqEv.e>seqEv.s?seqEv.e-seqEv.s:dur;
 // the scene's own sequence carries the events even when its motion came from a layer sequence
  let SE=A.events||[];if(sname&&A.seq&&A.seq.toLowerCase()!==sname.toLowerCase()){for(const p of await animMdls(c)){const b=await mdlBuf(p);if(!b)continue;const E=seqEvents(b,sname);if(E.length){SE=E.concat(SE);break}}}
@@ -1881,7 +1893,7 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rk
  // AE_CL_CREATE_PARTICLE_EFFECT "<system> follow_attachment <attachment>": the taunt's own effects (the Circuit Breaker's sparks)
  {const P=[];for(const x of SE){if(!/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||''))continue;const q=String(x.opt||'').trim().split(/\s+/);if(q[0])P.push({s:Math.max(0,Math.min(1,x.cycle))*A.clip.duration,sys:q[0],att:/attachment/.test(q[1]||'')?(q[2]||''):''})}if(P.length)A.clip.zpfx=P}
  {const inv=[];for(const x of SE){if(!/AE_TAUNT_ADD_ATTRIBUTE/.test(x.name||''))continue;const q=/taunt_attr_player_invis_percent\s+([\d.]+)\s+([\d.]+)/i.exec(x.opt||'');if(q&&+q[1]>0){const s=Math.max(0,Math.min(1,x.cycle))*A.clip.duration;inv.push({s,e:s+(+q[2]),v:+q[1]})}}if(inv.length)A.clip.zinvis=inv}
- for(const x of SE.filter(sndEvent)){const w=await soundOf(x.opt);if(w.length){const s=s0+Math.max(0,Math.min(1,x.cycle))*sd;ev.push({t:'speak',s,e:s+8,v:1,w})}}
+ {const L=SE.filter(sndEvent),R=await Promise.all(L.map(x=>soundOf(x.opt)));L.forEach((x,i)=>{const w=R[i];if(w.length){const s=s0+Math.max(0,Math.min(1,x.cycle))*sd;ev.push({t:'speak',s,e:s+8,v:1,w})}})}
  // items_game: "taunt success sound" (once, after "taunt success sound offset") and "taunt success sound loop" (music while it runs)
  const ta=k=>{for(const bk of ['attributes','static_attrs']){const B=e.r[bk];if(!B||typeof B!='object')continue;for(const n in B){const v=B[n];const cls=String(v&&typeof v=='object'?v.attribute_class||'':'').toLowerCase();if(n.toLowerCase()==k||cls==k.replace(/ /g,'_'))return v&&typeof v=='object'?v.value:v}}return null};
  let mu=null;{const one=ta('taunt success sound'),loop=ta('taunt success sound loop'),off=+ta('taunt success sound offset')||0;
