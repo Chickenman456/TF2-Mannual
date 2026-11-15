@@ -698,7 +698,7 @@
   // weapons, the keys: W runs, Ctrl crouches, F fires, G taunts, 1-3 switch weapons), with the robot body / giant / buster over it
   function openChar(o) {
     const d = o.def, cn = d.cls === 'demo' ? 'demoman' : d.cls;
-    open({name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, first: o.first, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
+    open({dock: o.dock || null, name: o.name, nm: '', kind: 'z', char: 1, classes: [cn], level: o.level, first: o.first, where: o.where, wiki: o.wiki, desc: o.desc, esc: o.esc, sfx: o.sfx, close: o.close,
       robot: d.bot ? (d.robot || (/_boss\//.test(d.mdl) ? d.mdl : 'bot')) : false, allow: d.slots || null, noteam: !!d.noteam, wish: {on: () => false, toggle() {}}});
     ST.el.querySelectorAll('[data-spv=wish]').forEach(x => x.remove());
     // a robot with one look (the Sentry Buster: no RED skin) has no team buttons

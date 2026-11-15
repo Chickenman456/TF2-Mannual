@@ -24,13 +24,17 @@
 .vov .vc{position:relative;aspect-ratio:1;border:2px solid var(--vl);border-radius:4px;background:#2B2724 center/cover no-repeat;cursor:pointer;filter:grayscale(1) brightness(.75);transition:filter .15s,border-color .15s,box-shadow .15s;padding:0}
 .vov .vc:hover{filter:grayscale(.3) brightness(.95)}
 .vov .vc.on{filter:none;border-color:var(--va);box-shadow:0 0 0 2px #0008,0 0 14px #EBE2CA55}
-.vov .vmid{align-items:center;justify-content:flex-end;position:relative;background:radial-gradient(120% 70% at 50% 40%,#3B3630 0,var(--vp) 70%)}
-.vov .vart{flex:1;width:100%;min-height:0;display:flex;justify-content:center;padding-top:26px}
-.vov .vo3d{position:absolute;inset:0 0 150px 0}
-.vov .vo3d>*{width:100%;height:100%}
-.vov .vart.live .vfig{visibility:hidden}
-.vov .vfig{height:100%;aspect-ratio:2/3;max-width:100%;background:url(ui/classes.webp) 0 0/900% 100% no-repeat}
-.vov .vname{font:400 46px/1 var(--head);text-transform:uppercase;color:var(--TanLight);margin:10px 0 4px;text-shadow:0 2px 0 #000a}
+.vov .vmid{align-items:center;justify-content:flex-end;position:relative;padding-top:10px}
+.vov .vdock{flex:1;width:100%;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.vov .vdin{width:calc(100% - 24px);margin:0 12px}
+.vov .vdock .spv.dock{position:relative;inset:auto;z-index:auto;display:block;overflow:hidden;margin:0 auto}
+.vov .vdock .spv.dock .spv-bg,.vov .vdock .spv.dock .spv-back,.vov .vdock .spv.dock .spv-details,.vov .vdock .spv.dock .spv-name{display:none}
+.vov .vdock .spv.dock .spv-frame{margin:0}
+.vov .vspin{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:4px solid #EBE2CA33;border-top-color:var(--TanLight);animation:vospin .8s linear infinite;z-index:3;pointer-events:none}
+.vov .vdock.ready .vspin{display:none}
+.vov .vdock .spv{opacity:0;transition:opacity .25s}.vov .vdock.ready .spv{opacity:1}
+@keyframes vospin{to{transform:rotate(360deg)}}
+.vov .vname{font:400 40px/1 var(--head);text-transform:uppercase;color:var(--TanLight);margin:8px 0 4px;text-shadow:0 2px 0 #000a}
 .vov .vcount{font:400 13px var(--head);letter-spacing:.18em;color:var(--Strange,#CF6A32);text-transform:uppercase}
 .vov .vrand{margin:14px 0 22px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--va);background:#0003;color:var(--TanLight);border-radius:999px;padding:9px 20px;font:400 15px var(--head);text-transform:uppercase;cursor:pointer}
 .vov .vrand:hover{background:#EBE2CA22}
@@ -67,7 +71,7 @@
   const STOP = '<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>';
   const SHUF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h3l7 8h4M1 12h3l2.2-2.5M9.8 6.5L11 5h4M13 3l2 2-2 2M13 9l2 2-2 2"/></svg>';
   const LENS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>';
-  const row = (b, ti, tag) => `<button type="button" class="vl${V.key === b ? ' on' : ''}" data-vo="${E(b)}"><i>${V.key === b ? STOP : PLAY}</i>${tag ? `<em>${E(tag)}</em>` : ''}<span>${E(T(ti))}</span></button>`;
+  const row = (b, ti, c) => `<button type="button" class="vl${V.key === b ? ' on' : ''}" data-vo="${E(b)}" data-vc="${c || V.cls}"><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`;
 
   function lines() {
     const q = V.q.trim().toLowerCase();
@@ -77,7 +81,7 @@
         const seen = new Set(), hit = [];
         for (const [, G] of tabsOf(c)) for (const [, L] of G) for (const [b, ti] of L) if (!seen.has(b) && (T(ti).toLowerCase().includes(q) || nm.toLowerCase() === q)) { seen.add(b); hit.push([b, ti]); }
         if (!hit.length) continue;
-        h += `<div class="vgh">${E(nm)} · ${hit.length}</div>` + hit.slice(0, 300).map(([b, ti]) => row(b, ti)).join('');
+        h += `<div class="vgh">${E(nm)} · ${hit.length}</div>` + hit.slice(0, 300).map(([b, ti]) => row(b, ti, c)).join('');
         n += hit.length;
       }
       return n ? h : `<div class="vempty">No lines say “${E(V.q.trim())}”.</div>`;
@@ -92,7 +96,7 @@
     return `<h1>Dialogue Player</h1><div class="vogrid">
       <div class="vpn"><div class="vh">Classes</div><div class="vcl">${CLS.map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" style="background-image:url(ui/store/portrait_${c}.webp)"></button>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
-        <div class="vart"><div class="vo3d"></div><div class="vfig" role="img" aria-label="${E(nm)}" style="background-position-x:${Math.max(0, ci) * 12.5}%"></div></div>
+        <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
         <button type="button" class="vrand" data-vrand>${SHUF}Play Random Line</button></div>
       <div class="vpn vr"><label class="vs">${LENS}<input type="search" placeholder="Search voice lines or classes…" value="${E(V.q)}" data-vq aria-label="Search voice lines"></label>
@@ -107,21 +111,35 @@
     r.innerHTML = body(); const l = r.querySelector('.vlist'); if (l && keepList === 0) l.scrollTop = st;
     show3d();
   }
-  // with the TF2 folder linked: the class himself, from the game's model, standing as the store shows him
+  // the class in the item preview's own window (the store's merc, his weapons and his face), docked here; with the TF2 folder
+  // linked he stands in the class select menu's pose (selectionMenu_Idle), and says each line as it plays
+  const CN = c => ({demoman: 'Demoman'})[c] || c[0].toUpperCase() + c.slice(1);
   function show3d() {
-    const f = document.querySelector('.vov .vo3d'); if (!f || !(window.ZLIVE && ZLIVE.ready && window.Store3D && Store3D.npc)) return;
-    const c = V.cls, mdl = 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl', tok = V.t3 = (V.t3 || 0) + 1;
-    Store3D.npc.show(f, {mdl}, 'RED').then(seqs => {
-      if (tok !== V.t3 || !seqs || !f.isConnected) return;
-      const idle = [/^stand_primary$/i, /^stand_melee$/i, /^idle/i, /^stand/i].reduce((q, re) => q || seqs.find(x => re.test(x.name)), null);
-      if (idle) Store3D.npc.play(idle.name); else if (Store3D.npc.refit) Store3D.npc.refit();
-      f.parentElement.classList.add('live');
-    }).catch(() => {});
+    const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
+    const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
+    try {
+      ItemPreview.openNpc({dock: din, name: CN(c), level: 'Mercenary', def: {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
+    } catch (e) { box.classList.add('ready'); return; }
+    const t0 = performance.now(); let posed = false;
+    const wait = () => {
+      if (tok !== V.t3 || !box.isConnected) return;
+      const m = window.Store3D && Store3D.M && Store3D.M[CN(c)];
+      if (!(m && m.o && m.o.visible && m.started && m.cn)) { if (performance.now() - t0 < 30000) setTimeout(wait, 150); else box.classList.add('ready'); return; }
+      if (window.ZLIVE && ZLIVE.ready && m.play) {
+        const key = 'live:@seq:selectionMenu_Idle';
+        if (m.cn === key) { box.classList.add('ready'); return; }
+        if (!posed) { posed = true; m.play(key); }
+        if (performance.now() - t0 < 20000 && m.cn !== key) { setTimeout(wait, 150); return; }
+      }
+      setTimeout(() => { if (tok === V.t3) box.classList.add('ready'); }, 120);
+    };
+    wait();
   }
   function note(t) { V.note = t || ''; const n = document.querySelector('.vov .vnote'); if (n) { n.textContent = V.note; n.hidden = !V.note; } }
   function stop() { if (V.audio) { try { V.audio.pause(); } catch (e) {} V.audio = null; } const was = V.key; V.key = ''; mark(was); }
   function mark(b) { if (!b) return; document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => { const on = V.key === b; x.classList.toggle('on', on); x.querySelector('i').innerHTML = on ? STOP : PLAY; }); }
-  async function play(b) {
+  async function play(b, vc) {
     if (V.key === b) { stop(); return; }
     stop();
     if (!(window.ZLIVE && ZLIVE.ready)) { note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); return; }
@@ -132,6 +150,7 @@
     if (V.key !== b) return;
     if (!u) { V.key = ''; mark(b); note('That line couldn’t be read from your game files.'); return; }
     const a = new Audio(u); V.audio = a; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
+    { const m = window.Store3D && Store3D.M && Store3D.M[CN(V.cls)]; if (m && (vc || V.cls) === V.cls && window.ZFACE && ZFACE.say && document.querySelector('.vov .vdock.ready')) ZFACE.say(m, p, a); }
     a.onended = () => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } };
     a.play().catch(() => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } });
   }
@@ -157,7 +176,7 @@
     const t = e.target.closest('[data-vtab]');
     if (t) { if (typeof sfx === 'function') sfx('buttonclick'); V.tab = +t.dataset.vtab; save(); r.querySelectorAll('.vt').forEach(x => x.classList.toggle('on', x === t)); draw(true); r.querySelector('.vlist').scrollTop = 0; return; }
     if (e.target.closest('[data-vrand]')) { random(); return; }
-    const l = e.target.closest('[data-vo]'); if (l) { play(l.dataset.vo); return; }
+    const l = e.target.closest('[data-vo]'); if (l) { play(l.dataset.vo, l.dataset.vc); return; }
   });
   document.addEventListener('input', e => { if (!e.target.matches || !e.target.matches('.vov [data-vq]')) return; V.q = e.target.value; clearTimeout(V.qt); V.qt = setTimeout(() => draw(true), 120); });
 })();
