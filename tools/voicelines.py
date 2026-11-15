@@ -153,6 +153,23 @@ def main():
             if GG: cls.append([tn, GG])
         data[key] = cls
         print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    # the Administrator: her own responses page (the announcer's lines, sound/vo/announcer_*, vo/compmode/cm_admin_*)
+    try:
+        cls = []
+        for tn, G in parse(wikitext("Administrator responses")):
+            GG = []
+            for g, lines, gl in G:
+                L = []
+                for f, tx in lines:
+                    base = f.rsplit(".", 1)[0]
+                    if have is not None and base not in have: miss.append(f)
+                    L.append([base, ti(tx)])
+                if L: GG.append([g, L, gl] if gl else [g, L])
+            if GG: cls.append([tn, GG])
+        data["administrator"] = cls
+        print("administrator", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    except Exception as e:
+        print("skip the Administrator", e)
     # Saxton Hale (Versus Saxton Hale): his own section of the mode's responses page; his lines are packed in the vsh_ maps
     # (sound/mvm/saxton_hale_<map>_<year>_<n>/), so each is named by its folder and file: "saxton_hale|charge_a_01"
     try:
