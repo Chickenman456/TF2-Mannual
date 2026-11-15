@@ -2139,7 +2139,11 @@ async function source(n,cl,si){const e=entry(n);if(!e)throw new Error('This item
 // ---------- Workshop: items compiled with TF2's Workshop importer (tf/workshop/import_source/<name>.zip) ----------
 // each zip holds the compiled game files (game/models, game/materials) and manifest.txt, the import session with its ItemSchema
 // (the items_game entry the importer writes). Opening one lays its game files over the install (OV) and adds that entry.
-const OV=new Map(),WS={};let WSN=0;const WSDIR='workshop/import_source';
+const OV=new Map(),WS={};let WSN=0;
+function ovFresh(L){const S=new Set(L.map(n=>n.toLowerCase()));for(const n of S)delete MDLS[n];
+ const tx=new Set([...S].filter(n=>/^materials\/.*\.vtf$/.test(n)).map(n=>n.slice(10,-4)));
+ for(const k of Object.keys(ST.cache))if(/^(live|npc:)/.test(k)||tx.has(k.split('|')[0])||(k.startsWith('cube|')&&tx.has(k.slice(5))))delete ST.cache[k];
+ for(const k in PMAT)delete PMAT[k];if(window.Store3D&&Store3D.rematerial)Store3D.rematerial()}const WSDIR='workshop/import_source';
 // the zip is read a slice at a time: its directory, then only the entries asked for (the files hold the uncompressed sources too)
 async function srcBlob(p){const s=ST.src;if(!s)return null;
  if(s.handle){try{let h=s.handle;const parts=p.split('/');for(let i=0;i<parts.length-1;i++)h=await h.getDirectoryHandle(parts[i]);return await (await h.getFileHandle(parts[parts.length-1])).getFile()}catch(e){}}
@@ -2176,7 +2180,9 @@ function wsOpen(it){const key=it.name+'|'+it.size+'|'+it.t+(it.blob?'|'+(it.v||0
  const classes=[...new Set(Object.keys(rr.used_by_classes||{}).map(c=>WSCLS[c.toLowerCase()]).filter(Boolean))];
  e.ws={qc:async mp=>{const base=mp.split('/').pop().replace(/\.mdl$/,'');const L=[...Z.keys()].filter(n=>n.startsWith('content/')&&/\.qci?$/.test(n));
   const mine=L.filter(n=>n.split('/').pop().replace(/\.qci?$/,'')===base);const o=[];for(const n of (mine.length?mine:L)){const d=await zipGet(f,Z.get(n));if(d)o.push({kind:'qc',path:n.slice(8),note:'from '+it.name,text:text(d)})}return o}};
- let full=null;const load=()=>full||(full=(async()=>{for(const n of game)if(!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d)OV.set(n,d)}return true})().catch(err=>{full=null;throw err}));
+ let full=null;const load=()=>full||(full=(async()=>{const fresh=[];for(const n of game)if(it.blob||!OV.has(n)){const d=await zipGet(f,Z.get('game/'+n));if(d){OV.set(n,d);fresh.push(n)}}
+  // the importer's preview is built again under the same file names: what was read of the last build is read again
+  if(it.blob&&fresh.length)ovFresh(fresh);return true})().catch(err=>{full=null;throw err}));
  e.ws.load=load;return{id,name,file:it.name,classes,paintable:paintable('#'+id),region:String(rr.equip_region||''),load}})()}
 // the class model's own materials (body, head, medic backpack; RED and BLU): with the TF2 folder linked the merc the page ships is
 // drawn with the game's textures and material settings in place of the page's own copies
