@@ -253,7 +253,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
       if(mm&&fs){let W={};try{const S=LOX.ls(c);W=S.P[S.pre].w||{}}catch(e){}if(!mm._tslot0&&mm._wbase)mm._tslot0={slot:mm._wbase.slot,name:W[mm._wbase.slot]||null};mm._tforce=1;
        if(!mm._wbase||mm._wbase.slot!==fs)setWeapon(c,fs,W[fs]||null)}
       else if(mm&&!tn&&mm._tslot0){const b0=mm._tslot0;mm._tslot0=null;mm._tforce=0;setWeapon(c,b0.slot,b0.name)}
-      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@scene:/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);const oldOff=mm._wmOff;mm._wmOff=hw;wmBG(mm);if(oldOff!==hw&&window.ZLIVE&&ZLIVE.ready)lodBody(c);
+      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@(scene|seq):/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);const oldOff=mm._wmOff;mm._wmOff=hw;wmBG(mm);if(oldOff!==hw&&window.ZLIVE&&ZLIVE.ready)lodBody(c);
       tauntProp(mm,c,n)}}return true};
    const st0={idle:'stand_PRIMARY'};mx.addEventListener('finished',e=>{if(e&&e.action&&e.action._zg)return;play(st0.idle)});// a firing gesture ends on its own
    // team skins: RED maps ship with the model, BLU maps (models/<class>_<part>_blu.jpg) load on demand
