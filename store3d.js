@@ -2255,15 +2255,22 @@ async function npcSeqSounds(path,name){const F=await npcFiles(path);for(const p 
 // a soundscript (or a .wav) from the game's files, as a playable URL (one of its waves at random)
 // a sound by its file's name alone (scout_medic01), wherever the game keeps it under sound/ (vo/, vo/compmode/, vo/taunts/...):
 // 'vo/compmode/cm_scout_...mp3', the path sndURL plays
-let SNDIX=null;function soundFind(base){if(!ST.ready)return null;if(!SNDIX){SNDIX=new Map();for(const k in ST.vpk){const V=ST.vpk[k];if(!V||!V.E)continue;for(const n of V.E.keys()){if(!n.startsWith('sound/'))continue;const m=/([^/]+)\.(mp3|wav)$/.exec(n);if(!m)continue;const b=m[1];const o=SNDIX.get(b);if(!o||(/^sound\/vo\//.test(n)&&!/^sound\/vo\//.test(o))||(/\.mp3$/.test(n)&&!/\.mp3$/.test(o)&&/^sound\/vo\//.test(n)===/^sound\/vo\//.test(o)))SNDIX.set(b,n)}}}
- const p=SNDIX.get(String(base).toLowerCase());return p?p.slice(6):null}
-// lines the game ships only inside its maps: Versus Saxton Hale's (each vsh_ map packs the mercs' lines in sound/vo/mercs_<map>_<year>_<n>/),
-// read out of the maps' packed files as the Characters' map-only ones are (mountPak)
+let SNDIX=null,SNDALL=null;
+const sndAdd=n=>{const m=/([^/]+)\.(mp3|wav)$/.exec(n);if(!m)return;const b=m[1];const o=SNDIX.get(b);
+ if(!o||(/^sound\/vo\//.test(n)&&!/^sound\/vo\//.test(o))||(/\.mp3$/.test(n)&&!/\.mp3$/.test(o)&&/^sound\/vo\//.test(n)===/^sound\/vo\//.test(o)))SNDIX.set(b,n);
+ const L=SNDALL.get(b);if(L){if(!L.includes(n))L.push(n)}else SNDALL.set(b,[n])};
+// 'saxton_hale|kill_01': a file in a folder whose name starts so (sound/mvm/saxton_hale_dt_2025_1/kill_01.mp3), where one name is in several
+function soundFind(base){if(!ST.ready)return null;if(!SNDIX){SNDIX=new Map();SNDALL=new Map();for(const k in ST.vpk){const V=ST.vpk[k];if(!V||!V.E)continue;for(const n of V.E.keys())if(n.startsWith('sound/'))sndAdd(n)}}
+ base=String(base).toLowerCase();let p;
+ if(base.includes('|')){const [pre,nm]=base.split('|');p=(SNDALL.get(nm)||[]).find(x=>{const d=x.split('/');return d.length>2&&d[d.length-2].startsWith(pre)})}else p=SNDIX.get(base);
+ return p?p.slice(6):null}
+// lines the game ships only inside its maps: Versus Saxton Hale's (each vsh_ map packs the mercs' lines in sound/vo/mercs_<map>_<year>_<n>/
+// and Hale's in sound/mvm/saxton_hale_<map>_<year>_<n>/), read out of the maps' packed files as the Characters' map-only ones are (mountPak)
 const VSHMAPS=['vsh_distillery','vsh_skirmish','vsh_nucleus','vsh_tinyrock','vsh_maul','vsh_outburst','vsh_bunker','vsh_hellfire','vsh_maul_event','vsh_outburst_event'];let SNDMAP=null;
 async function soundFindAsync(base){const p=soundFind(base);if(p||!ST.ready)return p;
  // the maps are opened together, and a line is found as soon as the first map holding it is read
- if(!SNDMAP){soundFind('');SNDMAP=VSHMAPS.map(m=>mountPak(m+'.bsp').then(k=>{if(k&&k.Z)for(const n of k.Z.keys()){if(!n.startsWith('sound/'))continue;const x=/([^/]+)\.(mp3|wav)$/.exec(n);if(x&&!SNDIX.has(x[1]))SNDIX.set(x[1],n)}}).catch(()=>{}))}
- const k=String(base).toLowerCase();await Promise.race([Promise.all(SNDMAP),...SNDMAP.map(P=>P.then(()=>{if(!SNDIX.has(k))return new Promise(()=>{})}))]);return soundFind(base)}
+ if(!SNDMAP){soundFind('');SNDMAP=VSHMAPS.map(m=>mountPak(m+'.bsp').then(k=>{if(k&&k.Z)for(const n of k.Z.keys())if(n.startsWith('sound/'))sndAdd(n)}).catch(()=>{}))}
+ await Promise.race([Promise.all(SNDMAP),...SNDMAP.map(P=>P.then(()=>{if(!soundFind(base))return new Promise(()=>{})}))]);return soundFind(base)}
 async function sndURL(name){try{const W=Array.isArray(name)?name:/\.(wav|mp3)$/i.test(name)?[name]:await waves(name);if(!W.length)return null;return await audioURL(W[(Math.random()*W.length)|0])}catch(e){return null}}
 // a character's attack that the game layers on top of what it's doing (a delta gesture: the skeletons' MELEE_swing, the HHH's and Saxton
 // Hale's attacks), as ZLIVE.gesture builds a merc's; null when the sequence is a whole pose of its own, played instead of the idle

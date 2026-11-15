@@ -718,9 +718,9 @@
   function openNpc(o) {
     if (o.def.cls) return openChar(o);
     close();
-    const el = document.createElement('div'); el.className = 'spv spv-npc player';
+    const el = document.createElement('div'); el.className = 'spv spv-npc player' + (o.dock ? ' dock' : '');
     el.innerHTML = markup(o);
-    document.body.appendChild(el);
+    (o.dock || document.body).appendChild(el);
     ST = {o, el, u: 2, npc: true, state: 'npc', cls: null, team: 'RED', iconPos: 0, rot: 0, nm: o.name};
     ['.spv-icons', '[data-spv=left]', '[data-spv=right]', '[data-spv=options]', '[data-spv=lod]', '[data-spv=wish]', '.spv-cycle'].forEach(q => el.querySelectorAll(q).forEach(x => x.remove()));
     const sk = o.def.skins || null, teamUI = el.querySelector('.spv-team');
