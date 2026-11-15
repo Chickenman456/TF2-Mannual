@@ -186,6 +186,9 @@ main{padding-block:18px 80px;max-width:1520px;margin:0 auto}
 .tag{font-family:var(--head);font-size:13px;padding:3px 8px;border-radius:3px;text-transform:uppercase;background:var(--CreditsGreen);color:var(--TanLight)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(114px,1fr));gap:7px;padding:4px 14px 16px}
 .sec.closed .grid{display:none}
+.sec[data-key]>.sh::after{content:'';flex:none;width:9px;height:9px;margin:0 4px 0 2px;border:solid var(--TanLight,#cfc3ac);border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);opacity:.75;transition:transform .15s}
+.sec[data-key]>.sh:hover::after{opacity:1}
+.sec.closed[data-key]>.sh::after{transform:rotate(-45deg)}
 /* backpack slots: BackpackItemBorder[_Rarity*] / GreyedOut / MouseOver, drawn from the game's scalable images */
 .slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 6px 8px;min-height:134px;
   border:0 solid transparent;border-image:url(ui/backpack_rect.webp) 24 fill / 18px}
@@ -739,7 +742,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.3</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.4</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -895,7 +898,8 @@ function initExtra(x){
 }
 initExtra(RAW.extra);
 let DB = null, USER_ID = null, MCP = null;
-const closed = {};
+document.addEventListener('mouseover', e => { const h = e.target.closest && e.target.closest('.sec[data-key]>.sh'); if (h && !h.title) h.title = 'Click to close or open · Shift-click: every section'; });
+const closed = (() => { try { return JSON.parse(localStorage.getItem('mannual_closed')) || {}; } catch (e) { return {}; } })();   // sections you closed, kept between visits
 function $(s){ return document.querySelector(s); }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function migrate(x){
@@ -1704,7 +1708,10 @@ document.addEventListener('click', e => {
     return;
   }
   const head = t.closest('.sh');
-  if (head){ const s = head.parentElement; closed[s.dataset.key] = !s.classList.contains('closed'); s.classList.toggle('closed'); }
+  if (head){ const s = head.parentElement; if (!s.dataset.key) return; const shut = !s.classList.contains('closed');
+    // Shift-click: every section on the page opens or closes with it
+    (e.shiftKey ? [...document.querySelectorAll('.sec[data-key]')] : [s]).forEach(x => { if (shut) closed[x.dataset.key] = 1; else delete closed[x.dataset.key]; x.classList.toggle('closed', shut); });
+    try { localStorage.setItem('mannual_closed', JSON.stringify(closed)); } catch (er) {} }
 });
 $('#show').addEventListener('change', () => { S.show = $('#show').value; save(); render(); });
 $('#avail').addEventListener('change', () => { S.avail = $('#avail').value; save(); render(); });
