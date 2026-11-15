@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind). */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['krampus', 'Krampus'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['administrator', 'Administrator']];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices)
   const ANN = new Set(['administrator']);
   // the characters who aren't mercs. Saxton Hale: the Characters' own Hales (npc.js: Saxton Hale packed in vsh_nucleus, Santa Hale in
@@ -15,6 +15,7 @@
       {n: 'Santa Hale', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml']},
       {n: 'Hellfire Hale', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob']}]},
     krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', styles: [{n: 'Krampus', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle'}]},
+    bombinomicon: {card: 'npc_bombinomicon.webp', level: 'Halloween', styles: [{n: 'Bombinomicon', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1}]},
     administrator: {styles: [{n: 'Administrator'}]},
   };
   const styleOf = c => NPC[c] ? NPC[c].styles[Math.min((V.sty || {})[c] || 0, NPC[c].styles.length - 1)] : null;
@@ -184,7 +185,7 @@
     try {
       const st = styleOf(c);
       ItemPreview.openNpc({dock: din, name: st ? st.n : CN(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays
