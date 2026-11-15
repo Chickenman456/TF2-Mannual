@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 50
+CATALOG_VERSION = 51
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -860,6 +860,9 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
             "updates": updates(data_dir),
+            # the maps' stamps (items of the map_token prefab), {defindex: [name, backpack icon]}: By Update shows a map by its stamp
+            "stamps": {str(k): [loc.get(str(r.get("item_name") or "").lstrip("#").lower()) or r.get("name", ""), r.get("image_inventory", "")]
+                       for k, r in sorted(R.items()) if "map_token" in str(r.get("prefab") or "")},
             "buy": store_buy(data_dir, keep, dup),
             "robot": sorted(k for k in _ids([x for x in cur.get("robot_cosmetics", {}) if not x.startswith("_")]) if k in keep),
             "robot_body": {k: v for k, v in cur.get("robot_body", {}).items() if not k.startswith("_") and int(k) in keep},
