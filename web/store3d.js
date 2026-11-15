@@ -1248,7 +1248,9 @@ const QPRE=/^(strange|unusual|vintage|genuine|haunted|collector's|self-made|deco
 function entry(n){if(!ST.byName)return null;{const m=/^#(\d+)$/.exec(String(n));if(m)return ST.byId.get(m[1])||null}let k=norm(n),e=ST.byName.get(k);let x=String(n);for(let i=0;!e&&i<4&&QPRE.test(x);i++){x=x.replace(QPRE,'');e=ST.byName.get(norm(x))}return e||null}
 const clsKey=cl=>CLS[cl]||String(cl).toLowerCase();
 const usedBy=(r,c)=>{const ub=r.used_by_classes;if(!ub||!Object.keys(ub).length)return '1';return ub[c]||(c=='demoman'&&ub.demo)||(c=='heavy'&&ub.heavyweapons)||null};
-const styleOf=(e,si)=>{const S=e&&e.r.visuals&&e.r.visuals.styles;if(+si>=KSTREAK)si=0;return S?(S[String(si||0)]||null):null};
+// the plain Power Up Canteen: empty, its generic flask; charged, the flask of the power-up it holds (models/player/items/mvm_loot/all_class/mvm_flask_*)
+const FLASKS=['krit','uber','tele','ammo','build'],genericFlask=e=>!!e&&/mvm_flask_generic\.mdl$/i.test(String(e.r.model_player||''));
+const styleOf=(e,si)=>{if(genericFlask(e)&&+si>=1&&+si<=FLASKS.length)return{model_player:'models/player/items/mvm_loot/all_class/mvm_flask_'+FLASKS[si-1]+'.mdl'};const S=e&&e.r.visuals&&e.r.visuals.styles;if(+si>=KSTREAK)si=0;return S?(S[String(si||0)]||null):null};
 function mdlFor(e,cl,si,team){const r=e.r,c=clsKey(cl);if(!usedBy(r,c))return null;const cand=[];if(+si===PYROLAND&&pvModel(e))cand.push(pvModel(e));
  const pcAdd=pc=>{if(!pc)return;if(pc[c])cand.push(pc[c]);if(c=='demoman'&&pc.demo)cand.push(pc.demo);if(c=='heavy'&&pc.heavyweapons)cand.push(pc.heavyweapons);if(pc.basename)[SHORT[c],RAW[c],c].forEach(s=>cand.push(pc.basename.replace(/%s/g,s)))};
  const st=styleOf(e,si);if(st){pcAdd(team=='BLU'?st.model_player_per_class_blue:st.model_player_per_class_red);pcAdd(st.model_player_per_class);if(st.model_player)cand.push(st.model_player)}
@@ -1280,7 +1282,9 @@ function lvlNames(e){const id=e.id;if(id in ST.lvl)return ST.lvl[id];ST.lvl[id]=
   ST.lvl[id]=L;if(window.ZSTYLETABS)ZSTYLETABS()})().catch(()=>{ST.lvl[id]=[]});return null}
 const styleLabel=n=>{const e=entry(n);if(levelable(e))return 'Killstreak';if(e&&pvModel(e))return 'Pyroland';return 'Style'};
 // a canteen: Empty / Charged, when its model has the second skin family (the plain Power Up Canteen's has one)
-function canteenStyles(e){const id=e.id;if(id in ST.cnt)return ST.cnt[id];ST.cnt[id]=null;
+// the plain one: one style per power-up, named as the game's MvM notices name them (TF_PVE_Player_Used...)
+const FLASK_NAMES=['Crits','ÜberCharge','Recall','Ammo Refill','Upgrade Buildings'];
+function canteenStyles(e){if(genericFlask(e))return [{i:0,name:'Empty'}].concat(FLASK_NAMES.map((n,j)=>({i:j+1,name:n})));const id=e.id;if(id in ST.cnt)return ST.cnt[id];ST.cnt[id]=null;
  (async()=>{let p=null;for(const c of ['scout','soldier','pyro','demoman','heavy','engineer','medic','sniper','spy']){p=mdlFor(e,c,0,'RED');if(p)break}
   const b=p&&await read(p);let n=0;if(b){const M=new DataView(b.buffer,b.byteOffset,b.byteLength);n=M.getInt32(224,true)}
   ST.cnt[id]=n>1?[{i:0,name:'Empty'},{i:1,name:'Charged'}]:[];if(window.ZSTYLETABS)ZSTYLETABS()})().catch(()=>{ST.cnt[id]=[]});return null}
