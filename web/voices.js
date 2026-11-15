@@ -145,7 +145,8 @@
       const m = window.Store3D && Store3D.M && Store3D.M[CN(c)];
       if (!(m && m.o && m.o.visible && m.started && m.cn)) { if (performance.now() - t0 < 30000) setTimeout(wait, 150); else box.classList.add('ready'); return; }
       if (window.ZLIVE && ZLIVE.ready && m.play) {
-        const key = 'live:@seq:selectionMenu_Idle';
+        // the class select menu's pose, with the weapon each class holds there
+        const key = 'live:@seq:selectionMenu_Idle' + ({engineer: '#melee', spy: '#melee', medic: '#secondary'}[c] || '');
         if (m.cn === key) { box.classList.add('ready'); return; }
         if (!posed) { posed = true; m.play(key); }
         if (performance.now() - t0 < 20000 && m.cn !== key) { setTimeout(wait, 150); return; }
@@ -163,7 +164,9 @@
     if (V.key === b) { stop(); return; }
     stop();
     if (!(window.ZLIVE && ZLIVE.ready)) { note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); return; }
-    const p = ZLIVE.soundFind && ZLIVE.soundFind(b);
+    if (!(ZLIVE.soundFind && ZLIVE.soundFind(b))) note('Looking in the game’s maps…');
+    const p = ZLIVE.soundFindAsync ? await ZLIVE.soundFindAsync(b) : ZLIVE.soundFind && ZLIVE.soundFind(b);
+    if (V.key && V.key !== b) return;
     if (!p) { note('That line isn’t in your game files.'); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); return; }
     note(''); V.key = b; mark(b);
     const u = await ZLIVE.sndURL([p]);
