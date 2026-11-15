@@ -48,6 +48,7 @@
 .impd .box .row{display:flex;gap:calc(var(--k)*8px);justify-content:flex-end}
 .impd .box .row .bt{padding:calc(var(--k)*5px) calc(var(--k)*14px)}
 .impd .med{position:absolute;inset:0;z-index:4;background:rgba(0,0,0,.88)}
+.impd.tall{height:calc(var(--k)*460px)}
 .impd .med .num{width:calc(var(--k)*35px);height:calc(var(--k)*12px);font-size:calc(var(--k)*9px);padding:0 2px}
 .impd .med select{height:calc(var(--k)*12px);font-size:calc(var(--k)*9px)}
 .impd .med .r{text-align:right;justify-content:flex-end}
@@ -154,7 +155,7 @@
   function draw() {
     const d = document.querySelector('.impd'); if (!d) return;
     const f = document.activeElement, keep = f && f.dataset && f.dataset.f === 'name' ? f.selectionStart : null;
-    d.innerHTML = dialog(); paintBG();
+    d.innerHTML = dialog(); paintBG(); d.classList.toggle('tall', !!I.med);   // the material editor is the game's full 640x480 screen
     if (keep != null) { const n = d.querySelector('[data-f=name]'); if (n) { n.focus(); n.setSelectionRange(keep, keep); } }
   }
   const box = (title, body, buttons) => () => `<div class="ov"><div class="box"><h3>${E(title)}</h3>${body}<div class="row">${buttons}</div></div></div>`;
@@ -177,8 +178,8 @@
     const sk0 = p >> 1, m = p & 1; let sk = sk0;
     const draft = [0, 1].map(j => ({vmt: vmtOf(j, m), tex: Object.fromEntries(TEXK.map(x => [x, g(`Materials/Skins/${SKIN[j]}/Material${m}/${x}_texture_file`, '')]))}));
     const st = I.s.skin_type === '1';
-    I.med = {m, draft, sk, st};
-    I.modal = () => {
+    I.med = {m, draft, sk, st, info: {}};
+    I.modal = I.medModal = () => {
       const M = I.med, D = M.draft[M.sk], t = D.vmt, c = 300;
       const x = n => c + n;
       const row = (y, label, ctl, lx = -100, lw = 100) => `<div class="a lb r" style="${P(x(lx), y, lw - 4, 15)}">${E(label)}</div>${ctl}`;
@@ -233,28 +234,28 @@
     else if (el.matches('[data-em]')) t = vset(t, '$envmap', el.value);
     else if (el.matches('[data-emm]')) { for (const [, v] of ENVMASK) if (v) t = vset(t, v, '0'); const v = ENVMASK[+el.value][1]; if (v) t = vset(t, v, '1'); }
     else if (el.matches('[data-si]')) t = t.replace(/("\>=DX90"\s*\{[^}]*"\$selfillum"\s+")[^"]*(")/i, `$1${el.checked ? 1 : 0}$2`);
-    if (t !== t0) D.vmt = t;   // each team's VMT is its own (the editor's RED / BLU buttons); only the masks are shared
+    if (t !== t0) { D.vmt = t; changed(); }   // each team's VMT is its own (the editor's RED / BLU buttons); only the masks are shared
   }
   async function medCommand(cmd) {
     const M = I.med; if (!M) return;
     const [op, arg] = cmd.split(':');
     if (op === 'Skin') { M.sk = +arg; draw(); return; }
-    if (op === 'Cancel') { I.med = null; I.modal = null; draw(); return; }
+    if (op === 'Cancel') { I.med = null; I.modal = null; draw(); changed(); return; }
     if (op === 'Done') {
       for (let j = 0; j < 2; j++) {
         if (j && !M.st) break;
         const D = M.draft[j], key = `Materials/Skins/${SKIN[j]}/Material${M.m}`;
         set(key + '/vmt', D.vmt);
-        for (const x of TEXK) { if (D.tex[x]) await texInfo(key, x, D.tex[x]); else { const o = g(key, {}); for (const s of ['file', 'width', 'height', 'channels', 'alpha']) delete o[`${x}_texture_${s}`]; } }
+        for (const x of TEXK) { if (D.tex[x]) { if (!await texInfo(key, x, D.tex[x])) return; } else { const o = g(key, {}); for (const s of ['file', 'width', 'height', 'channels', 'alpha']) delete o[`${x}_texture_${s}`]; } }
       }
       I.med = null; I.modal = null; draw(); changed(); return;
     }
     if (op === 'Browse' || op === 'Clear') {
       let f = '';
-      if (op === 'Browse') { f = await pick('image'); if (!f) return; const r = await post('image', {file: f, kind: arg}); if (r.fail) { fail(r); return; } }
+      if (op === 'Browse') { f = await pick('image'); if (!f) return; const r = await post('image', {file: f, kind: arg}); if (r.fail) { fail(r); return; } M.info[arg + ':' + f] = r; }
       // the normal, phong exponent and illum masks are shared by both teams (the dialog's "Shared"); the base is the team's own
       for (let j = 0; j < 2; j++) if (arg === 'base' ? j === M.sk : true) M.draft[j].tex[arg] = f;
-      draw();
+      draw(); changed();
     }
   }
   async function texInfo(key, kind, file) {
@@ -269,7 +270,7 @@
   const pick = async kind => { try { const r = await post('pick', {kind, dir: kind === 'session' ? I.info.import_source : ''}); return r.path || ''; } catch (e) { return ''; } };
   async function command(c) {
     if (typeof sfx === 'function') sfx('buttonclick');
-    if (c === 'ModalOK') { I.modal = null; draw(); return; }
+    if (c === 'ModalOK') { I.modal = I.med ? I.medModal : null; draw(); return; }
     if (c === 'QCOK') { const t = document.querySelector('.impd textarea'); if (t) set(`classes/${clsc()}/QC`, t.value.replace(/\r?\n/g, '\r\n')); I.modal = null; draw(); changed(); return; }
     if (c === 'QCCancel') { I.modal = null; draw(); return; }
     if (c === 'BrowseIcon') {
@@ -327,13 +328,30 @@
 
   // ---------------------------------------------------------------- the live preview: the importer's Preview build, docked beside it
   function changed() { clearTimeout(I.pv.t); I.pv.t = setTimeout(() => preview(false), 700); }
+  // what the preview builds: the session, with the material editor's values while it's open (OK keeps them, Cancel puts the preview back)
+  function pvSession() {
+    const M = I.med; if (!M) return I.s;
+    const S = JSON.parse(JSON.stringify(I.s));
+    const put = (p, v) => { const a = p.split('/'); let o = S; for (const x of a.slice(0, -1)) o = (o[x] = o[x] && typeof o[x] === 'object' ? o[x] : {}); if (v == null) delete o[a[a.length - 1]]; else o[a[a.length - 1]] = v; };
+    for (let j = 0; j < 2; j++) {
+      if (j && !M.st) break;
+      const D = M.draft[j], key = `Materials/Skins/${SKIN[j]}/Material${M.m}`;
+      put(key + '/vmt', D.vmt);
+      for (const x of TEXK) {
+        const f = D.tex[x], r = f && (M.info[x + ':' + f] || (g(`${key}/${x}_texture_file`, '') === f ? {width: g(`${key}/${x}_texture_width`), height: g(`${key}/${x}_texture_height`), channels: g(`${key}/${x}_texture_channels`), alpha: g(`${key}/${x}_texture_alpha`) === '1'} : null));
+        if (f && r) { put(`${key}/${x}_texture_file`, f); put(`${key}/${x}_texture_width`, String(r.width)); put(`${key}/${x}_texture_height`, String(r.height)); put(`${key}/${x}_texture_channels`, String(r.channels)); put(`${key}/${x}_texture_alpha`, r.alpha ? '1' : '0'); }
+        else if (!f) for (const s of ['file', 'width', 'height', 'channels', 'alpha']) put(`${key}/${x}_texture_${s}`, null);
+      }
+    }
+    return S;
+  }
   // one preview build at a time: a change while one builds makes one more build after it, with everything changed by then
   async function preview(asked) {
     if (!CLS.some(hasModels)) { if (asked) message(L('TF_ImportFile_BuildFailed'), L('TF_ImportFile_BuildFailedNoModels')); return; }
     if (I.pv.running) { I.pv.again = true; return; }
     I.pv.running = true; I.pv.again = false;
     const n = ++I.pv.n; I.pv.note = 'Updating the preview…'; note();
-    let b; try { b = await post('preview', {session: I.s}); } catch (e) { b = {fail: 'TF_ImportFile_BuildFailedCompile', var: {log: String(e.message || e)}}; }
+    let b; try { b = await post('preview', {session: pvSession()}); } catch (e) { b = {fail: 'TF_ImportFile_BuildFailedCompile', var: {log: String(e.message || e)}}; }
     I.pv.running = false;
     if (I.pv.again) { preview(false); return; }
     if (!(b instanceof Blob)) { I.pv.note = 'The preview didn’t build: ' + ((b.var && b.var.log) ? b.var.log.split('\n').filter(Boolean).slice(-2).join(' ') : L(b.fail, b.var)) + ' Press Preview for the whole log.'; note(); if (asked) fail(b); return; }

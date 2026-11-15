@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 49
+CATALOG_VERSION = 50
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -31,7 +31,7 @@ def source_files(tf_dir):
 
 def signature(sources, data_dir):
     parts = ["v%d" % CATALOG_VERSION]
-    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json", "achievements.json", "effects.json", "store.json")]:
+    for p in list(sources.values()) + [os.path.join(data_dir, n) for n in ("curation.json", "release_dates.json", "crates.json", "achievements.json", "effects.json", "store.json", "updates.json")]:
         try:
             st = os.stat(p)
             parts.append("%d:%d" % (st.st_size, int(st.st_mtime)))
@@ -149,6 +149,16 @@ def effects(ig, loc, data_dir):
             seen.add((kind, name))
             out.append([i, name, kind, cell.get(i, -1), *added.get(name.lower(), ("", ""))])
     return sorted(out, key=lambda e: e[0])
+
+
+def updates(data_dir):
+    """data/updates.json, from the TF2 Wiki: "dates", {release date: the update it was part of} ("" a patch in no named update; a
+    date that isn't listed had no patch), and "items", {patch date: [defindexes the wiki says came in it]}."""
+    try:
+        d = json.load(open(os.path.join(data_dir, "updates.json"), encoding="utf-8"))
+        return {"dates": d.get("dates", {}), "items": d.get("items", {})}
+    except (OSError, ValueError):
+        return {}
 
 
 def store_buy(data_dir, keep, dup):
@@ -849,6 +859,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "expired": {str(k): expired_on(k)[:10] for k in keep if cat.get(k) == "x"},
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
+            "updates": updates(data_dir),
             "buy": store_buy(data_dir, keep, dup),
             "robot": sorted(k for k in _ids([x for x in cur.get("robot_cosmetics", {}) if not x.startswith("_")]) if k in keep),
             "robot_body": {k: v for k, v in cur.get("robot_body", {}).items() if not k.startswith("_") and int(k) in keep},

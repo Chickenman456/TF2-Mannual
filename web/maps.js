@@ -104,6 +104,9 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   }
   let openF = null;
   window.MAPVIEW = {
+    // for By Update: every map (null while mapdata.js loads; the page renders again once it's in) and a map's card
+    list() { if (!window.ZMAPS) { need(); return null; } return ALL(); },
+    card,
     render() {
       if (!window.ZMAPS) { need(); return '<div class="empty"><h2>Loading the maps…</h2></div>'; }
       const q = ((document.getElementById('q') || {}).value || '').trim().toLowerCase();
