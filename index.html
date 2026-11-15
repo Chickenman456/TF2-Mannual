@@ -595,7 +595,7 @@ button.vg:focus-visible{outline:none}
 .wpnote .wplink{pointer-events:auto;margin-left:10px;height:34px;padding:0 16px;border:0;border-radius:5px;background:#756B5E;color:#EBEBEB;font:18px TF2Build,sans-serif;text-transform:uppercase;cursor:pointer}
 .wpnote .wplink:hover{background:#91493B}
 .modcam{font-size:12px;margin-top:14px;opacity:.85}.modcopy{display:flex;align-items:center;gap:10px;width:100%;margin:4px 0 10px;padding:8px 10px;text-align:left;font:inherit;color:inherit;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.15);border-radius:4px;cursor:pointer}.modcopy:hover{border-color:rgba(255,255,255,.4)}.modcopy code{flex:1;word-break:break-word}.modcopy span{flex:none;font-size:11px;text-transform:uppercase;opacity:.7}.modcopy.ok span{opacity:1;color:#8fd18f}
-#tip .tipico{width:96px;height:96px;margin:0 auto 6px;position:relative}#tip .tipico .ico{width:100%;height:100%;object-fit:contain}#tip.over{z-index:100000}
+#tip .tipico{width:96px;height:96px;margin:0 auto 6px;position:relative}#tip .tipico .ico{--is:96px;width:96px;height:96px;object-fit:contain;filter:none}#tip.over{z-index:100000}
 .spv-col [data-cid]{cursor:pointer}.spv-col [data-cid]:hover{text-decoration:underline}
 </style>
 
@@ -719,7 +719,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.7</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.8</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1849,7 +1849,8 @@ function itemTip(id, icon){
   const now = new Date(), halloween = (now.getMonth() === 9) || (now.getMonth() === 10 && now.getDate() <= 7);
   let colHtml = '';
   const col = it.cols.map(c => COLS[c]).find(c => c && c.k === 'collection'), box = caseCol(id);   // a crate series isn't a collection
-  if (box){
+  if (icon){}   // hovered in a case's or a collection's list: that list is already on screen
+  else if (box){
     colHtml = `<div class="col"><div class="h">Contains one of the following:</div>${box.i.map(i => ITEMS[i]).filter(Boolean).sort((a,b) => (b.rar - a.rar) || a.name.localeCompare(b.name)).map(x => `<div style="color:${x.rar?RAR[x.rar].c:'var(--AttribNeutral)'}">${esc(x.name)}</div>`).join('')}</div>`;
   } else if (col){
     const list = col.i.map(i => ITEMS[i]).filter(Boolean).sort((a,b) => (b.rar - a.rar) || a.name.localeCompare(b.name)).slice(0, 24);
