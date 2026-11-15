@@ -732,7 +732,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.6</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.7</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -2148,7 +2148,7 @@ function whyOf(id){
     : av === 'code' ? 'Code item: ' + cq + ' came from redeeming promo codes' + (from ? ' that came with ' + from : '') + ', and unused codes may still exist'
     : av === 'expired' ? 'Expired: deleted itself from every backpack' + (typeof it.expired === 'string' ? ' on ' + new Date(it.expired + 'T00:00:00').toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}) : '')
     : av === 'rare' ? '1 of 1: only a single copy exists' + (it.day ? '. It only stays in a backpack for a day, then disappears' : '')
-    : av === 'limited' ? 'Limited: ' + ((RAW.force_limited || {})[id] || 'tradable, but it came from a promotion that has ended, so no new copies are made')
+    : av === 'limited' ? 'Limited: ' + ((RAW.force_limited || {})[id] || ((RAW.limited_attr || []).includes(+id) ? 'the game marks it a limited-quantity item' : 'tradable, but it came from a promotion that has ended, so no new copies are made'))
     : (it.untradable ? 'Not tradable, but still earnable' : '');
 }
 /* Clicking an item opens the Mann Co. Store's preview window (preview.js): its icon and details, and on a class portrait

@@ -212,6 +212,7 @@ def apply(catalog, data):
         only.pop(k, None)
     limited -= set(catalog.get("not_limited", []))
     limited |= {int(k) for k in catalog.get("force_limited", {})}
+    limited |= set(catalog.get("limited_attr") or [])   # the game marks it a limited-quantity item
     # "Craft hats": cosmetics you can get by crafting (the wiki's "craft" availability)
     cosmetic = {it[0] for it in catalog["items"] if it[3] == "c"}
     craft = sorted(k for k, r in flags.items() if k in cosmetic and "craft" in (r.get("a") or "").split("|"))

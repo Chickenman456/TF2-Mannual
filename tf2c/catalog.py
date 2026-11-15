@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 53
+CATALOG_VERSION = 54
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -929,6 +929,10 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "effects": effects(ig, loc, data_dir),
             "updates": updates(data_dir),
             # hats a case can unbox as Unusual (its lootlist's "...unusual_hat_chance" job): Unusual is one of their qualities
+            # the game's own "limited quantity item" attribute: a Limited item (an Unobtainable tag still wins over it)
+            "limited_attr": sorted(k for k in keep if any(
+                str(n).lower() == "limited quantity item" and str(v.get("value") if isinstance(v, dict) else v).strip() not in ("", "0")
+                for blk in ("attributes", "static_attrs") for n, v in ((R.get(k) or {}).get(blk) or {}).items())),
             "case_unusual": sorted({i for c in collections_.values() if c["k"] == "collection" and any(
                 any("unusual_hat" in str(t) for t in (R.get(x, {}).get("lootlist_job_templates") or {})) for x in c["c"])
                 for i in c["i"] if i in keep and tname(i) == "Hat"}),
