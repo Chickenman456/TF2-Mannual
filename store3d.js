@@ -252,7 +252,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
       if(mm&&fs){let W={};try{const S=LOX.ls(c);W=S.P[S.pre].w||{}}catch(e){}if(!mm._tslot0&&mm._wbase)mm._tslot0={slot:mm._wbase.slot,name:W[mm._wbase.slot]||null};mm._tforce=1;
        if(!mm._wbase||mm._wbase.slot!==fs)setWeapon(c,fs,W[fs]||null)}
       else if(mm&&!tn&&mm._tslot0){const b0=mm._tslot0;mm._tslot0=null;mm._tforce=0;setWeapon(c,b0.slot,b0.name)}
-      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@scene:/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);mm._wmOff=hw;wmBG(mm);
+      const hw=tn&&!fs&&!(mm&&mm._keepW)&&!/^live:@(scene|seq):/.test(n);if(mm){(mm.wmesh||[]).forEach(x=>x.visible=!hw);(mm.wextra||[]).forEach(x=>x.visible=!hw);mm._wmOff=hw;wmBG(mm);
       tauntProp(mm,c,n)}}return true};
    const st0={idle:'stand_PRIMARY'};mx.addEventListener('finished',e=>{if(e&&e.action&&e.action._zg)return;play(st0.idle)});// a firing gesture ends on its own
    // team skins: RED maps ship with the model, BLU maps (models/<class>_<part>_blu.jpg) load on demand
@@ -1000,7 +1000,7 @@ function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.
    const past=st-e.s;if(past>.05)a.currentTime=past*(vfb?.8:1);a.play().catch(()=>{});sc.voices.push({a,v:w,t0:performance.now()/1000-past})})}
  if(!R.h)return;const h=R.h,fw=R.fw,g=R.g,ctl=h.ctl;
  const XS=xpThink(m);
- const dec=Math.pow(.95,dt*60);let act=!!sc||XS.length>0;for(let i=0;i<fw.length;i++){const c=ctl[i],r=c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i],v=r*dec;fw[i]=c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v;if(Math.abs(v)>1e-4)act=true}
+ const dec=Math.pow(.95,dt*60);let act=!!sc||XS.length>0||!!(R.say&&R.say.length);for(let i=0;i<fw.length;i++){const c=ctl[i],r=c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i],v=r*dec;fw[i]=c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v;if(Math.abs(v)>1e-4)act=true}
  if(!act&&!R.live)return;
  const norm=(i,v)=>{const c=ctl[i];return c[2]!==c[1]?Math.min(1,Math.max(0,(v-c[1])/(c[2]-c[1]))):v},unnorm=i=>{const c=ctl[i];return c[2]!==c[1]?fw[i]*(c[2]-c[1])+c[1]:fw[i]};
  if(sc)for(const e of sc.sc.ev){if(e.t!='flex'||st<e.s||st>e.e)continue;const w=evIntensity(e,st,sc.sc);
@@ -1016,6 +1016,8 @@ function tick(m,dt){if(!m._pre){m._pre=1;const c=Object.keys(Z3D.M).find(x=>Z3D.
  if(sc)for(const e of sc.sc.ev){if(e.t!='expr'||st<e.s||st>e.e)continue;const set=h.vfe[e.file]&&h.vfe[e.file][e.name.toLowerCase()];if(!set)continue;const sca=evIntensity(e,st,sc.sc);
   for(const [j,w,inf] of set){const s=Math.min(1,Math.max(0,sca*inf));g[j]=g[j]*(1-s)+w*s}}
  if(sc)sc.voices=sc.voices.filter(x=>{const a=x.a;const t=a.paused&&a.currentTime===0?performance.now()/1000-x.t0:a.currentTime;if(a.ended)return false;visemes(R,x.v,t);return true});
+ // a line said on its own (ZFACE.say: the Voice Lines player), its lips moving to its sentence data as it plays
+ if(R.say&&R.say.length)R.say=R.say.filter(x=>{const a=x.a;if(a.ended||(a.paused&&a.currentTime>0))return false;visemes(R,x.v,a.currentTime);return true});
  // flexes only play at LOD 0 (the lower LODs' meshes have none): at LOD 1 and 2 the face and the items on it hold their neutral shape
  if(window.ZLIVE&&ZLIVE.lod>0&&g&&g.fill)g.fill(0);
  rules(R);deform(R);
@@ -1030,7 +1032,7 @@ async function attach(c,m,key,meshes){if(/^live:/.test(key)){const ih=window.ZLI
  if(!m.face&&h)m.face=rig(m,h);m.faceItems=(m.faceItems||[]).filter(x=>x.meshes.every(y=>y.parent));m.faceItems.push({R,map,meshes});if(m.face)m.face.live=true}
 // pausing a taunt holds its voices and music where they are
 function pauseScene(m,p){const R=m&&(m.face||m._face);const S=R&&R.scene;if(!S)return;const A=[...S.voices.map(x=>x.a),S.music].filter(Boolean);A.forEach(a=>{try{if(p)a.pause();else if(!a.ended)a.play().catch(()=>{})}catch(e){}})}
-window.ZFACE={fired:xpFired,minigun:xpMinigun,pause:pauseScene,addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false);TAIL.forEach(a=>{try{a.pause()}catch(e){}});TAIL.clear()},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
+window.ZFACE={say:async(m,path,a)=>{if(!m||!a||!window.ZLIVE||!ZLIVE.phonemes)return;const v=await ZLIVE.phonemes(path);const R=m.face||m._face;if(!R||!v||!v.ph||!v.ph.length)return;R.say=(R.say||[]).filter(x=>x.a!==a&&!x.a.ended);R.say.push({a,v})},fired:xpFired,minigun:xpMinigun,pause:pauseScene,addLive:async(c,clip,sc,urls)=>{const J=await scenes();const k=c=='Demoman'?'demo':String(c).toLowerCase();J.scn=J.scn||{};(J.scn[k]||(J.scn[k]={}))[clip]=sc;Object.assign(URL_,urls||{})},sfx:(k,v)=>scenes().then(J=>prep(k,J.snd)).then(()=>{const a=audio(k);a.volume=(v==null?1:v)*zv();a.play().catch(()=>{})}),start,tick,killAll,attach,stop:m=>{const R=m&&(m.face||m._face);if(R)stopScene(R,false);TAIL.forEach(a=>{try{a.pause()}catch(e){}});TAIL.clear()},preload:c=>{const k=c=='Demoman'?'demo':String(c).toLowerCase();if(k!='pyro')pack(k);scenes();bank(k);bank('common')}};
 })();
 
 // ============ jiggle bones ============
@@ -1884,6 +1886,8 @@ async function expressions(k){const C=XPC[k];if(!C)return null;
   const L=(await Promise.all(pick(want).map(conv))).filter(Boolean);if(L.length)out[key]=L}
  return out}
 async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rkey(c);if(TAUNT[key])return TAUNT[key];return TAUNT[key]=(async()=>{
+ // '@seq:<sequence>': one of the class's own sequences, held as it is (the class select menu's selectionMenu_Idle)
+ if(/^@seq:/.test(n)){const A=await seqClip(c,[n.slice(5)],'live:'+n,boneSet);if(!A)return null;return{clip:A.clip,sc:{ev:[{t:'seq',s:0,e:A.clip.duration,n:'live:'+n}]},urls:{},prop:null,pseq:null}}
  // '@scene:<vcd>': a weapon taunt's scene (weaponTaunt), played as it is
  const at=/^@scene:/.test(n);const e=at?{r:{taunt:{}},dn:n,k:'taunt'}:entry(n);if(!e||e.k!='taunt')return null;
  const sp=at?n.slice(7):tauntScene(e,c);if(!sp)return null;let evs=null;try{evs=await scene(sp)}catch(err){console.warn('[ZLIVE] scene',sp,err)}
@@ -2266,7 +2270,7 @@ async function npcClip(path,name,boneSet){const F=await npcFiles(path);for(const
 function seqWeights(b,name,clip){if(!clip||clip.zskip)return;const S=seqList(b).find(x=>x.name.toLowerCase()===String(name).toLowerCase());if(!S)return;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
  const wl=dv.getInt32(S.o+156,true),nb=dv.getInt32(156,true),bi=dv.getInt32(160,true);if(!wl)return;const z=new Set();for(let k=0;k<nb;k++)if(dv.getFloat32(S.o+wl+4*k,true)===0){const q=bi+k*216;z.add(cstr(b,q+dv.getInt32(q,true)))}
  if(!z.size||z.size>=nb)return;clip.zskip=z;clip.tracks=clip.tracks.filter(t=>!z.has(t.name.split('.')[0]))}
-window.ZLIVE={soundFind,zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
+window.ZLIVE={soundFind,phonemes,zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
  mdlSkins:async p=>{const b=await mdlBuf(p);if(!b||b.length<232)return 1;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);return Math.max(1,dv.getInt32(224,true))},iconAt,workshop:{list:wsList,open:wsOpen,blob:it=>srcBlob(WSDIR+'/'+it.name.toLowerCase())},custom:{get can(){return !!(ST.src&&ST.src.custom)},access:()=>ST.src&&ST.src.writable?ST.src.writable():Promise.resolve(false),save:(n,b)=>ST.src.custom(n,b)},source,gesture,mercAtts,tauntSound,tauntWeaponModel,expressions,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
