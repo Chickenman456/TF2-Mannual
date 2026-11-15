@@ -107,8 +107,9 @@
     if (slot) rows.push(lab('Slot:', E(SLOTNAME[slot] || slot)));
     if (o.status) rows.push(`<div class="spv-price big" style="color:${o.status[1]}">${E(o.status[0])}</div>`);
     if (o.attrs && o.attrs.length) rows.push(`<div class="spv-attrs big">${o.attrs.map(([t, c]) => `<div${c ? ` style="color:${c}"` : ''}>${E(t)}</div>`).join('')}</div>`);
-    // the item's collection, the way its description lists it in game (grade colours, this item marked), and the case it comes from
-    if (o.col) rows.push(`<div class="spv-col big">${o.col.cases.length ? `<div class="cs">Found in: ${E(o.col.cases.join(', '))}</div>` : ''}<div class="h">${E(o.col.name)}</div>${o.col.items.map(([n, c, cur]) => `<div${cur ? ' class="cur"' : ''}${c ? ` style="color:${c}"` : ''}>${E(n)}</div>`).join('')}</div>`);
+    // the item's collection, the way its description lists it in game (grade colours, this item marked), and the case it comes from;
+    // a case's own contents the same way. Each other item: hover for its info box, click to open it (the page's handlers, data-cid)
+    if (o.col) rows.push(`<div class="spv-col big">${o.col.cases.length ? `<div class="cs">Found in: ${E(o.col.cases.join(', '))}</div>` : ''}<div class="h">${E(o.col.name)}</div>${o.col.items.map(([n, c, cur, cid]) => `<div${cur ? ' class="cur"' : ''}${cid != null && !cur ? ` data-cid="${cid}"` : ''}${c ? ` style="color:${c}"` : ''}>${E(n)}</div>`).join('')}</div>`);
     // a noise maker: play one of its sounds, as using it in game does (read from the game's files)
     if (live() && ZLIVE.noiseSounds && ST.noise && ST.noise.length) rows.push(`<button type="button" class="spv-btn spv-wiki big" data-spv="noise">\u25B6 Play Sound</button>`);
     if (live() && ZLIVE.source) rows.push(`<button type="button" class="spv-btn spv-wiki big" data-spv="src">Model &amp; Materials...</button>`);
