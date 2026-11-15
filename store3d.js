@@ -1538,10 +1538,11 @@ async function model(path,pre,opt){pre=pre||'m';const base=path.replace(/\.mdl$/
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
   g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(J,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(W,4));g.setIndex(used.size>65535?new THREE.Uint32BufferAttribute(idx,1):new THREE.Uint16BufferAttribute(idx,1));g.computeBoundingSphere();
   const mat=new THREE.MeshBasicMaterial();mat.name=pre+s;const sm=new THREE.SkinnedMesh(g,mat);sm.name='live_'+pre+s;root.add(sm);sm.bind(new THREE.Skeleton(B,inv),new THREE.Matrix4());sm.userData.att=att;if(G.bp!=null){sm.userData.bg=G.bp;sm.userData.bgs=G.st;sm.visible=G.st===0}out.push(sm);
-  // flexes in the same shape ZFACE's packs use (dp x4096, dn x127, Y-up), indexed into this slot's geometry
-  if(flexRaw[s]){const fl=[];for(const F of flexRaw[s]){const L=F.V.filter(v=>used.has(vidx(v[0])));if(!L.length)continue;const n=L.length;
+  // flexes in the same shape ZFACE's packs use (dp x4096, dn x127, Y-up), indexed into this slot's geometry (by the mesh's own vertex
+  // numbers, as the geometry's are: vidx only says where a vertex's data sits in a .vvd with fixups, and two of them can share it)
+  if(flexRaw[s]){const fl=[];for(const F of flexRaw[s]){const L=F.V.filter(v=>used.has(v[0]));if(!L.length)continue;const n=L.length;
     const f={d:F.d,p:(F.p>0&&F.p!==F.d)?F.p:-1,t:F.t,n,idx:new Uint32Array(n),dp:new Float32Array(3*n),dn:new Float32Array(3*n),side:new Uint8Array(n)};
-    L.forEach((v,j)=>{f.idx[j]=used.get(vidx(v[0]));f.side[j]=v[1];f.dp[3*j]=v[2]*4096;f.dp[3*j+1]=v[4]*4096;f.dp[3*j+2]=-v[3]*4096;f.dn[3*j]=v[5]*127;f.dn[3*j+1]=v[7]*127;f.dn[3*j+2]=-v[6]*127});fl.push(f)}
+    L.forEach((v,j)=>{f.idx[j]=used.get(v[0]);f.side[j]=v[1];f.dp[3*j]=v[2]*4096;f.dp[3*j+1]=v[4]*4096;f.dp[3*j+2]=-v[3]*4096;f.dn[3*j]=v[5]*127;f.dn[3*j+1]=v[7]*127;f.dn[3*j+2]=-v[6]*127});fl.push(f)}
    if(fl.length)fprims.push({mesh:'',mat:pre+s,nv:used.size,flexes:fl})}}
  let flex=null;if(fprims.length){const nfd=I(260),fdi=I(264),nfc=I(268),fci=I(272),nfr=I(276),fri=I(280);
   const desc=[];for(let k=0;k<nfd;k++){const o=fdi+k*4;desc.push(cstr(mdl,o+I(o)))}
