@@ -3,7 +3,9 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind). */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['administrator', 'Administrator'], ['saxton', 'Saxton Hale']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['krampus', 'Krampus'], ['administrator', 'Administrator']];
+  // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices)
+  const ANN = new Set(['administrator']);
   // the characters who aren't mercs. Saxton Hale: the Characters' own Hales (npc.js: Saxton Hale packed in vsh_nucleus, Santa Hale in
   // vsh_maul, Hellfire Hale in vsh_outburst), each Style with the lines his map packs (dirs: sound/mvm/<dir>_<year>_<n>/). The
   // Administrator: the game has no model of her own; she's the Pocket Admin's (31019) figure, its backpack icon her portrait.
@@ -12,10 +14,11 @@
       {n: 'Saxton Hale', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr']},
       {n: 'Santa Hale', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml']},
       {n: 'Hellfire Hale', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob']}]},
-    administrator: {item: 31019, level: 'Announcer', styles: [{n: 'Administrator', mdl: 'models/workshop/player/items/all_class/dec18_pocket_admin/dec18_pocket_admin_scout.mdl', meshFit: 1, zoom: 1.5}]},
+    krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', styles: [{n: 'Krampus', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle'}]},
+    administrator: {styles: [{n: 'Administrator'}]},
   };
   const styleOf = c => NPC[c] ? NPC[c].styles[Math.min((V.sty || {})[c] || 0, NPC[c].styles.length - 1)] : null;
-  const tile = c => c === 'administrator' && typeof ITEMS !== 'undefined' && ITEMS[31019] && typeof iconHtml === 'function' ? `>${iconHtml(ITEMS[31019])}`
+  const tile = c => ANN.has(c) ? `><span class="vmeg"></span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
@@ -96,8 +99,10 @@
 .vov .vl.on{border-color:var(--va);background:#3B3630}
 .vov .vl.na{opacity:.4;cursor:default}
 .vov .vl.na:hover{background:#2E2A26}
-.vov .vc:has(.ico){display:flex;align-items:center;justify-content:center;background:#2B2724}
-.vov .vc .ico{--is:64px}
+.vov .vmeg{display:block;width:100%;height:100%;background:var(--TanLight,#EBE2CA);-webkit-mask:url(ui/glyph_commentary.webp) center/46% no-repeat;mask:url(ui/glyph_commentary.webp) center/46% no-repeat}
+.vov .vc .vmeg{filter:none}
+.vov .vdock .vmeg{position:absolute;inset:0;-webkit-mask-size:34%;mask-size:34%;opacity:.85}
+.vov .vh+.vcl+.vh{padding-top:4px}
 .vov .vsty{display:flex;align-items:center;gap:8px;margin-top:10px;font:400 13px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#B9AE98)}
 .vov .vsty select{background:#2B2725F2;color:#EBE2CA;border:1px solid #756B5E;border-radius:4px;font:400 14px var(--body);padding:4px 8px;cursor:pointer}
 .vov .vl i{flex:none;width:26px;height:26px;border:1.5px solid var(--TanLight);border-radius:50%;display:flex;align-items:center;justify-content:center}
@@ -150,7 +155,8 @@
     const tabs = tabsOf(V.cls), ci = CLS.findIndex(c => c[0] === V.cls), nm = (CLS[ci] || CLS[0])[1];
     if (V.tab >= tabs.length) V.tab = 0;
     return `<h1>Dialogue Player</h1><div class="vogrid">
-      <div class="vpn"><div class="vh">Characters</div><div class="vcl">${CLS.map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" ${tile(c)}</button>`).join('')}</div></div>
+      <div class="vpn"><div class="vh">Characters</div><div class="vcl">${CLS.filter(([c]) => !ANN.has(c)).map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" ${tile(c)}</button>`).join('')}</div>
+        <div class="vh">Announcers</div><div class="vcl">${CLS.filter(([c]) => ANN.has(c)).map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}"${tile(c)}</button>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(NPC[V.cls] && NPC[V.cls].styles.length > 1 ? styleOf(V.cls).n : nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
@@ -174,10 +180,11 @@
   function show3d() {
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
+    if (ANN.has(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
     try {
       const st = styleOf(c);
       ItemPreview.openNpc({dock: din, name: st ? st.n : CN(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st ? {mdl: st.mdl, pak: st.pak, meshFit: st.meshFit, zoom: st.zoom} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays

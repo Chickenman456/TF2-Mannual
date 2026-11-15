@@ -170,6 +170,22 @@ def main():
         print("administrator", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
     except Exception as e:
         print("skip the Administrator", e)
+    # Krampus (Smissmas 2023, koth_krampus): the Krampus section of the map's page; his lines are packed in the map (sound/mvm/krampus_*)
+    try:
+        t = wikitext("Krampus")
+        i = t.index("== Krampus"); j = t.find("\n== ", i + 5)
+        cls = []
+        for tn, G in parse(t[t.index("\n", i):j if j > 0 else None], "Voice Lines"):
+            GG = []
+            for g, lines, gl in G:
+                L = [[f.rsplit(".", 1)[0], ti(tx)] for f, tx in lines]
+                if L: GG.append([g, L, gl] if gl else [g, L])
+            if GG: cls.append([tn, GG])
+        # one section: each of its lists a tab of its own ("Krampus enters", "Coal attacks"...)
+        data["krampus"] = [[g[0], [["", g[1]] + g[2:]]] for _, G in cls for g in G]
+        print("krampus", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    except Exception as e:
+        print("skip Krampus", e)
     # Saxton Hale (Versus Saxton Hale): his own section of the mode's responses page; his lines are packed in the vsh_ maps
     # (sound/mvm/saxton_hale_<map>_<year>_<n>/), so each is named by its folder and file: "saxton_hale|charge_a_01"
     try:
