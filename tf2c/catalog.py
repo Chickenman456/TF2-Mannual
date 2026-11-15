@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 54
+CATALOG_VERSION = 55
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -215,6 +215,15 @@ def item_attrs(ig, R, keep, L):
         if r2:
             items[k] = r2
     return {"a": [labels[i] for i in keepi], "i": items}
+
+
+def voicelines(data_dir):
+    """The classes' voice lines (data/voicelines.json: the TF2 Wiki's pages, each line by its sound file's name)."""
+    try:
+        d = json.load(open(os.path.join(data_dir, "voicelines.json"), encoding="utf-8"))
+        return {"classes": d.get("classes", {}), "text": d.get("text", [])}
+    except (OSError, ValueError):
+        return {}
 
 
 def updates(data_dir):
@@ -928,6 +937,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
             "updates": updates(data_dir),
+            "voicelines": voicelines(data_dir),
             # hats a case can unbox as Unusual (its lootlist's "...unusual_hat_chance" job): Unusual is one of their qualities
             # the game's own "limited quantity item" attribute: a Limited item (an Unobtainable tag still wins over it)
             "limited_attr": sorted(k for k in keep if any(

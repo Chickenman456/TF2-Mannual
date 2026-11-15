@@ -1,0 +1,163 @@
+/* Voice Lines: every class's lines, as the TF2 Wiki lists them (data/voicelines.json: its responses, voice commands and taunts
+   pages), laid out like Deadlock's dialogue player: the classes, the class, the lines. A line plays from the linked TF2
+   install's own sound files, found by the file's name (ZLIVE.soundFind). */
+(() => {
+  const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy']];
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
+  const V = Object.assign({cls: 'scout', tab: 0}, ls('mannual_vo') || {}, {q: '', audio: null, key: '', note: ''});
+  const data = () => (typeof RAW !== 'undefined' && RAW && RAW.voicelines) || {};
+  const tabsOf = c => (data().classes || {})[c] || [];
+  const T = i => (data().text || [])[i] || '';
+  const count = c => tabsOf(c).reduce((n, [, G]) => n + G.reduce((m, [, L]) => m + L.length, 0), 0);
+  const save = () => ls('mannual_vo', {cls: V.cls, tab: V.tab});
+
+  const css = document.createElement('style');
+  css.textContent = `
+.vov{--vb:#1C1A18;--vp:#23201D;--vl:#3A342E;--va:var(--TanLight,#EBE2CA);padding:6px 0 30px}
+.vov h1{font:400 44px/1 var(--head);letter-spacing:.5px;text-transform:uppercase;color:var(--TanLight);margin:8px 0 22px 4px;text-shadow:0 2px 0 #0006}
+.vov .vogrid{display:grid;grid-template-columns:minmax(220px,300px) minmax(240px,380px) minmax(0,1fr);gap:14px;align-items:stretch;height:min(76vh,760px);min-height:520px}
+.vov .vpn{background:var(--vp);border:1px solid var(--vl);border-radius:6px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.vov .vh{font:400 12px var(--head);letter-spacing:.12em;color:var(--ink-2,#B9AE98);text-transform:uppercase;padding:14px 14px 8px}
+.vov .vcl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px;overflow:auto}
+.vov .vc{position:relative;aspect-ratio:1;border:2px solid var(--vl);border-radius:4px;background:#2B2724 center/cover no-repeat;cursor:pointer;filter:grayscale(1) brightness(.75);transition:filter .15s,border-color .15s,box-shadow .15s;padding:0}
+.vov .vc:hover{filter:grayscale(.3) brightness(.95)}
+.vov .vc.on{filter:none;border-color:var(--va);box-shadow:0 0 0 2px #0008,0 0 14px #EBE2CA55}
+.vov .vmid{align-items:center;justify-content:flex-end;position:relative;background:radial-gradient(120% 70% at 50% 40%,#3B3630 0,var(--vp) 70%)}
+.vov .vart{flex:1;width:100%;min-height:0;display:flex;justify-content:center;padding-top:26px}
+.vov .vo3d{position:absolute;inset:0 0 150px 0}
+.vov .vo3d>*{width:100%;height:100%}
+.vov .vart.live .vfig{visibility:hidden}
+.vov .vfig{height:100%;aspect-ratio:2/3;max-width:100%;background:url(ui/classes.webp) 0 0/900% 100% no-repeat}
+.vov .vname{font:400 46px/1 var(--head);text-transform:uppercase;color:var(--TanLight);margin:10px 0 4px;text-shadow:0 2px 0 #000a}
+.vov .vcount{font:400 13px var(--head);letter-spacing:.18em;color:var(--Strange,#CF6A32);text-transform:uppercase}
+.vov .vrand{margin:14px 0 22px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--va);background:#0003;color:var(--TanLight);border-radius:999px;padding:9px 20px;font:400 15px var(--head);text-transform:uppercase;cursor:pointer}
+.vov .vrand:hover{background:#EBE2CA22}
+.vov .vrand svg{width:16px;height:16px}
+.vov .vnote{position:absolute;left:14px;right:14px;top:14px;text-align:center;font:400 13px var(--body);color:var(--ink-2,#B9AE98)}
+.vov .vr{padding:14px;gap:12px}
+.vov .vs{position:relative;flex:none}
+.vov .vs input{width:100%;box-sizing:border-box;background:#141210;border:1px solid var(--vl);border-radius:4px;padding:10px 12px 10px 36px;color:var(--TanLight);font:400 14px var(--body)}
+.vov .vs input:focus{outline:none;border-color:var(--TanDark)}
+.vov .vs svg{position:absolute;left:11px;top:50%;width:16px;height:16px;transform:translateY(-50%);opacity:.6}
+.vov .vtabs{display:flex;flex-wrap:wrap;gap:7px;flex:none}
+.vov .vt{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--vl);background:#2B2724;color:var(--TanLight);border-radius:999px;padding:6px 8px 6px 13px;font:400 13px var(--head);text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.vov .vt b{font:400 10px var(--body);background:#0005;border-radius:999px;padding:2px 7px;color:var(--ink-2,#B9AE98)}
+.vov .vt:hover{border-color:var(--TanDark)}
+.vov .vt.on{background:var(--va);color:#2B2724;border-color:var(--va)}
+.vov .vt.on b{background:#2B272422;color:#2B2724}
+.vov .vlist{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:5px;padding-right:4px}
+.vov .vgh{font:400 11px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2,#B9AE98);padding:10px 4px 3px;opacity:.85}
+.vov .vgh:first-child{padding-top:2px}
+.vov .vl{display:flex;align-items:center;gap:12px;background:#2E2A26;border:1px solid transparent;border-radius:4px;padding:9px 12px;cursor:pointer;text-align:left;color:var(--TanLight);font:400 14px/1.35 var(--body);width:100%}
+.vov .vl:hover{background:#38332E}
+.vov .vl.on{border-color:var(--va);background:#3B3630}
+.vov .vl.na{opacity:.45}
+.vov .vl i{flex:none;width:26px;height:26px;border:1.5px solid var(--TanLight);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.vov .vl i svg{width:10px;height:10px;margin-left:2px}
+.vov .vl.on i svg{margin-left:0}
+.vov .vl em{font-style:normal;flex:none;font:400 11px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#B9AE98)}
+.vov .vl span{flex:1;min-width:0}
+.vov .vempty{color:var(--ink-2,#B9AE98);font:400 14px var(--body);padding:12px 4px}
+@media (max-width:900px){.vov .vogrid{grid-template-columns:1fr;height:auto}.vov .vcl{grid-template-columns:repeat(9,1fr)}.vov .vmid{height:340px}.vov .vr{height:70vh}}`;
+  document.head.appendChild(css);
+
+  const PLAY = '<svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z" fill="currentColor"/></svg>';
+  const STOP = '<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>';
+  const SHUF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h3l7 8h4M1 12h3l2.2-2.5M9.8 6.5L11 5h4M13 3l2 2-2 2M13 9l2 2-2 2"/></svg>';
+  const LENS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>';
+  const row = (b, ti, tag) => `<button type="button" class="vl${V.key === b ? ' on' : ''}" data-vo="${E(b)}"><i>${V.key === b ? STOP : PLAY}</i>${tag ? `<em>${E(tag)}</em>` : ''}<span>${E(T(ti))}</span></button>`;
+
+  function lines() {
+    const q = V.q.trim().toLowerCase();
+    if (q) {   // the search looks through every class's lines (or picks out a class by its name)
+      let h = '', n = 0;
+      for (const [c, nm] of CLS) {
+        const seen = new Set(), hit = [];
+        for (const [, G] of tabsOf(c)) for (const [, L] of G) for (const [b, ti] of L) if (!seen.has(b) && (T(ti).toLowerCase().includes(q) || nm.toLowerCase() === q)) { seen.add(b); hit.push([b, ti]); }
+        if (!hit.length) continue;
+        h += `<div class="vgh">${E(nm)} · ${hit.length}</div>` + hit.slice(0, 300).map(([b, ti]) => row(b, ti)).join('');
+        n += hit.length;
+      }
+      return n ? h : `<div class="vempty">No lines say “${E(V.q.trim())}”.</div>`;
+    }
+    const tab = tabsOf(V.cls)[V.tab];
+    if (!tab) return '<div class="vempty">No lines.</div>';
+    return tab[1].map(([g, L]) => (g ? `<div class="vgh">${E(g)}</div>` : '') + L.map(([b, ti]) => row(b, ti)).join('')).join('');
+  }
+  function body() {
+    const tabs = tabsOf(V.cls), ci = CLS.findIndex(c => c[0] === V.cls), nm = (CLS[ci] || CLS[0])[1];
+    if (V.tab >= tabs.length) V.tab = 0;
+    return `<h1>Dialogue Player</h1><div class="vogrid">
+      <div class="vpn"><div class="vh">Classes</div><div class="vcl">${CLS.map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" style="background-image:url(ui/store/portrait_${c}.webp)"></button>`).join('')}</div></div>
+      <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
+        <div class="vart"><div class="vo3d"></div><div class="vfig" role="img" aria-label="${E(nm)}" style="background-position-x:${Math.max(0, ci) * 12.5}%"></div></div>
+        <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
+        <button type="button" class="vrand" data-vrand>${SHUF}Play Random Line</button></div>
+      <div class="vpn vr"><label class="vs">${LENS}<input type="search" placeholder="Search voice lines or classes…" value="${E(V.q)}" data-vq aria-label="Search voice lines"></label>
+        <div class="vtabs"${V.q.trim() ? ' hidden' : ''}>${tabs.map(([n, G], i) => `<button type="button" class="vt${i === V.tab ? ' on' : ''}" data-vtab="${i}">${E(n)}<b>${G.reduce((m, [, L]) => m + L.length, 0)}</b></button>`).join('')}</div>
+        <div class="vlist">${lines()}</div></div></div>`;
+  }
+  const root = () => document.querySelector('.vov');
+  function draw(keepList) {
+    const r = root(); if (!r) return;
+    if (keepList) { const l = r.querySelector('.vlist'); l.innerHTML = lines(); const t = r.querySelector('.vtabs'); if (t) t.hidden = !!V.q.trim(); return; }
+    const st = r.querySelector('.vlist') ? r.querySelector('.vlist').scrollTop : 0;
+    r.innerHTML = body(); const l = r.querySelector('.vlist'); if (l && keepList === 0) l.scrollTop = st;
+    show3d();
+  }
+  // with the TF2 folder linked: the class himself, from the game's model, standing as the store shows him
+  function show3d() {
+    const f = document.querySelector('.vov .vo3d'); if (!f || !(window.ZLIVE && ZLIVE.ready && window.Store3D && Store3D.npc)) return;
+    const c = V.cls, mdl = 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl', tok = V.t3 = (V.t3 || 0) + 1;
+    Store3D.npc.show(f, {mdl}, 'RED').then(seqs => {
+      if (tok !== V.t3 || !seqs || !f.isConnected) return;
+      const idle = [/^stand_primary$/i, /^stand_melee$/i, /^idle/i, /^stand/i].reduce((q, re) => q || seqs.find(x => re.test(x.name)), null);
+      if (idle) Store3D.npc.play(idle.name); else if (Store3D.npc.refit) Store3D.npc.refit();
+      f.parentElement.classList.add('live');
+    }).catch(() => {});
+  }
+  function note(t) { V.note = t || ''; const n = document.querySelector('.vov .vnote'); if (n) { n.textContent = V.note; n.hidden = !V.note; } }
+  function stop() { if (V.audio) { try { V.audio.pause(); } catch (e) {} V.audio = null; } const was = V.key; V.key = ''; mark(was); }
+  function mark(b) { if (!b) return; document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => { const on = V.key === b; x.classList.toggle('on', on); x.querySelector('i').innerHTML = on ? STOP : PLAY; }); }
+  async function play(b) {
+    if (V.key === b) { stop(); return; }
+    stop();
+    if (!(window.ZLIVE && ZLIVE.ready)) { note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); return; }
+    const p = ZLIVE.soundFind && ZLIVE.soundFind(b);
+    if (!p) { note('That line isn’t in your game files.'); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); return; }
+    note(''); V.key = b; mark(b);
+    const u = await ZLIVE.sndURL([p]);
+    if (V.key !== b) return;
+    if (!u) { V.key = ''; mark(b); note('That line couldn’t be read from your game files.'); return; }
+    const a = new Audio(u); V.audio = a; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
+    a.onended = () => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } };
+    a.play().catch(() => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } });
+  }
+  function random() {
+    const all = []; for (const [, G] of tabsOf(V.cls)) for (const [, L] of G) for (const [b] of L) all.push(b);
+    if (!all.length) return; const b = all[(Math.random() * all.length) | 0];
+    play(b);
+    const el = document.querySelector(`.vov .vl[data-vo="${CSS.escape(b)}"]`); if (el) el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  }
+
+  window.VOVIEW = {
+    render() {
+      if (!data().classes) return '<section class="sec vov"><h1>Dialogue Player</h1><p class="empty">The voice lines didn’t load.</p></section>';
+      queueMicrotask(() => { const r = root(); if (r && !r.firstChild) { r.innerHTML = body(); show3d(); } });
+      return '<section class="vov"></section>';
+    },
+    stop,
+  };
+  document.addEventListener('click', e => {
+    const r = e.target.closest && e.target.closest('.vov'); if (!r) return;
+    const c = e.target.closest('[data-vcls]');
+    if (c) { if (typeof sfx === 'function') sfx('buttonclick'); if (V.cls !== c.dataset.vcls) { V.cls = c.dataset.vcls; V.tab = 0; V.q = ''; save(); note(''); draw(); } return; }
+    const t = e.target.closest('[data-vtab]');
+    if (t) { if (typeof sfx === 'function') sfx('buttonclick'); V.tab = +t.dataset.vtab; save(); r.querySelectorAll('.vt').forEach(x => x.classList.toggle('on', x === t)); draw(true); r.querySelector('.vlist').scrollTop = 0; return; }
+    if (e.target.closest('[data-vrand]')) { random(); return; }
+    const l = e.target.closest('[data-vo]'); if (l) { play(l.dataset.vo); return; }
+  });
+  document.addEventListener('input', e => { if (!e.target.matches || !e.target.matches('.vov [data-vq]')) return; V.q = e.target.value; clearTimeout(V.qt); V.qt = setTimeout(() => draw(true), 120); });
+})();
