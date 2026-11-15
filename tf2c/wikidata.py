@@ -179,6 +179,13 @@ def apply(catalog, data):
             only[k] = q
             if q in qual and k not in qual[q]:
                 qual[q].append(k)
+    # Unusual: the wiki's availability tags ("unusual", "keyless-crate-unusual"...) and the hats a case can unbox as Unusual
+    un = set(qual.get("unusual", []))
+    for k, r in flags.items():
+        if any("unusual" in t for t in (r.get("a") or "").split("|")):
+            un.add(k)
+    un.update(catalog.get("case_unusual") or [])
+    qual["unusual"] = sorted(un)
     for k, qs in (catalog.get("not_quality") or {}).items():   # curated: a wiki name clash put it in a quality it never came in
         for q in qs:
             if q in qual:

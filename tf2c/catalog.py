@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 52
+CATALOG_VERSION = 53
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -928,6 +928,10 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
             "updates": updates(data_dir),
+            # hats a case can unbox as Unusual (its lootlist's "...unusual_hat_chance" job): Unusual is one of their qualities
+            "case_unusual": sorted({i for c in collections_.values() if c["k"] == "collection" and any(
+                any("unusual_hat" in str(t) for t in (R.get(x, {}).get("lootlist_job_templates") or {})) for x in c["c"])
+                for i in c["i"] if i in keep and tname(i) == "Hat"}),
             "attrs": item_attrs(ig, R, keep, L),
             # the maps' stamps (items of the map_token prefab), {defindex: [name, backpack icon]}: By Update shows a map by its stamp
             "stamps": {str(k): [loc.get(str(r.get("item_name") or "").lstrip("#").lower()) or r.get("name", ""), r.get("image_inventory", "")]

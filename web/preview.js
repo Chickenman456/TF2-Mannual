@@ -288,14 +288,14 @@
     setNote('', false);
     const tok = ++iconTok, o = ST.o, small = () => { if (o.iconHtml) { box2.innerHTML = `<div class="small">${o.iconHtml}</div>`; if (o.icons) o.icons(); } };
     // a case or crate with a model of its own (model_player: the Haunted Hoard Case's chest, in its year's skin, default_skin) shows it,
-    // turning, as the store does
+    // turning, as the store does (stood up: a case has no sequence of its own to turn its Z up to the viewer's Y up)
     { const e = live() && ZLIVE.entry(ST.nm), mdl = e && e.r && e.r.model_player && String(e.r.model_player).replace(/\\/g, '/').toLowerCase();
       if (mdl && /\.mdl$/.test(mdl) && !ST.noMdl && window.Store3D && Store3D.npc) {
         box2.remove(); let f = mp.querySelector('#zfig'); if (f) f.remove();
         f = document.createElement('div'); f.id = 'zfig'; f.className = 'zspfig'; f.setAttribute('aria-label', o.name); mp.insertBefore(f, mp.querySelector('.spv-note'));
         ST.npc = true; const st0 = ST;
         const fail = () => { if (ST !== st0) return; ST.npc = false; ST.noMdl = true; f.remove(); bigIcon(); };   // the icon, as before
-        Store3D.npc.show(f, {mdl, skin: +e.r.default_skin || 0, zoom: 1.7}, ST.team || 'RED').then(seqs => { if (ST !== st0 || tok !== iconTok) return; if (!seqs) { fail(); return; } if (Store3D.npc.refit) Store3D.npc.refit(); }).catch(fail);
+        Store3D.npc.show(f, {mdl, skin: +e.r.default_skin || 0, zoom: 1.7, rot: [90, 0, 0]}, ST.team || 'RED').then(seqs => { if (ST !== st0 || tok !== iconTok) return; if (!seqs) { fail(); return; } if (Store3D.npc.refit) Store3D.npc.refit(); }).catch(fail);
         return;
       } }
     const path = live() && imgOf(); if (!path) { small(); return; }

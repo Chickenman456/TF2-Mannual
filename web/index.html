@@ -706,7 +706,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.9</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.10</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -750,6 +750,11 @@ let UPD = {};   // release date -> the update it was part of ('' a patch in none
 const UPI = {};   // defindex -> the patch the TF2 Wiki says it came in (By Update; an item it doesn't have goes by its own release date)
 const FX = {}, FX_KIND = {cosmetic:'Cosmetic effects', taunt:'Taunt effects', weapon:'Weapon effects', special:'Special effects'};
 let EQUIP = {}, GAMES = {}, ACHINFO = {}, ACHALT = {}, ACHICON = {}, ACHROWS = 1;  // promo copies stored under a second defindex
+// item attributes (items_game "attributes" / "static_attrs", hidden ones too: the Pyroland pets' "counts as assister"), for the Attribute
+// filter and the Attribute value sort: IATTR[defindex] = Map(attribute -> value)
+let IATTR = {}, ATTRL = [];
+function attrOptions(){ const n = new Map(); for (const id of ALL_IDS){ const m = IATTR[id]; if (m) for (const i of m.keys()) n.set(i, (n.get(i) || 0) + 1); }
+  $('#attr').innerHTML = '<option value="">Any attribute</option>' + [...n.keys()].sort((a, b) => ATTRL[a].localeCompare(ATTRL[b])).map(i => `<option value="${i}">${esc(ATTRL[i])} (${n.get(i)})</option>`).join(''); attrOptions.done = 1; }
 function initCatalog(raw){
 RAW = raw;
 for (let [id,name,type,cat,mask,rar,img,flags,date,desc,region,snd,wslot] of RAW.items){
@@ -768,12 +773,9 @@ for (const c of RAW.cols){
   for (const i of c.i){ const it = ITEMS[i]; if (!it) continue; it.cols.push(c.id); for (const cs of (CASE_BY_COL[c.id]||[])) it.cases.push(cs); }
 }
 ALL_IDS = Object.keys(ITEMS).map(Number); regionOptions();
-// item attributes (items_game "attributes" / "static_attrs", hidden ones too: the Pyroland pets' "counts as assister"), for the Attribute
-// filter and the Attribute value sort: IATTR[defindex] = Map(attribute -> value)
-const IATTR = {}, ATTRL = ((RAW.attrs || {}).a || []).map(([l, n]) => l);
+// item attributes, read in with the catalog (below, at the top level: the filter panel uses them too)
+IATTR = {}; ATTRL = ((RAW.attrs || {}).a || []).map(([l, n]) => l); attrOptions.done = 0;
 for (const [id, row] of Object.entries((RAW.attrs || {}).i || {})){ const m = new Map(); for (const [i, v] of row) m.set(i, v == null ? 1 : v); IATTR[id] = m; }
-function attrOptions(){ const n = new Map(); for (const id of ALL_IDS){ const m = IATTR[id]; if (m) for (const i of m.keys()) n.set(i, (n.get(i) || 0) + 1); }
-  $('#attr').innerHTML = '<option value="">Any attribute</option>' + [...n.keys()].sort((a, b) => ATTRL[a].localeCompare(ATTRL[b])).map(i => `<option value="${i}">${esc(ATTRL[i])} (${n.get(i)})</option>`).join(''); attrOptions.done = 1; }
 UPD = (RAW.updates || {}).dates || {};
 for (const [d, ids] of Object.entries((RAW.updates || {}).items || {})) for (const i of ids) UPI[i] = d;
 for (const [id, name, kind, cell, date, upd] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase(), date: date || '', upd: upd || ''};
