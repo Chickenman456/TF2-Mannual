@@ -111,21 +111,13 @@ assets/              Application assets
 ```
 ## Known Issues
 * Character animations can be bugged, and weapon particles are equally funky.
-* Kritz or Treat Canteen and Battery Canteen display their "on" positions as blue team.
-* Cases don't display their contents.
 * Some Taunts don't play their intro (bumper cars, soldier tank taunt)
-* Blastphomet and eli hat mesh splits apart for some reason.
 * Salty Dog particle persists even when you turn the cigar off.
-* Rat Stompers, Trash Man, Warmth Preserver, Leftover Trap aren't listed as a set.
-
 
 ## Planned Features
-* Preview styles for Contracker.
 * View styles for canteen.
 * Preview Taunt actions.
 * Deadlock-style voiceline browser.
-* sort by item attribute
-* sort by update content (maps, taunts, cosmetics, etc all at once)
 
 ## Legal
 
