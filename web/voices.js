@@ -3,7 +3,10 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind). */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale']];
+  // Saxton Hale: the Characters' own (npc.js: his model packed in vsh_nucleus, his card the game's menu art)
+  const HALE = {mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', card: 'npc_saxton.webp'};
+  const portrait = c => c === 'saxton' ? ((window.ZCARDS && ZCARDS[HALE.card]) || 'ui/cards/' + HALE.card) : 'ui/store/portrait_' + c + '.webp';
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
   const V = Object.assign({cls: 'scout', tab: 0}, ls('mannual_vo') || {}, {q: '', audio: null, key: '', note: ''});
@@ -112,12 +115,12 @@
     const tabs = tabsOf(V.cls), ci = CLS.findIndex(c => c[0] === V.cls), nm = (CLS[ci] || CLS[0])[1];
     if (V.tab >= tabs.length) V.tab = 0;
     return `<h1>Dialogue Player</h1><div class="vogrid">
-      <div class="vpn"><div class="vh">Classes</div><div class="vcl">${CLS.map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" style="background-image:url(ui/store/portrait_${c}.webp)"></button>`).join('')}</div></div>
+      <div class="vpn"><div class="vh">Characters</div><div class="vcl">${CLS.map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" style="background-image:url('${portrait(c)}')"></button>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
         <button type="button" class="vrand" data-vrand>${SHUF}Play Random Line</button></div>
-      <div class="vpn vr"><label class="vs">${LENS}<input type="search" placeholder="Search voice lines or classes…" value="${E(V.q)}" data-vq aria-label="Search voice lines"></label>
+      <div class="vpn vr"><label class="vs">${LENS}<input type="search" placeholder="Search voice lines or characters…" value="${E(V.q)}" data-vq aria-label="Search voice lines"></label>
         <div class="vtabs"${V.q.trim() ? ' hidden' : ''}>${tabs.map(([n, G], i) => `<button type="button" class="vt${i === V.tab ? ' on' : ''}" data-vtab="${i}">${E(n)}<b>${G.reduce((m, [, L]) => m + L.length, 0)}</b></button>`).join('')}</div>
         <div class="vlist">${lines()}</div></div></div>`;
   }
@@ -136,9 +139,14 @@
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
     try {
-      ItemPreview.openNpc({dock: din, name: CN(c), level: 'Mercenary', def: {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+      ItemPreview.openNpc({dock: din, name: c === 'saxton' ? 'Saxton Hale' : CN(c), level: c === 'saxton' ? 'Boss' : 'Mercenary',
+        def: c === 'saxton' ? {mdl: HALE.mdl, pak: HALE.pak} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
+    if (c === 'saxton') {   // he's a character of his own (the NPC viewer): ready once his idle plays
+      const w = () => { if (tok !== V.t3 || !box.isConnected) return; const N = window.Store3D && Store3D.npc && Store3D.npc._; if ((N && N.act) || performance.now() - t0 > 30000) box.classList.add('ready'); else setTimeout(w, 150); };
+      const t0 = performance.now(); w(); return;
+    }
     const t0 = performance.now(); let posed = false;
     const wait = () => {
       if (tok !== V.t3 || !box.isConnected) return;

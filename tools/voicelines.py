@@ -153,6 +153,34 @@ def main():
             if GG: cls.append([tn, GG])
         data[key] = cls
         print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    # Saxton Hale (Versus Saxton Hale): his own section of the mode's responses page; his lines are packed in the vsh_ maps
+    # (sound/mvm/saxton_hale_<map>_<year>_<n>/), so each is named by its folder and file: "saxton_hale|charge_a_01"
+    try:
+        t = wikitext("Versus Saxton Hale responses")
+        m = re.search(r"(?ms)^==\s*Saxton Hale\s*==\s*$(.*?)(?=^==[^=])", t)
+        sec = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", m.group(1)) if m else ""
+        cls = []
+        for tn, G in parse(sec):
+            GG = []
+            for g, lines, gl in G:
+                L = []
+                for f, tx in lines:
+                    base = f.rsplit(".", 1)[0]
+                    if base.startswith("saxton_hale_"):
+                        # the wiki's names for the holiday maps' own lines: outburst_ (Hellfire Hale's, vsh_outburst's
+                        # hellfire_hale_new_ob folder) and maul_ (vsh_maul's saxton_hale_ml folder)
+                        nm = re.sub(r"\(\d+\)$", "", base[len("saxton_hale_"):])
+                        pre = "saxton_hale"
+                        if nm.startswith("outburst_"): pre, nm = "hellfire_hale_new_ob", nm[len("outburst_"):]
+                        elif nm.startswith("maul_"): pre, nm = "saxton_hale_ml", nm[len("maul_"):]
+                        base = pre + "|" + nm
+                    L.append([base, ti(tx)])
+                if L: GG.append([g, L, gl] if gl else [g, L])
+            if GG: cls.append([tn, GG])
+        data["saxton"] = cls
+        print("saxton", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    except Exception as e:
+        print("skip Saxton Hale", e)
     print("not in the game files checked:", len(miss), miss[:12])
     json.dump({"_about": "The TF2 Wiki's class voice line pages (responses, voice commands, taunts): the lines' words, grouped as the wiki "
                          "groups them, each with its sound in the game's own files. Built by tools/voicelines.py.",
