@@ -115,7 +115,6 @@ assets/              Application assets
 * Salty Dog particle persists even when you turn the cigar off.
 
 ## Planned Features
-* View styles for canteen.
 * Preview Taunt actions.
 * Deadlock-style voiceline browser.
 
