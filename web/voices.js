@@ -56,6 +56,10 @@
 .vov .vlist{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:5px;padding-right:4px}
 .vov .vgh{font:400 11px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2,#B9AE98);padding:10px 4px 3px;opacity:.85}
 .vov .vgh:first-child{padding-top:2px}
+.vov .vgh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.vov .vitem{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;cursor:pointer;color:var(--Unique,#FFD700);font:400 12px var(--body);text-transform:none;letter-spacing:0;--is:22px}
+.vov .vitem:hover span{text-decoration:underline}
+.vov .vitem .ico{--is:22px;width:22px;height:22px}
 .vov .vl{display:flex;align-items:center;gap:12px;background:#2E2A26;border:1px solid transparent;border-radius:4px;padding:9px 12px;cursor:pointer;text-align:left;color:var(--TanLight);font:400 14px/1.35 var(--body);width:100%}
 .vov .vl:hover{background:#38332E}
 .vov .vl.on{border-color:var(--va);background:#3B3630}
@@ -73,8 +77,20 @@
   const STOP = '<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>';
   const SHUF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h3l7 8h4M1 12h3l2.2-2.5M9.8 6.5L11 5h4M13 3l2 2-2 2M13 9l2 2-2 2"/></svg>';
   const LENS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>';
-  const row = (b, ti, c) => `<button type="button" class="vl${V.key === b ? ' on' : ''}" data-vo="${E(b)}" data-vc="${c || V.cls}"><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`;
+  const fileOf = b => { const p = window.ZLIVE && ZLIVE.ready && ZLIVE.soundFind ? ZLIVE.soundFind(b) : null; return p ? 'sound/' + p : b; };
+  const row = (b, ti, c) => `<button type="button" class="vl${V.key === b ? ' on' : ''}" data-vo="${E(b)}" data-vc="${c || V.cls}" title="${E(fileOf(b))}"><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`;
 
+  // the wiki pages a group links to that are items (the Haunted Hat, the Sandman): their backpack icons, each opening that item
+  let NAMES = null;
+  const nkey = n => String(n).toLowerCase().replace(/^the\s+/, '').replace(/[’']/g, "'").trim();
+  function itemId(n) {
+    if (typeof ITEMS === 'undefined') return null;
+    if (!NAMES) { NAMES = new Map(); for (const id of Object.keys(ITEMS).map(Number).sort((a, b) => a - b)) { const k = nkey(ITEMS[id].name); if (!NAMES.has(k)) NAMES.set(k, id); } }
+    return NAMES.get(nkey(n)) || null;
+  }
+  const itemsOf = L => [...new Set((L || []).map(itemId).filter(Boolean))];
+  const head = (g, L) => { const ids = itemsOf(L); if (!g && !ids.length) return '';
+    return `<div class="vgh">${g ? `<span>${E(g)}</span>` : ''}${ids.map(id => `<button type="button" class="vitem" data-vitem="${id}" title="Open ${E(ITEMS[id].name)}">${typeof iconHtml === 'function' ? iconHtml(ITEMS[id]) : ''}<span>${E(ITEMS[id].name)}</span></button>`).join('')}</div>`; };
   function lines() {
     const q = V.q.trim().toLowerCase();
     if (q) {   // the search looks through every class's lines (or picks out a class by its name)
@@ -90,7 +106,7 @@
     }
     const tab = tabsOf(V.cls)[V.tab];
     if (!tab) return '<div class="vempty">No lines.</div>';
-    return tab[1].map(([g, L]) => (g ? `<div class="vgh">${E(g)}</div>` : '') + L.map(([b, ti]) => row(b, ti)).join('')).join('');
+    return tab[1].map(([g, L, ln]) => head(g, ln) + L.map(([b, ti]) => row(b, ti)).join('')).join('');
   }
   function body() {
     const tabs = tabsOf(V.cls), ci = CLS.findIndex(c => c[0] === V.cls), nm = (CLS[ci] || CLS[0])[1];
@@ -108,10 +124,10 @@
   const root = () => document.querySelector('.vov');
   function draw(keepList) {
     const r = root(); if (!r) return;
-    if (keepList) { const l = r.querySelector('.vlist'); l.innerHTML = lines(); const t = r.querySelector('.vtabs'); if (t) t.hidden = !!V.q.trim(); return; }
+    if (keepList) { const l = r.querySelector('.vlist'); l.innerHTML = lines(); const t = r.querySelector('.vtabs'); if (t) t.hidden = !!V.q.trim(); icons(); return; }
     const st = r.querySelector('.vlist') ? r.querySelector('.vlist').scrollTop : 0;
     r.innerHTML = body(); const l = r.querySelector('.vlist'); if (l && keepList === 0) l.scrollTop = st;
-    show3d();
+    icons(); show3d();
   }
   // the class in the item preview's own window (the store's merc, his weapons and his face), docked here; with the TF2 folder
   // linked he stands in the class select menu's pose (selectionMenu_Idle), and says each line as it plays
@@ -138,6 +154,8 @@
     };
     wait();
   }
+  // the app's backpack icons load as they come into view (its watchIcons)
+  const icons = () => { if (typeof watchIcons === 'function') watchIcons(); };
   function note(t) { V.note = t || ''; const n = document.querySelector('.vov .vnote'); if (n) { n.textContent = V.note; n.hidden = !V.note; } }
   function stop() { if (V.audio) { try { V.audio.pause(); } catch (e) {} V.audio = null; } const was = V.key; V.key = ''; mark(was); }
   function mark(b) { if (!b) return; document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => { const on = V.key === b; x.classList.toggle('on', on); x.querySelector('i').innerHTML = on ? STOP : PLAY; }); }
@@ -166,7 +184,7 @@
   window.VOVIEW = {
     render() {
       if (!data().classes) return '<section class="sec vov"><h1>Dialogue Player</h1><p class="empty">The voice lines didn’t load.</p></section>';
-      queueMicrotask(() => { const r = root(); if (r && !r.firstChild) { r.innerHTML = body(); show3d(); } });
+      queueMicrotask(() => { const r = root(); if (r && !r.firstChild) { r.innerHTML = body(); icons(); show3d(); } });
       return '<section class="vov"></section>';
     },
     stop,
@@ -178,6 +196,12 @@
     const t = e.target.closest('[data-vtab]');
     if (t) { if (typeof sfx === 'function') sfx('buttonclick'); V.tab = +t.dataset.vtab; save(); r.querySelectorAll('.vt').forEach(x => x.classList.toggle('on', x === t)); draw(true); r.querySelector('.vlist').scrollTop = 0; return; }
     if (e.target.closest('[data-vrand]')) { random(); return; }
+    const it = e.target.closest('[data-vitem]');
+    if (it && typeof openPreview === 'function') {
+      if (typeof sfx === 'function') sfx('buttonclick'); stop(); openPreview(+it.dataset.vitem);
+      const back = () => { if (window.ItemPreview && ItemPreview.isOpen() && !document.querySelector('.vov .vdock .spv')) { setTimeout(back, 300); return; } const d = document.querySelector('.vov .vdock'); if (d && !d.querySelector('.spv')) { d.classList.remove('ready'); show3d(); } };
+      setTimeout(back, 300); return;
+    }
     const l = e.target.closest('[data-vo]'); if (l) { play(l.dataset.vo, l.dataset.vc); return; }
   });
   const inDock = e => e.target && e.target.closest && e.target.closest('.vov .vdock');
