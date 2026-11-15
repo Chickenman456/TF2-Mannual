@@ -2268,7 +2268,8 @@ function soundFind(base){if(!ST.ready)return null;if(!SNDIX){SNDIX=new Map();SND
  return p?p.slice(6):null}
 // lines the game ships only inside its maps: Versus Saxton Hale's (each vsh_ map packs the mercs' lines in sound/vo/mercs_<map>_<year>_<n>/
 // and Hale's in sound/mvm/saxton_hale_<map>_<year>_<n>/), read out of the maps' packed files as the Characters' map-only ones are (mountPak)
-const VSHMAPS=['vsh_distillery','vsh_skirmish','vsh_nucleus','vsh_tinyrock','vsh_maul','vsh_outburst','vsh_bunker','vsh_hellfire','vsh_maul_event','vsh_outburst_event'];let SNDMAP=null;
+// and the maps' bosses: Krampus's, packed in koth_krampus (sound/mvm/krampus_*)
+const VSHMAPS=['vsh_distillery','vsh_skirmish','vsh_nucleus','vsh_tinyrock','vsh_maul','vsh_outburst','vsh_bunker','vsh_hellfire','vsh_maul_event','vsh_outburst_event','koth_krampus'];let SNDMAP=null;
 async function soundFindAsync(base){const p=soundFind(base);if(p||!ST.ready)return p;
  // the maps are opened together, and a line is found as soon as the first map holding it is read
  if(!SNDMAP){soundFind('');SNDMAP=VSHMAPS.map(m=>mountPak(m+'.bsp').then(k=>{if(k&&k.Z)for(const n of k.Z.keys())if(n.startsWith('sound/'))sndAdd(n)}).catch(()=>{}))}
