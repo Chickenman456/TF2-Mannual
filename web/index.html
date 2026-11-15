@@ -703,7 +703,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.3</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.4</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1189,7 +1189,7 @@ function section(key, num, title, sub, ids, tag, lead){
 // By Update: everything each update added, newest first, through the filters like the other views:
 // its cosmetics, taunts, weapons, cases and the rest, its maps (as their stamps) and its unusual effects. A thing's update is its patch's
 // (data/updates.json, from the TF2 Wiki: the patch each item came in, and the update each patch was part of); a case goes with its
-// collection's items; something the wiki doesn't date goes by its own release date, a patch in no named update by its day
+// collection's items; something else the wiki doesn't date goes with the update nearest its first sale, or by its own day
 const fmtDay = d => new Date(d + 'T12:00:00').toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'});
 const updKey = d => !d ? 'y:' : d.length < 10 ? 'y:' + d.slice(0, 4) : UPD[d] ? 'u:' + UPD[d] : 'd:' + d;
 function updTitle(k){
@@ -1200,10 +1200,17 @@ function updTitle(k){
 const UPD_KINDS = [['c', 'Cosmetics'], ['t', 'Taunts'], ['w', 'Weapons'], ['s', 'Stock weapons'], ['d', 'Decorated weapons'], ['p', 'War paints'], ['a', 'Action items'], ['l', 'Tools'], ['x', 'Expired items'], ['o', 'Other items'], ['m', 'Medals']];   // medals last, after the maps and effects
 function itemUpdDate(id){
   if (UPI[id]) return UPI[id];
-  const it = ITEMS[id];
+  const it = ITEMS[id]; let d = it.date || '';
   // a case: the day its collection's items came in
-  if (it.cat === 'l'){ const cs = RAW.cases.find(c => c.id === id), col = cs && COLS[cs.col]; if (col){ let d = ''; for (const i of col.i){ const x = UPI[i] || (ITEMS[i] && ITEMS[i].date) || ''; if (x.length === 10 && (!d || x < d)) d = x; } if (d) return d; } }
-  return it.date;
+  if (it.cat === 'l'){ const cs = RAW.cases.find(c => c.id === id), col = cs && COLS[cs.col]; if (col){ let cd = ''; for (const i of col.i){ const x = UPI[i] || (ITEMS[i] && ITEMS[i].date) || ''; if (x.length === 10 && (!cd || x < cd)) cd = x; } if (cd) d = cd; } }
+  // not a patch day (a war paint's or a case's first sale, days before or after its update came out): the named update nearest it,
+  // within two weeks; medals keep their own days (tournaments don't follow updates)
+  if (d.length === 10 && !(d in UPD) && it.cat !== 'm'){
+    const t = Date.parse(d); let best = '', bd = 15 * 864e5;
+    for (const x in UPD) if (UPD[x]){ const dd = Math.abs(Date.parse(x) - t); if (dd < bd){ bd = dd; best = x; } }
+    if (best) return best;
+  }
+  return d;
 }
 function stampSlot(m, s){
   const [name, path, ico] = s;
