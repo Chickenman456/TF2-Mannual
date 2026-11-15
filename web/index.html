@@ -662,9 +662,10 @@ button.vg:focus-visible{outline:none}
     <div class="fld"><label class="lbl" for="pyro"><span class="pyv" aria-hidden="true"></span>Pyroland</label><select id="pyro" class="in" title="Pyroland items"><option value="all">Include</option><option value="hide">Hide</option><option value="only">Only these</option></select></div>
     <div class="fld"><label class="lbl" for="itype">Item type</label><select id="itype" class="in"><option value="">Any type</option></select></div>
     <div class="fld"><label class="lbl" for="region">Equip region</label><select id="region" class="in"><option value="">Any region</option></select></div>
+    <div class="fld"><label class="lbl" for="attr">Attribute</label><select id="attr" class="in"><option value="">Any attribute</option></select></div>
     <div class="fld"><label class="lbl" for="wslot">Weapon slot</label><select id="wslot" class="in"><option value="">Any slot</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="melee">Melee</option><option value="pda">PDA</option><option value="pda2">PDA 2 / Watch</option><option value="building">Sapper</option></select></div>
     <div class="fld"><label class="lbl" for="sort">Sort by</label><select id="sort" class="in">
-      <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="copies">Most copies</option><option value="name">Name</option><option value="date">Date added</option></select></div>
+      <option value="grade">Grade</option><option value="class">Class</option><option value="region">Equip region</option><option value="attr">Attribute value</option><option value="copies">Most copies</option><option value="name">Name</option><option value="date">Date added</option></select></div>
     <div class="fld" id="orderFld"><label class="lbl" for="order">Sections</label><select id="order" class="in"><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
     <p class="sub wide" id="qnote"></p>
     <div class="fld wide"><span class="lbl">Class</span><div class="clsbar" id="clsbar" aria-label="Class filter"></div></div>
@@ -705,7 +706,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.8</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.15.9</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -767,6 +768,12 @@ for (const c of RAW.cols){
   for (const i of c.i){ const it = ITEMS[i]; if (!it) continue; it.cols.push(c.id); for (const cs of (CASE_BY_COL[c.id]||[])) it.cases.push(cs); }
 }
 ALL_IDS = Object.keys(ITEMS).map(Number); regionOptions();
+// item attributes (items_game "attributes" / "static_attrs", hidden ones too: the Pyroland pets' "counts as assister"), for the Attribute
+// filter and the Attribute value sort: IATTR[defindex] = Map(attribute -> value)
+const IATTR = {}, ATTRL = ((RAW.attrs || {}).a || []).map(([l, n]) => l);
+for (const [id, row] of Object.entries((RAW.attrs || {}).i || {})){ const m = new Map(); for (const [i, v] of row) m.set(i, v == null ? 1 : v); IATTR[id] = m; }
+function attrOptions(){ const n = new Map(); for (const id of ALL_IDS){ const m = IATTR[id]; if (m) for (const i of m.keys()) n.set(i, (n.get(i) || 0) + 1); }
+  $('#attr').innerHTML = '<option value="">Any attribute</option>' + [...n.keys()].sort((a, b) => ATTRL[a].localeCompare(ATTRL[b])).map(i => `<option value="${i}">${esc(ATTRL[i])} (${n.get(i)})</option>`).join(''); attrOptions.done = 1; }
 UPD = (RAW.updates || {}).dates || {};
 for (const [d, ids] of Object.entries((RAW.updates || {}).items || {})) for (const i of ids) UPI[i] = d;
 for (const [id, name, kind, cell, date, upd] of RAW.effects || []) FX[id] = {id, name, kind, cell, key: name.toLowerCase(), date: date || '', upd: upd || ''};
@@ -779,7 +786,7 @@ for (const [v, k] of Object.entries(RAW.alias || {})){ ALIAS[v] = k; (VARIANTS[k
 const PREF_KEYS = ['view','show','types','sort','order','cls','hideunob','hidedone','nofade'];
 let S = {steamId:'', owned:{}, wishlist:[], manualOwned:[], manualMissing:[], lastSync:'',
          view:'class', show:'all', types:{c:true,t:true,w:false,s:false,a:false,m:false,p:false,d:false,l:false}, sort:'grade', order:'desc', cls:'', avail:'any', hidedone:false, hol:'all', pyro:'all',
-         quality:'', qowned:{}, fx:{}, grade:'', region:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false, hideB:false, hideO:false};
+         quality:'', qowned:{}, fx:{}, grade:'', region:'', attr:'', itype:'', wslot:'', fopen:false, solo:false, noresk:false, nobk:false, nofest:false, vol:100, gvol:100, hideU:false, hideB:false, hideO:false};
 const QUAL = {vintage:{n:'Vintage',c:'#476291'}, genuine:{n:'Genuine',c:'#4D7455'}, strange:{n:'Strange',c:'#CF6A32'},
               haunted:{n:'Haunted',c:'#38F3AB'}, collectors:{n:"Collector's",c:'#AA0000'}, unusual:{n:'Unusual',c:'#8650AC'},
               selfmade:{n:'Self-Made',c:'#70B04A'}, community:{n:'Community',c:'#70B04A'}, valve:{n:'Valve',c:'#A50F79'}};
@@ -888,7 +895,7 @@ const anyType = () => Object.entries(S.types).some(([k, v]) => v && !k.startsWit
 const FX_KINDS = ['cosmetic', 'taunt', 'weapon', 'special'];
 const anyFx = () => !!S.types.fx;
 // unusual effects have no class, grade, quality or availability, so a filter on those leaves them out
-const fxShown = () => anyFx() && !['backpack', 'wishlist'].includes(S.view) && S.cls === '' && S.avail === 'any' && !S.quality && !S.grade && !S.itype && !S.region && !S.wslot && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
+const fxShown = () => anyFx() && !['backpack', 'wishlist'].includes(S.view) && S.cls === '' && S.avail === 'any' && !S.quality && !S.grade && !S.itype && !S.region && !S.attr && !S.wslot && !S.solo && S.hol !== 'only' && S.pyro !== 'only';
 const availIs = id => S.avail === 'craft' ? CRAFT.has(id) : S.avail === 'achieve' ? ACH.has(id) : availOf(id) === S.avail;
 // community medals only show when their box is ticked (with nothing ticked, every other type shows)
 // with Pyroland on Only these, its three groups list every type
@@ -904,6 +911,7 @@ function inScope(id, anyT){
   if (S.solo && it.classes.length !== 1) return false;
   if (it.cat === 'm' && S.quality === 'genuine' && S.avail === 'unob') return false;
   if (S.region && !it.region.split(', ').includes(S.region)) return false;
+  if (S.attr !== '' && S.attr != null && !(IATTR[id] && IATTR[id].has(+S.attr))) return false;
   if (S.itype && it.type !== S.itype) return false;
   if (S.wslot && !it.wslot.split('|').includes(S.wslot)) return false;   // Genuine + Unobtainable: not the community medals
   if (S.grade === 'any' ? !it.rar : (S.grade !== '' && it.rar !== +S.grade)) return false;
@@ -941,6 +949,10 @@ const SORTS = {
   date:  (a,b) => (S.order === 'asc' ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || '')) || a.name.localeCompare(b.name),
   copies:(a,b) => (owns(b.id) - owns(a.id)) || a.name.localeCompare(b.name),
   region:(a,b) => (!a.region - !b.region) || a.region.localeCompare(b.region) || a.name.localeCompare(b.name),
+  // the value of the attribute picked under Attribute (highest first; Sections: Oldest first turns it round); without one, the most attributes first
+  attr:  (a,b) => { const k = S.attr !== '' && S.attr != null ? +S.attr : null, va = IATTR[a.id], vb = IATTR[b.id];
+    if (k == null) return ((vb ? vb.size : 0) - (va ? va.size : 0)) || a.name.localeCompare(b.name);
+    const x = va && va.has(k) ? va.get(k) : -1e9, y = vb && vb.has(k) ? vb.get(k) : -1e9; return (S.order === 'asc' ? x - y : y - x) || a.name.localeCompare(b.name); },
 };
 function sortIds(ids){ const f = SORTS[S.view === 'class' && S.sort === 'class' ? 'grade' : S.sort] || SORTS.grade; return ids.map(i => ITEMS[i]).sort(f).map(i => i.id); }
 
@@ -1215,12 +1227,14 @@ function itemUpdDate(id){
   return d;
 }
 function stampSlot(m, s){
+  if (ITEMS[m.st]) return slot(m.st);   // the stamp is one of the other items: its tile, as everywhere
   const [name, path, ico] = s;
   let icon;
   if (typeof ICONS !== 'undefined' && path){ const done = ICONS.get(path); icon = done ? `<img class="ico" alt="" src="${done}">` : `<img class="ico" alt="" data-img="${esc(path)}">`; }   /*APP-STAMP*/
   return `<div class="slot stamp" data-map="${esc(m.f)}" tabindex="0" title="${esc(m.n + ' · ' + m.m)}">${icon || '<div class="ph">' + esc(m.n) + '</div>'}<div class="nm">${esc(name)}</div></div>`;
 }
 function updateView(desc){
+  const STAMPS = new Set(Object.keys(RAW.stamps || {}).map(Number));   // the maps' stamps show with their maps
   const q = ($('#q').value || '').trim().toLowerCase();
   const G = new Map(), at = (k, d) => { if (!G.has(k)) G.set(k, {ids: [], maps: [], fx: [], d0: '9999', d1: ''}); const o = G.get(k); if (d && d.length === 10) { if (d < o.d0) o.d0 = d; if (d > o.d1) o.d1 = d; } else if (o.d0 === '9999' && d) o.d0 = d + '-99'; return o; };
   // the filters as counted() / visible() apply them, less the search (an update's name can match it too)
@@ -1230,7 +1244,8 @@ function updateView(desc){
   if (fxShown()){ fxIndex(); for (const e of Object.values(FX)) if (e.date && (S.show !== 'own' || fxCount(e)) && (S.show !== 'miss' || !fxCount(e)) && (S.show !== 'dupe' || fxCount(e) > 1)) at(updKey(e.date), e.date).fx.push(e); }
   const maps = window.MAPVIEW && MAPVIEW.list ? MAPVIEW.list() : null;   // null while mapdata.js loads (it renders again then)
   const ST = RAW.stamps || {};
-  if (maps && !activeFilters().length) for (const m of maps) if (m.d) at(updKey(m.d), m.d).maps.push(m);
+  const showMaps = !!maps && !activeFilters().length;
+  if (showMaps) for (const m of maps) if (m.d) at(updKey(m.d), m.d).maps.push(m);
   // the search: an update whose name matches shows whole, the others only what matches
   if (q) for (const [k, o] of G) if (!updTitle(k).toLowerCase().includes(q)){
     o.ids = o.ids.filter(id => ITEMS[id].name.toLowerCase().includes(q)); o.fx = o.fx.filter(e => e.key.includes(q));
@@ -1243,7 +1258,7 @@ function updateView(desc){
     const stamps = o.maps.filter(m => m.st && ST[m.st]).sort((a, b) => a.n.localeCompare(b.n)), plain = o.maps.filter(m => !(m.st && ST[m.st])).sort((a, b) => a.n.localeCompare(b.n));
     const parts = [], blocks = [];
     const kind = ([c, label]) => {
-      const all = o.ids.filter(id => ITEMS[id].cat === c), ids = all.filter(shown); if (!ids.length) return;
+      const all = o.ids.filter(id => ITEMS[id].cat === c && !(showMaps && STAMPS.has(id))), ids = all.filter(shown); if (!ids.length) return;
       parts.push(ids.length + ' ' + (ids.length === 1 ? label.toLowerCase().replace(/s$/, '').replace(/ie$/, 'y') : label.toLowerCase()));
       blocks.push(`<div class="updk">${esc(label)}<b>${ids.length}</b></div><div class="grid">${sortIds(ids).map(slot).join('')}</div>`);
     };
@@ -1397,6 +1412,8 @@ function syncControls(){
   $('#itype').value = S.itype || '';
   if (S.region && ![...$('#region').options].some(o => o.value === S.region)) S.region = '';
   $('#region').value = S.region || ''; $('#wslot').value = S.wslot || '';
+  if (!attrOptions.done) attrOptions();
+  if (S.attr && ![...$('#attr').options].some(o => o.value === String(S.attr))) S.attr = ''; $('#attr').value = S.attr || '';
   syncMute();
   filterSummary();
   $('#grade').style.color = S.grade && RAR[+S.grade] ? RAR[+S.grade].c : '';
@@ -1598,7 +1615,7 @@ document.addEventListener('click', e => {
 $('#hol').addEventListener('change', () => { S.hol = $('#hol').value; save(); render(); });
 $('#pyro').addEventListener('change', () => { S.pyro = $('#pyro').value; save(); render(); });
 $('#grade').addEventListener('change', () => { S.grade = $('#grade').value; save(); render(); });
-for (const k of ['region','itype','wslot']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).value; save(); render(); });
+for (const k of ['region','attr','itype','wslot']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).value; save(); render(); });
 for (const k of ['solo','noresk','nobk','nofest']) $('#'+k).addEventListener('change', () => { S[k] = $('#'+k).checked; save(); render(); });
 let qTimer; $('#q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.bpPage = 1; render(); }, 150); });
 
@@ -1627,7 +1644,7 @@ function activeFilters(){
   if (S.show === 'own') f.push('Owned'); if (S.show === 'miss') f.push('Missing'); if (S.show === 'dupe') f.push('Duplicates');
   if (S.avail !== 'any') f.push({ob:'Obtainable', limited:'Limited', code:'Code', expired:'Expired', rare:'1 of 1', unob:'Unobtainable', unused:'Unreleased', craft:'Craft hats', achieve:'Achievement items'}[S.avail]);
   if (S.grade) f.push(S.grade === 'any' ? 'Any grade' : (+S.grade ? RAR[+S.grade].n : 'No grade'));
-  if (S.itype) f.push(S.itype); if (S.region) f.push(S.region); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
+  if (S.itype) f.push(S.itype); if (S.region) f.push(S.region); if (S.attr !== '' && S.attr != null && ATTRL[+S.attr]) f.push(ATTRL[+S.attr]); if (S.wslot) f.push($('#wslot option[value="' + S.wslot + '"]').textContent + ' weapons');
   if (S.hol === 'hide') f.push('No Halloween items'); if (S.hol === 'only') f.push('Halloween only');
   if (S.pyro === 'hide') f.push('No Pyroland items'); if (S.pyro === 'only') f.push('Pyroland only');
   if (S.solo) f.push('No multi-class');
@@ -1647,7 +1664,7 @@ function filterSummary(){
     `<button class="lk" type="button" data-fopen>Change</button>` + (f.length ? `<button class="lk" type="button" data-freset>Reset</button>` : '');
 }
 function resetFilters(){
-  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', region:'', itype:'', wslot:'', hol:'all', pyro:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
+  Object.assign(S, {quality:'', cls:'', show:'all', avail:'any', grade:'', region:'', attr:'', itype:'', wslot:'', hol:'all', pyro:'all', solo:false, noresk:false, nobk:false, nofest:false, hidedone:false});
   save(); render();
 }
 document.addEventListener('click', e => {

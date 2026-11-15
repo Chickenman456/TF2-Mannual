@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 51
+CATALOG_VERSION = 52
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -149,6 +149,72 @@ def effects(ig, loc, data_dir):
             seen.add((kind, name))
             out.append([i, name, kind, cell.get(i, -1), *added.get(name.lower(), ("", ""))])
     return sorted(out, key=lambda e: e[0])
+
+
+def item_attrs(ig, R, keep, L):
+    """Every attribute the checklist's items carry (items_game "attributes" and "static_attrs", their prefabs' included), hidden ones too
+    (the Pyroland pets' "counts as assister"): {"a": [[label, attribute name]], "i": {defindex: [[index, value], ...]}}. A label is the
+    game's description with the value put in (%s1) when the attribute has one, else the attribute's own name."""
+    defs = {str(v.get("name", "")).lower(): v for v in (ig.get("attributes") or {}).values() if isinstance(v, dict)}
+    def fmt(d, v):
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            return str(v)
+        f = d.get("description_format", "")
+        if f == "value_is_percentage":
+            x = (x - 1) * 100
+        elif f == "value_is_inverted_percentage":
+            x = (1 - x) * 100
+        elif f == "value_is_additive_percentage":
+            x = x * 100
+        elif f not in ("value_is_additive", ""):
+            return None   # a date, an account, a colour...: the label without its value
+        return ("%d" % round(x)) if abs(x - round(x)) < 1e-6 else ("%.2f" % x).rstrip("0").rstrip(".")
+    names, out = {}, {}
+    for k in sorted(keep):
+        r = R.get(k) or {}
+        row = []
+        for blk in ("attributes", "static_attrs"):
+            for n, v in (r.get(blk) or {}).items():
+                if not isinstance(n, str):
+                    continue
+                val = v.get("value") if isinstance(v, dict) else v
+                d = defs.get(n.lower())
+                if d is None:
+                    continue
+                label = n
+                ds = d.get("description_string")
+                if ds and d.get("hidden") != "1":
+                    t = L(ds, "")
+                    if t and not t.startswith("#"):
+                        fv = fmt(d, val)
+                        label = t.replace("%s1", fv) if fv is not None else t.replace("%s1", "").strip()
+                        label = " ".join(label.replace("\\n", " ").split())
+                key = (label, n.lower())
+                if key not in names:
+                    names[key] = len(names)
+                try:
+                    num = float(val)
+                except (TypeError, ValueError):
+                    num = 0
+                row.append([names[key], round(num, 4)])
+        if row:
+            out[str(k)] = row
+    # what nearly every item carries says nothing about it (strange counters, inspect flags, "cannot trade" on medals): left out
+    from collections import Counter
+    n = Counter(i for row in out.values() for i, _ in row)
+    drop = {i for i, c in n.items() if c > 2000}
+    labels = [list(k) for k in names]
+    keepi = sorted(i for i in range(len(labels)) if i not in drop and n.get(i))
+    newi = {i: j for j, i in enumerate(keepi)}
+    # [index] when the value is 1 (a flag), [index, value] otherwise
+    items = {}
+    for k, row in out.items():
+        r2 = [[newi[i]] if v == 1 else [newi[i], v] for i, v in row if i in newi]
+        if r2:
+            items[k] = r2
+    return {"a": [labels[i] for i in keepi], "i": items}
 
 
 def updates(data_dir):
@@ -423,6 +489,8 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             return None
         slot = r.get("item_slot")
         pf = prefab_str(k)
+        if "map_token" in pf:
+            return "o"   # a map's stamp (Map Stamp - Vanguard): one of the other items
         if "paintkit_tool" in pf:
             pk = (r.get("static_attrs") or {}).get("paintkit_proto_def_index")
             return "w" if pk not in (None, "0") and loc.get("9_%s_field { field_number: 2 }" % pk) else None
@@ -860,6 +928,7 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
             "overlay": overlays(R, keep),
             "effects": effects(ig, loc, data_dir),
             "updates": updates(data_dir),
+            "attrs": item_attrs(ig, R, keep, L),
             # the maps' stamps (items of the map_token prefab), {defindex: [name, backpack icon]}: By Update shows a map by its stamp
             "stamps": {str(k): [loc.get(str(r.get("item_name") or "").lstrip("#").lower()) or r.get("name", ""), r.get("image_inventory", "")]
                        for k, r in sorted(R.items()) if "map_token" in str(r.get("prefab") or "")},
