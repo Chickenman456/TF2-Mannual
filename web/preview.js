@@ -64,6 +64,7 @@
       <button type="button" class="spv-rot pl" data-rot="1" style="${box(205, 100, 20, 20)}" aria-label="Turn right">&gt;</button>
       <button type="button" class="spv-tb pl" data-spv="tplay" style="${box(16, 187, 13, 13)}" hidden aria-label="Pause the taunt" title="Pause">${TICON.pause}</button>
       <button type="button" class="spv-tb pl" data-spv="treplay" style="${box(211, 187, 13, 13)}" hidden aria-label="Replay the taunt" title="Replay">${TICON.replay}</button>
+      <div class="spv-tacts pl" style="${box(30, 170, 180, 13)}" hidden></div>
       <div class="spv-icons"></div>
       <button type="button" class="spv-arrow" data-spv="left" style="${box(30, 208, 15, 15)}" aria-label="Previous classes">&lt;</button>
       <button type="button" class="spv-arrow" data-spv="right" style="${box(195, 208, 15, 15)}" aria-label="More classes">&gt;</button>
@@ -514,6 +515,7 @@
     else if (k === 'zoom') { if (window.Store3D) Store3D.zoom(); }
     else if (k === 'tplay' || k === 'treplay') { const tc = window.Store3D && Store3D.taunt, c = CNAME[ST.cls]; if (tc) { const st = tc.state(c);
       if (k === 'treplay' || st === 'done' || st === 'none') tc.replay(c, window.Z3D && Z3D.clipFor(ST.o.name)); else tc.pause(c, st === 'playing'); } }
+    else if (k === 'tact') { if (window.Store3D && Store3D.taunt && Store3D.taunt.action) Store3D.taunt.action(CNAME[ST.cls], ST.o.name, a.dataset.k); }
     else if (k === 'item') { if (ST.state !== 'item') setState('item'); }
     else if (k === 'options') optionsMenu();
     else if (k === 'full') fullscreen();
@@ -650,6 +652,10 @@
     if (ST.npc && st === 'none') st = 'none';
     const show = st !== 'none';
     document.querySelectorAll('[data-spv=tplay], [data-spv=treplay]').forEach(b => { if (b.hidden === show) b.hidden = !show; });
+    // the taunt's actions (custom_taunt_input_remap): what Primary / Secondary Fire do while it's on
+    const tk = show && st !== 'done' && window.ZLIVE && ZLIVE.ready && ZLIVE.tauntActions ? ST.o.name + '|' + ST.cls : '';
+    if (ST.tactK !== tk) { ST.tactK = tk; const L = tk ? ZLIVE.tauntActions(ST.o.name, CNAME[ST.cls]) : [];
+      document.querySelectorAll('.spv-tacts').forEach(d => { d.innerHTML = L.map(x => `<button type="button" class="spv-tact" data-spv="tact" data-k="${x.k}" title="What ${x.n} does during the taunt">${x.n}</button>`).join(''); d.hidden = !L.length; }); }
     if (!show) return;
     const want = st === 'playing' ? 'pause' : 'play';
     document.querySelectorAll('[data-spv=tplay]').forEach(b => { if (b.dataset.ic !== want) { b.dataset.ic = want; b.innerHTML = TICON[want]; b.title = want === 'pause' ? 'Pause' : st === 'done' ? 'Play again' : 'Play'; b.setAttribute('aria-label', b.title + (ST.npc ? ' the animation' : ' the taunt')); } });
