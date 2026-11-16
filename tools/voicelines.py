@@ -227,6 +227,35 @@ def main():
                 if GG: tabs.append([tn, GG])
             data["robot_" + key] = tabs
             print("robot_" + key, sum(len(g[1]) for _, G in tabs for g in G), "lines")
+    # the Ghost, and the Mann brothers (Helltower's Payload Race: Redmond speaks for RED, Blutarch for BLU, each list's lines under
+    # his name): their sections of the Halloween Boss voice responses page
+    try:
+        t = wikitext("Halloween Boss voice responses")
+        def section(head):
+            i = t.index(head); j = t.find("\n== ", i + 5)
+            sec = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", t[t.index("\n", i):j if j > 0 else None])
+            # a speaker's name on a line of its own (bold Redmond / Blutarch): the sub-heading of the lines under it
+            return parse(re.sub(r"(?m)^'''(Redmond|Blutarch)'''\s*$", r"* '''\1'''", sec))
+        def pick(tabs, who=None):
+            cls = []
+            for tn, G in tabs:
+                GG = []
+                for g, lines, gl in G:
+                    parts = g.split(" · ")
+                    if who is not None:
+                        if who not in parts: continue
+                        g = " · ".join(x for x in parts if x != who)
+                    L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
+                    if L: GG.append([g, L, gl] if gl else [g, L])
+                if GG: cls.append([tn, GG])
+            return cls
+        data["ghost"] = pick(section("== [[Ghost]] =="))
+        mb = section("== [[Non-playable characters#Blutarch and Redmond Mann|Mann Brothers]] ==")
+        data["redmond"] = pick(mb, "Redmond"); data["blutarch"] = pick(mb, "Blutarch")
+        for k in ("ghost", "redmond", "blutarch"):
+            print(k, sum(len(g[1]) for _, G in data[k] for g in G), "lines in", len(data[k]), "tabs")
+    except Exception as e:
+        print("skip the Ghost and the Mann brothers", e)
     # Miss Pauling: her responses page (the Contracts' lines, Gun Mettle and Tough Break: sound/vo/pauling/plng_*), a tab for each
     try:
         cls = []

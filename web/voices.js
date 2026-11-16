@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['ghost', 'Ghost'], ['redmond', 'Redmond Mann'], ['blutarch', 'Blutarch Mann'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
     ...['Scout', 'Soldier', 'Pyro', 'Demoman', 'Heavy', 'Engineer', 'Medic', 'Sniper', 'Spy'].map(n => ['robot_' + n.toLowerCase(), n + ' Robot'])];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
@@ -13,30 +13,34 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ghost', 'redmond', 'blutarch', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
   // each with the lines his maps pack (dirs: sound/mvm/<dir>_<year>_<n>/). The Administrator: the game has no model of her own
   const NPC = {
-    saxton: {card: 'npc_saxton.webp', tile: 'vo_t_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
-    santa_hale: {card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
-    hellfire_hale: {card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
-    krampus: {card: 'npc_krampus.webp', tile: 'vo_t_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
-    bombinomicon: {card: 'vo_bombinomicon.webp', tile: 'vo_t_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
-    hhh: {card: 'npc_hhh.webp', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], wiki: [['Horseless Headless Horsemann', 'Horseless_Headless_Horsemann']]},
-    monoculus: {card: 'npc_monoculus.webp', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', nofloor: 1, wiki: [['MONOCULUS', 'MONOCULUS']]},
-    merasmus: {card: 'npc_merasmus.webp', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', wiki: [['Merasmus', 'Merasmus']]},
+    saxton: {npc: 'saxton', card: 'npc_saxton.webp', tile: 'vo_t_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
+    santa_hale: {npc: 'santa_hale', card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
+    hellfire_hale: {npc: 'hell_hale', card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
+    krampus: {npc: 'krampus', card: 'npc_krampus.webp', tile: 'vo_t_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
+    bombinomicon: {npc: 'bombinomicon', card: 'vo_bombinomicon.webp', tile: 'vo_t_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
+    hhh: {npc: 'hhh', card: 'npc_hhh.webp', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], wiki: [['Horseless Headless Horsemann', 'Horseless_Headless_Horsemann']]},
+    monoculus: {npc: 'monoculus', card: 'npc_monoculus.webp', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', nofloor: 1, wiki: [['MONOCULUS', 'MONOCULUS']]},
+    merasmus: {npc: 'merasmus', card: 'npc_merasmus.webp', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', wiki: [['Merasmus', 'Merasmus']]},
     // Embargo's robot butler: his sounds packed in the map (maps), named by their files
-    botler: {card: 'npc_botler.webp', level: 'Summer', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', maps: ['pl_embargo'], wiki: [['Embargo', 'Embargo#Robots']]},
+    botler: {npc: 'botler', card: 'npc_botler.webp', level: 'Summer', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', maps: ['pl_embargo'], wiki: [['Embargo', 'Embargo#Robots']]},
+    ghost: {npc: 'ghost', card: 'npc_ghost.webp', level: 'Halloween', mdl: 'models/props_halloween/ghost.mdl', wiki: [['Ghost', 'Ghost']]},
+    // the Mann brothers: Helltower's carts, each brother's own bomb (models/props_trainyard/bomb_<name>), no art of their own
+    redmond: {level: 'Helltower', mdl: 'models/props_trainyard/bomb_redmond.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Redmond Mann', 'Redmond_Mann'], ['Helltower', 'Helltower']]},
+    blutarch: {level: 'Helltower', mdl: 'models/props_trainyard/bomb_blutarch.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Blutarch Mann', 'Blutarch_Mann'], ['Helltower', 'Helltower']]},
     administrator: {card: 'vo_administrator.webp', tile: 'vo_t_administrator.webp', wiki: [['Administrator', 'Administrator']]},
     pauling: {card: 'vo_pauling.webp', tile: 'vo_t_pauling.webp', wiki: [['Miss Pauling', 'Miss_Pauling']]},
     // announcers with a portrait (their art, no model): shown in the window in place of the megaphone
     ann_dracula: {card: 'vo_dracula.webp', tile: 'vo_t_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp', tile: 'vo_t_nutcracker.webp'},
     ann_agent_96: {card: 'vo_agent_96.webp', tile: 'vo_t_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp', tile: 'vo_t_el_comandante.webp'},
     // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
-    ann_davy_jones: {card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
-    ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'walk', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
+    ann_davy_jones: {npc: 'dutchman', card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
+    ann_seal: {npc: 'seal', card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'walk', over: {idle: 'walk'}, zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
   };
   // the robots (Mann vs. Machine): each the Characters' own robot (npc.js bot_<class>: his model and weapons), his lines the class's that
   // the game has a robot's version of
@@ -73,9 +77,9 @@
     return [a0, b0, c0, d0].map(v => [0, 8, 16, 24].map(k => ((v >>> k) & 255).toString(16).padStart(2, '0')).join('')).join('');
   }
   const isAnn = c => ANN.has(c) || !!annMaps(c);
-  const meg = c => (isAnn(c) || c === 'pauling') && !(NPC[c] && NPC[c].card);   // a voice with no art: a megaphone
+  const meg = c => !(NPC[c] && NPC[c].card) && (isAnn(c) || c === 'pauling' || !!NPC[c]);   // a voice with no art: a megaphone
   const art = c => (window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card;
-  const tile = c => meg(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
+  const tile = c => meg(c) ? `>${isAnn(c) ? '<span class="vmeg"></span>' : ''}<span class="vann">${E(nameOf(c))}</span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].tile || NPC[c].card]) || 'ui/cards/' + (NPC[c].tile || NPC[c].card)) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
@@ -176,6 +180,8 @@
 .vov .vl.na:hover{background:#2E2A26}
 .vov .vmeg{display:block;width:100%;height:100%;background:var(--TanLight,#EBE2CA);-webkit-mask:url(ui/glyph_commentary.webp) center/46% no-repeat;mask:url(ui/glyph_commentary.webp) center/46% no-repeat}
 .vov .vc .vmeg{filter:none}
+.vov .vc.merc{background-size:116%}
+.vov .vdin .vart{-webkit-mask-image:linear-gradient(#000 72%,transparent 98%);mask-image:linear-gradient(#000 72%,transparent 98%)}
 .vov .vdin .vart{position:absolute;inset:8% 6%;width:88%;height:84%;object-fit:contain;object-position:center bottom}
 .vov .vgr{overflow-y:auto;overflow-x:hidden;min-height:0}
 .vov .vc.ann{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}
@@ -238,7 +244,7 @@
     const tabs = tabsOf(V.cls), nm = nameOf(V.cls);
     if (V.tab >= tabs.length) V.tab = 0;
     return `<h1>Dialogue Player</h1><div class="vogrid">
-      <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${meg(c) ? ' ann' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
+      <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${meg(c) ? ' ann' : ''}${CLS.slice(0, 9).some(x => x[0] === c) ? ' merc' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
@@ -267,7 +273,7 @@
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st && st.npc && window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.npc) ? Object.assign({}, NPCVIEW.def(st.npc), {zoom: st.zoom}, st.over || {}) : st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c] && !NPC[c].bot) {   // a character of his own (the NPC viewer): ready once his idle plays
@@ -283,6 +289,8 @@
         // the class select menu's pose, with the weapon each class holds there
         const key = 'live:@seq:selectionMenu_Idle' + (RB(c) ? '' : {engineer: '#melee', spy: '#melee', medic: '#secondary'}[c] || '');
         if (m.cn === key) { box.classList.add('ready'); return; }
+        // a robot stands as the Characters show him (his robot body over the class, his own weapons), not in the select pose
+        if (RB(c)) { if (!posed) { posed = true; if (window.Store3D && Store3D.robot) Store3D.robot(CN(RB(c)), 'bot'); } setTimeout(() => { if (tok === V.t3) box.classList.add('ready'); }, 600); return; }
         if (!posed) { posed = true; m.play(key); }
         if (performance.now() - t0 < 20000 && m.cn !== key) { setTimeout(wait, 150); return; }
       }
