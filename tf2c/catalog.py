@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 60
+CATALOG_VERSION = 62
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -221,7 +221,7 @@ def voicelines(data_dir):
     """The classes' voice lines (data/voicelines.json: the TF2 Wiki's pages, each line by its sound file's name)."""
     try:
         d = json.load(open(os.path.join(data_dir, "voicelines.json"), encoding="utf-8"))
-        return {"classes": d.get("classes", {}), "text": d.get("text", [])}
+        return {"classes": d.get("classes", {}), "announcers": d.get("announcers", []), "text": d.get("text", [])}
     except (OSError, ValueError):
         return {}
 

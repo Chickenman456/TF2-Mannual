@@ -4,8 +4,15 @@
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
     ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['administrator', 'Administrator']];
-  // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices)
+  // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
+  // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
+  const annList = () => (data().announcers || []);
+  const annMaps = c => { const a = annList().find(x => x[0] === c); return a ? a[2] : null; };
+  const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
+  // the left panel's headings: the mercs, then each other character under his event, then the announcers
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon']],
+    ['Announcers', ['administrator', ...annList().map(x => x[0])]]];
   // the characters who aren't mercs. Saxton Hale: the Characters' own Hales (npc.js: Saxton Hale packed in vsh_nucleus, Santa Hale in
   // vsh_maul, Hellfire Hale in vsh_outburst), each Style with the lines his map packs (dirs: sound/mvm/<dir>_<year>_<n>/). The
   // Administrator: the game has no model of her own; she's the Pocket Admin's (31019) figure, its backpack icon her portrait.
@@ -19,7 +26,8 @@
     administrator: {styles: [{n: 'Administrator'}]},
   };
   const styleOf = c => NPC[c] ? NPC[c].styles[Math.min((V.sty || {})[c] || 0, NPC[c].styles.length - 1)] : null;
-  const tile = c => ANN.has(c) ? `><span class="vmeg"></span>`
+  const isAnn = c => ANN.has(c) || !!annMaps(c);
+  const tile = c => isAnn(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
@@ -33,7 +41,25 @@
       if (pre !== 'saxton_hale' && !st.dirs.some(d => pre.startsWith(d))) return null;
       return (ZLIVE.soundAll ? ZLIVE.soundAll(nm) : []).find(p => { const d = p.split('/'); return st.dirs.some(x => (d[d.length - 2] || '').startsWith(x)); }) || null;
     }
+    if (annMaps(c)) return annFind(b, c);
     return ZLIVE.soundFind ? ZLIVE.soundFind(b) : null;
+  }
+  // a community announcer's line in its map's packed sounds, by the wiki's name for it: as it is; its number without the leading zero
+  // (farmer_gargenter01: farmer_gargenter1); its folder and file (agent_96_round_start_01: agent_96/round_start_01); or the only file
+  // ending in the rest of its name (astronaut_begins_60sec: the map's own vo/announcer_begins_60sec, over the Administrator's)
+  const AMAP = {};
+  function annFind(b, c) {
+    const L = AMAP[c]; if (!L) return null;
+    const vs = [...new Set([b, b.replace(/0+(\d)$/, '$1'), b.replace(/_0*(\d+)$/, '$1'), b.replace(/(\d+)$/, '_$1')])];
+    for (const v of vs) { const x = L.find(p => p.n === v || p.f + '_' + p.n === v); if (x) return 'map:' + x.m + ':' + x.p; }
+    for (const v of vs) { const rest = v.split('_').slice(1).join('_'); if (!rest) continue; const X = L.filter(p => p.n.endsWith('_' + rest) || p.n === rest); if (X.length === 1) return 'map:' + X[0].m + ':' + X[0].p; }
+    return null;
+  }
+  async function annLoad(c) {
+    if (AMAP[c] || !live() || !ZLIVE.mapSounds) return;
+    const L = [];
+    for (const m of annMaps(c) || []) for (const p of await ZLIVE.mapSounds(m)) { const d = p.split('/'), f = d[d.length - 1]; L.push({m, p, n: f.replace(/\.(mp3|wav)$/, ''), f: d[d.length - 2] || ''}); }
+    AMAP[c] = L;
   }
   // the lines a character shows: for Saxton Hale, those of the Hale picked (once the maps are read, only the ones his map has)
   function usable(b, c) {
@@ -55,7 +81,7 @@
 .vov .vogrid{display:grid;grid-template-columns:minmax(220px,300px) minmax(240px,380px) minmax(0,1fr);gap:14px;align-items:stretch;height:min(76vh,760px);min-height:520px}
 .vov .vpn{background:var(--vp);border:1px solid var(--vl);border-radius:6px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .vov .vh{font:400 12px var(--head);letter-spacing:.12em;color:var(--ink-2,#B9AE98);text-transform:uppercase;padding:14px 14px 8px}
-.vov .vcl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 14px;overflow:auto}
+.vov .vcl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 14px 14px}
 .vov .vc{position:relative;aspect-ratio:1;border:2px solid var(--vl);border-radius:4px;background:#2B2724 center/cover no-repeat;cursor:pointer;filter:grayscale(1) brightness(.75);transition:filter .15s,border-color .15s,box-shadow .15s;padding:0}
 .vov .vc:hover{filter:grayscale(.3) brightness(.95)}
 .vov .vc.on{filter:none;border-color:var(--va);box-shadow:0 0 0 2px #0008,0 0 14px #EBE2CA55}
@@ -102,6 +128,10 @@
 .vov .vl.na:hover{background:#2E2A26}
 .vov .vmeg{display:block;width:100%;height:100%;background:var(--TanLight,#EBE2CA);-webkit-mask:url(ui/glyph_commentary.webp) center/46% no-repeat;mask:url(ui/glyph_commentary.webp) center/46% no-repeat}
 .vov .vc .vmeg{filter:none}
+.vov .vgr{overflow-y:auto;overflow-x:hidden;min-height:0}
+.vov .vc.ann{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}
+.vov .vc.ann .vmeg{height:auto;flex:1;width:100%;-webkit-mask-size:auto 60%;mask-size:auto 60%}
+.vov .vann{font:400 10px/1.1 var(--head);text-transform:uppercase;color:var(--TanLight);text-align:center;letter-spacing:.03em;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .vov .vdock .vmeg{position:absolute;inset:0;-webkit-mask-size:34%;mask-size:34%;opacity:.85}
 .vov .vh+.vcl+.vh{padding-top:4px}
 .vov .vsty{display:flex;align-items:center;gap:8px;margin-top:10px;font:400 13px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#B9AE98)}
@@ -120,9 +150,9 @@
   const SHUF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h3l7 8h4M1 12h3l2.2-2.5M9.8 6.5L11 5h4M13 3l2 2-2 2M13 9l2 2-2 2"/></svg>';
   const LENS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>';
   // a line that can't play (no TF2 folder linked, or its file isn't in the game's files or maps) is greyed out
-  const known = (b, c) => !live() || (V.maps || !!resolve(b, c));
+  const known = (b, c) => !live() || (annMaps(c) ? !!AMAP[c] : (V.maps || !!resolve(b, c)));
   const row = (b, ti, c) => { c = c || V.cls; const p = resolve(b, c), na = known(b, c) && !p;
-    return `<button type="button" class="vl${V.key === b ? ' on' : ''}${na ? ' na' : ''}" data-vo="${E(b)}" data-vc="${c}" title="${E(p ? 'sound/' + p : String(b).split('|').pop())}"${na ? ' aria-disabled="true"' : ''}><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`; };
+    return `<button type="button" class="vl${V.key === b ? ' on' : ''}${na ? ' na' : ''}" data-vo="${E(b)}" data-vc="${c}" title="${E(p ? (p.startsWith('map:') ? p.split(':').slice(2).join(':') + ' (in maps/' + p.split(':')[1] + '.bsp)' : 'sound/' + p) : String(b).split('|').pop())}"${na ? ' aria-disabled="true"' : ''}><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`; };
 
   // the wiki pages a group links to that are items (the Haunted Hat, the Sandman): their backpack icons, each opening that item
   let NAMES = null;
@@ -139,7 +169,7 @@
     const q = V.q.trim().toLowerCase();
     if (q) {   // the search looks through every class's lines (or picks out a class by its name)
       let h = '', n = 0;
-      for (const [c, nm] of CLS) {
+      for (const [c, nm] of [...CLS, ...annList().map(x => [x[0], x[1]])]) {
         const seen = new Set(), hit = [];
         for (const [, G] of tabsOf(c)) for (const [, L] of G) for (const [b, ti] of L) if (!seen.has(b) && (T(ti).toLowerCase().includes(q) || nm.toLowerCase() === q)) { seen.add(b); hit.push([b, ti]); }
         if (!hit.length) continue;
@@ -153,11 +183,10 @@
     return tab[1].map(([g, L, ln]) => head(g, ln) + L.map(([b, ti]) => row(b, ti)).join('')).join('');
   }
   function body() {
-    const tabs = tabsOf(V.cls), ci = CLS.findIndex(c => c[0] === V.cls), nm = (CLS[ci] || CLS[0])[1];
+    const tabs = tabsOf(V.cls), nm = nameOf(V.cls);
     if (V.tab >= tabs.length) V.tab = 0;
     return `<h1>Dialogue Player</h1><div class="vogrid">
-      <div class="vpn"><div class="vh">Characters</div><div class="vcl">${CLS.filter(([c]) => !ANN.has(c)).map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}" ${tile(c)}</button>`).join('')}</div>
-        <div class="vh">Announcers</div><div class="vcl">${CLS.filter(([c]) => ANN.has(c)).map(([c, n]) => `<button type="button" class="vc${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(n)}" aria-label="${E(n)}"${tile(c)}</button>`).join('')}</div></div>
+      <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${isAnn(c) ? ' ann' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(NPC[V.cls] && NPC[V.cls].styles.length > 1 ? styleOf(V.cls).n : nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
@@ -173,7 +202,7 @@
     if (keepList) { const l = r.querySelector('.vlist'); l.innerHTML = lines(); const t = r.querySelector('.vtabs'); if (t) t.hidden = !!V.q.trim(); icons(); return; }
     const st = r.querySelector('.vlist') ? r.querySelector('.vlist').scrollTop : 0;
     r.innerHTML = body(); const l = r.querySelector('.vlist'); if (l && keepList === 0) l.scrollTop = st;
-    icons(); show3d();
+    icons(); show3d(); if (live()) maps();
   }
   // the class in the item preview's own window (the store's merc, his weapons and his face), docked here; with the TF2 folder
   // linked he stands in the class select menu's pose (selectionMenu_Idle), and says each line as it plays
@@ -181,7 +210,7 @@
   function show3d() {
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
-    if (ANN.has(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
+    if (isAnn(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
     try {
       const st = styleOf(c);
       ItemPreview.openNpc({dock: din, name: st ? st.n : CN(c), level: st ? NPC[c].level : 'Mercenary',
@@ -209,7 +238,9 @@
     wait();
   }
   // the vsh_ maps (and any map a line is packed in) read once: then every line is known to play or not
-  function maps() { if (!live() || !ZLIVE.soundMaps) return Promise.resolve(); return V.mp || (V.mp = ZLIVE.soundMaps().then(() => { V.maps = true; refresh(); }).catch(() => { V.mp = null; })); }
+  function maps() { if (!live() || !ZLIVE.soundMaps) return Promise.resolve();
+    if (annMaps(V.cls) && !AMAP[V.cls]) { const c = V.cls; annLoad(c).then(() => { if (V.cls === c) refresh(); }); }
+    return V.mp || (V.mp = ZLIVE.soundMaps().then(() => { V.maps = true; refresh(); }).catch(() => { V.mp = null; })); }
   function refresh() {
     const r = root(); if (!r || !r.querySelector('.vlist')) return;
     const tabs = tabsOf(V.cls); if (V.tab >= tabs.length) V.tab = 0;
@@ -227,12 +258,13 @@
     stop();
     if (!live()) { note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); return; }
     const c = vc || V.cls;
-    if (!resolve(b, c) && !V.maps) { note('Looking in the game’s maps…'); await maps(); }
+    if (annMaps(c) && !AMAP[c]) { note('Looking in the game’s maps…'); await annLoad(c); }
+    else if (!resolve(b, c) && !V.maps) { note('Looking in the game’s maps…'); await maps(); }
     const p = resolve(b, c);
     if (V.key && V.key !== b) return;
     if (!p) { note('That line isn’t in your game files.'); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); return; }
     note(''); V.key = b; mark(b);
-    const u = await ZLIVE.sndURL([p]);
+    const u = p.startsWith('map:') ? await ZLIVE.mapSoundURL(p.split(':')[1], p.split(':').slice(2).join(':')) : await ZLIVE.sndURL([p]);
     if (V.key !== b) return;
     if (!u) { V.key = ''; mark(b); note('That line couldn’t be read from your game files.'); return; }
     const a = new Audio(u); V.audio = a; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}

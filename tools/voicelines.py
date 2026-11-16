@@ -202,6 +202,40 @@ def main():
         print("krampus", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
     except Exception as e:
         print("skip Krampus", e)
+    # the community announcers (the Community announcers page): each its map's own voice, packed in that map (the map's name from
+    # the page's "the announcer for [[Map]]", its file from the Characters' MAPDB); a section with two speakers (=== Dr. Freakinhuge ===,
+    # === Professor Bigginsize ===) is two announcers
+    try:
+        db = json.loads(re.search(r"const MAPDB = (\[\[.*?\]\]);", open(os.path.join(HERE, "..", "web", "npc.js"), encoding="utf-8").read(), re.S).group(1))
+        mapfile = lambda nm: [f for f, d in db if d.lower() == nm.lower()] or [f for f, d in db if d.lower().startswith(nm.lower())]
+        t = wikitext("Community announcers")
+        ann = []
+        for m in re.finditer(r"(?m)^==(?!=)\s*(.*?)\s*(?<!=)==\s*$", t):
+            title = clean(m.group(1))
+            i = m.end(); j = t.find("\n== ", i); sec = t[i:j if j > 0 else None]
+            if "Media:" not in sec: continue
+            mm = re.search(r"announcers? for \[\[([^\]|]+)", sec); maps = mapfile(mm.group(1)) if mm else []
+            subs = [x for x in re.finditer(r"(?m)^===(?!=)\s*(.*?)\s*(?<!=)===\s*$", sec)]
+            people = [clean(x.group(1)) for x in subs]
+            # two speakers: each === name === section is one of them; otherwise === sections are the tabs of one
+            speakers = len(subs) >= 2 and all(p in title for p in people)
+            parts = [(people[k], sec[subs[k].end():(subs[k + 1].start() if k + 1 < len(subs) else len(sec))]) for k in range(len(subs))] if speakers else [(title, sec)]
+            for name, body in parts:
+                body = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", body) if not speakers else body
+                tabs = parse(body) if re.search(r"(?m)^==[^=]", body) else [["", G] for _, G in parse(body, "x")]
+                cls = []
+                for tn, G in tabs:
+                    GG = [[g, [[f.rsplit(".", 1)[0], ti(tx)] for f, tx in lines]] + ([gl] if gl else []) for g, lines, gl in G]
+                    GG = [g for g in GG if g[1]]
+                    if not GG: continue
+                    if tn: cls.append([tn, GG])
+                    else: cls += [[g[0], [["", g[1]] + g[2:]]] for g in GG]   # one section: each list a tab of its own
+                if not cls: continue
+                key = "ann_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+                data[key] = cls; ann.append([key, name, maps])
+                print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs", maps)
+    except Exception as e:
+        import traceback; traceback.print_exc(); ann = []
     # Saxton Hale (Versus Saxton Hale): his own section of the mode's responses page; his lines are packed in the vsh_ maps
     # (sound/mvm/saxton_hale_<map>_<year>_<n>/), so each is named by its folder and file: "saxton_hale|charge_a_01"
     try:
@@ -233,7 +267,7 @@ def main():
     print("not in the game files checked:", len(miss), miss[:12])
     json.dump({"_about": "The TF2 Wiki's class voice line pages (responses, voice commands, taunts): the lines' words, grouped as the wiki "
                          "groups them, each with its sound in the game's own files. Built by tools/voicelines.py.",
-               "classes": data, "text": texts}, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+               "classes": data, "announcers": ann, "text": texts}, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(os.path.getsize(OUT), "bytes")
 
 
