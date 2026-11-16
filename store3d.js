@@ -247,7 +247,7 @@ const d2=new THREE.DirectionalLight(0xbfd2ff,.35);d2.position.set(-120,60,-90);s
    const mx=new THREE.AnimationMixer(o),A={};g.animations.forEach(a=>A[a.name]=mx.clipAction(a));let cur=null;
    const play=(n,once)=>{const a=A[n];const mm0=M[c];if(mm0)mm0._lwant=n;
      if(!a&&/^live:/.test(n)&&window.ZLIVE&&ZLIVE.ready){const bs=new Set();o.traverse(x=>{if(x.isBone)bs.add(x.name)});
-      ZLIVE.taunt(n.slice(5),c,bs).then(async r=>{if(!r){if(window.toast)toast('Couldn\u2019t load that taunt from your install');return}A[n]=mx.clipAction(r.clip);if(window.ZPFX&&ZPFX.warm)for(const x of (r.clip.zpfx||[]))ZPFX.warm(x.sys);if(M[c]){M[c]._ltp=M[c]._ltp||{};if(r.prop||M[c]._wtHide!==n)M[c]._ltp[n]=r.prop;M[c]._ltps=M[c]._ltps||{};M[c]._ltps[n]=r.pseq}if(window.ZFACE)await ZFACE.addLive(c,n,r.sc,r.urls);if(M[c]&&M[c]._lwant===n)play(n,once)}).catch(e=>console.warn('[ZLIVE] taunt',e));return true}
+      ZLIVE.taunt(n.slice(5),c,bs).then(async r=>{if(!r){if(window.toast)toast('Couldn\u2019t load that taunt from your install');return}A[n]=mx.clipAction(r.clip);if(window.ZPFX&&ZPFX.warm)for(const x of (r.clip.zpfx||[]))ZPFX.warm(x.sys);if(M[c]){M[c]._ltp=M[c]._ltp||{};if(r.prop||M[c]._wtHide!==n)M[c]._ltp[n]=r.prop;M[c]._ltps=M[c]._ltps||{};M[c]._ltps[n]=r.pseq;M[c]._ltpc=M[c]._ltpc||{};M[c]._ltpc[n]=r.pclip||null}if(window.ZFACE)await ZFACE.addLive(c,n,r.sc,r.urls);if(M[c]&&M[c]._lwant===n)play(n,once)}).catch(e=>console.warn('[ZLIVE] taunt',e));return true}
      if(!a)return false;a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=!!once;if(cur&&cur!==a)a.crossFadeFrom(cur,.25,false);a.paused=false;a.play();cur=a;if(M[c]){M[c].cn=n;M[c].act=a}const tn=/^(taunt|live:)/.test(n);
      // a taunt with a prop (the Victory Lap's kart, the Panzer Pants' tank) waits at its first frame until the prop is on, so its intro (the
      // kart dropping in, the tank coming up round him) plays with it rather than while it's still loading; its scene starts then too
@@ -485,16 +485,24 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
    const keep=new Set((m._tprop&&m._tprop.meshes)||[]);m.o.traverse(n=>{if(!n.isMesh||keep.has(n))return;if(hid){n.userData._iv=n.visible;n.visible=false}else if('_iv' in n.userData){n.visible=n.userData._iv;delete n.userData._iv}})}
   // custom_taunt_prop_per_class: bonemerged for the taunt's length (put on again at another LOD)
   function tauntProp(mm,c,n){
+      {const base=String(n).replace(/\|act:\w+$/,''),cur=mm._tprop,pp0=/^live:/.test(n)&&mm._ltp&&mm._ltp[n],ps0=pp0&&mm._ltps&&mm._ltps[n];
+       // a taunt's action (or the taunt again after it) with the prop already up: the prop stays, its scene switched (or let run on)
+       if(cur&&cur.base===base&&pp0&&cur.pp===pp0&&cur.pmx&&cur.holder){const go=()=>{const a=mm._phold;mm._phold=null;if(!a||mm.act!==a||mm.cn!==n)return;a.time=mm._resumeT||0;mm._resumeT=0;a.paused=false;if(window.ZFACE)ZFACE.start(c,mm,n,a)};
+        const sw=P=>ZLIVE.propClip(pp0,P.seq).then(pc=>{if(!pc||mm._tprop!==cur||mm.cn!==n){go();return}if(cur.pa)cur.pa.stop();const pa=cur.pmx.clipAction(pc);pa.play();cur.pa=pa;cur.poff=P.off||0;cur.ploop=P.loop;cur.free=null;propTick(mm);go()}).catch(()=>go());
+        if(ps0)sw(ps0);else if(n!==base){cur.free={t:cur.pa?cur.pa.time:0};go()}else if(cur.baseps)sw(cur.baseps);else{cur.free=null;go()}return}}
       if(mm._tprop){const r=mm._tprop;mm._tprop=null;r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b))}
       const pp=/^live:/.test(n)&&mm._ltp&&mm._ltp[n];const ps=pp&&mm._ltps&&mm._ltps[n];
       // a prop with a scene of its own stands at the merc's feet and plays its sequence in step with the taunt; otherwise it rides prop_bone
       const go=()=>{const a=mm._phold;mm._phold=null;if(!a||mm.act!==a||mm.cn!==n)return;a.time=mm._resumeT||0;mm._resumeT=0;a.paused=false;if(window.ZFACE)ZFACE.start(c,mm,n,a)};
       if(!pp)go();
       if(pp)Promise.all([bonemerge(mm,c,(ps?'livepropx:':'liveprop:')+pp,null),ps?ZLIVE.propClip(pp,ps.seq).catch(()=>null):null,ps?ZLIVE.propEvents(pp,ps.seq).catch(()=>[]):[]]).then(([r,pc,pev])=>{if(r)r.pev=pev||[];if(window.ZPFX&&ZPFX.warm)for(const x of (pev||[]))if(/AE_CL_CREATE_PARTICLE_EFFECT/.test(x.name||''))ZPFX.warm(String(x.opt||'').trim().split(/\s+/)[0]);if(!r)return;if(mm.cn!==n){r.meshes.forEach(x=>x.parent&&x.parent.remove(x));r.extra.forEach(b=>b.parent&&b.parent.remove(b));return}
-       if(pc&&r.holder){const px=new THREE.AnimationMixer(r.holder);const pa=px.clipAction(pc);pa.play();r.pmx=px;r.pa=pa;r.poff=ps.off||0;r.ploop=ps.loop;propTick(mm)}mm._tprop=r;go()}).catch(()=>go()).finally(()=>{if(mm._phold&&mm.cn===n)go()})}
+       r.base=String(n).replace(/\|act:\w+$/,'');r.pp=pp;r.baseps=n===r.base?ps:null;
+       if(pc&&r.holder){const px=new THREE.AnimationMixer(r.holder);const pa=px.clipAction(pc);pa.play();r.pmx=px;r.pa=pa;r.poff=ps.off||0;r.ploop=ps.loop;propTick(mm)}
+       else{const rc=mm._ltpc&&mm._ltpc[n];if(rc){const px=new THREE.AnimationMixer(mm.o);const pa=px.clipAction(rc);pa.play();r.pmx=px;r.pa=pa;r.poff=0;r.ploop=null;r.ride=1;propTick(mm)}}mm._tprop=r;go()}).catch(()=>go()).finally(()=>{if(mm._phold&&mm.cn===n)go()})}
   window.ZTPROP=(c)=>{const mm=M[c];if(mm&&/^live:/.test(mm.cn||''))tauntProp(mm,c,mm.cn)};
   // the taunt prop's own sequence follows the merc's taunt clock (pause, replay and the hold loop included)
-  function propTick(m){const r=m._tprop||null;const R=r&&r.pa?r:null;if(!R||!m.act)return;const pc=R.pa.getClip();let t=m.act.time-R.poff;const L=R.ploop;
+  function propTick(m){const r=m._tprop||null;const R=r&&r.pa?r:null;if(!R||!m.act)return;const pc=R.pa.getClip();let t;const L=R.ploop;
+   if(R.free){const now=performance.now()/1000,d=R._ft?Math.min(.1,now-R._ft):0;R._ft=now;if(!m.act.paused)R.free.t+=d;t=R.free.t}else{R._ft=0;t=m.act.time-R.poff}
   if(L&&t>L.to)t=L.from+((t-L.from)%(L.to-L.from));R.pa.time=Math.max(0,Math.min(pc.duration,t));R.pmx.update(0);
    // the prop entity goes when its scene ends (the Yeti leaves; the merc carries on)
    const on=!!L||t<=pc.duration+.05;
@@ -1811,12 +1819,14 @@ function autoLayers(b,name,ani){const o=findSeqO(b,name);if(o<0)return[];const d
 // a placeholder sequence played with its autolayers, frame by frame, as CBoneSetup::AddSequenceLayers does: each layer's weight from its
 // start / peak / tail / end ramp over the sequence's cycle (SimpleSpline'd for STUDIO_AL_SPLINE), its own cycle mapped onto that range,
 // then blended in order onto the bones' rest pose (the sequence's own animation is all zeros) (SlerpBones: a delta layer multiplied in, post-multiplied for STUDIO_POST)
-function composeLayers(A,LY){const nb=A.bones.length,F=[];const spline=x=>x*x*(3-2*x);
+function composeLayers(A,LY,own){const nb=A.bones.length,F=[];const spline=x=>x*x*(3-2*x);
  const qa=new THREE.Quaternion(),qb=new THREE.Quaternion(),qi=new THREE.Quaternion();
  const sample=(L,c)=>{const nf=L.A.nf;if(nf<2)return L.A.frame(0);const x=Math.max(0,Math.min(1,c))*(nf-1),f0=Math.floor(x),f1=Math.min(nf-1,f0+1),t=x-f0;
   const a=L.A.frame(f0),bb=f1===f0?a:L.A.frame(f1);if(!a||!bb)return null;if(t===0||bb===a)return a;const P=[],Q=[];
   for(let i=0;i<nb;i++){qa.set(...a.Q[i]);qb.set(...bb.Q[i]);qa.slerp(qb,t);Q.push([qa.x,qa.y,qa.z,qa.w]);P.push(a.P[i].map((v,k)=>v+(bb.P[i][k]-v)*t))}return{P,Q}};
- for(let f=0;f<A.nf;f++){const c=A.nf>1?f/(A.nf-1):0;const P=A.bones.map(B=>B.pos.slice()),Q=A.bones.map(B=>B.q.slice());
+ for(let f=0;f<A.nf;f++){const c=A.nf>1?f/(A.nf-1):0;
+  // own: the sequence's own frames under its layers (a layer with layers of its own); otherwise the bind pose (a placeholder's)
+  const X0=own?A.frame(f):null;if(own&&!X0)return null;const P=X0?X0.P.map(v=>v.slice()):A.bones.map(B=>B.pos.slice()),Q=X0?X0.Q.map(v=>v.slice()):A.bones.map(B=>B.q.slice());
   for(const L of LY){if(L.fl&0x1000)continue;let lc=c,wt=1;
    if(L.s!==L.e){if(L.fl&0x4000)continue;if(c<L.s||c>=L.e)continue;let s=1;if(c<L.p&&L.s!==L.p)s=(c-L.s)/(L.p-L.s);else if(c>L.t&&L.e!==L.t)s=(L.e-c)/(L.e-L.t);
     if(L.fl&0x40)s=spline(s);wt=(L.fl&0x80)&&c>L.t?1:s;lc=(c-L.s)/(L.e-L.s)}
@@ -1827,6 +1837,8 @@ function composeLayers(A,LY){const nb=A.bones.length,F=[];const spline=x=>x*x*(3
     Q[i]=[qa.x,qa.y,qa.z,qa.w]}}
   F.push({P,Q})}
  return F}
+function layerSeqs(b,name){const o=findSeqO(b,name);if(o<0)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true),si=dv.getInt32(192,true),ns=dv.getInt32(188,true),out=[];
+ for(let k=0;k<n&&k<16;k++){const q=dv.getInt16(o+li+k*24,true);if(q>=0&&q<ns){const so=si+q*212;out.push({ai:seqAnim(b,so),name:cstr(b,so+dv.getInt32(so+4,true))})}}return out}
 function layerAnims(b,name){const o=findSeqO(b,name);if(o<0)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const n=dv.getInt32(o+148,true),li=dv.getInt32(o+152,true),si=dv.getInt32(192,true),ns=dv.getInt32(188,true),out=[];
  for(let k=0;k<n&&k<16;k++){const q=dv.getInt16(o+li+k*24,true);if(q>=0&&q<ns)out.push(seqAnim(b,si+q*212))}return out}
 // the sequence's animation events (mstudioseqdesc_t numevents/eventindex -> mstudioevent_t: cycle, event, type, options[64], szeventindex)
@@ -1869,7 +1881,10 @@ async function clipOf(b,n,clipName,boneSet,P){{const ai=findSeq(b,n,P);if(ai<0)r
     // only a sequence no one layer spans (an in pose, an interior, an out pose: the Shred Alert, the Yeti Smash); a taunt whose layer
     // is the whole taunt with a blend in and out (most of them) plays that layer, as before
     if(LY.some(l=>l.s!==l.e)&&!LY.some(l=>!(l.sfl&4)&&(l.s===l.e||(l.s<=.001&&l.e>=.999)))){F=composeLayers(A,LY)||null}}
-   if(!F&&A.flags&0x24){const L=layerAnims(b,n).map(x=>decodeAnim(b,x,ani)).find(x=>!(x.flags&0x24));if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L}
+   if(!F&&A.flags&0x24){const LS=layerSeqs(b,n);let L=null,ln=null;for(const x of LS){const d=decodeAnim(b,x.ai,ani);if(!(d.flags&0x24)){L=d;ln=x.name;break}}if(!L)return null;const d0=Math.max(1,A.nf-1)/(A.fps||30);if(L.nf>1&&A.nf>2)L.fps=(L.nf-1)/d0;A=L;
+    // that layer's own layers over part of it (the vehicle taunts' start layer: the spawn layer, the Soldier at attention as the tank comes up
+    // round him, over its first half): put on as its clock runs
+    const LY2=autoLayers(b,ln,ani).filter(l=>l.s!==l.e&&!(l.sfl&4));if(LY2.length){const F2=composeLayers(A,LY2,1);if(F2)F=F2}}
    if(!F){F=[];for(let f=0;f<A.nf;f++){const x=A.frame(f);if(!x){F.length=0;break}F.push(x)}}if(!F.length)return null;
    const C=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2));
    const times=new Float32Array(F.map((_,i)=>i/A.fps));const tracks=[];const q=new THREE.Quaternion(),v=new THREE.Vector3();
@@ -1949,10 +1964,16 @@ async function taunt(n,cl,boneSet){const c=clsKey(cl);const key=c+'|'+norm(n)+rk
  const loop=loopOf(evs);if(loop)A.clip.zloop={from:loop.from-s0,to:loop.to-s0};
  // custom_taunt_prop_scene_per_class: the prop is its own entity at the player's feet (CTFTauntProp) running its own scene - its
  // sequence and sounds - instead of riding the player's bones
- let pseq=null;{const psp=pp&&pc(e.r.taunt.custom_taunt_prop_scene_per_class);if(psp){let pe=null;try{pe=await scene(psp)}catch(err){console.warn('[ZLIVE] prop scene',psp,err)}
+ // an action's prop plays the prop's own scene for that input (custom_taunt_prop_input_remap: the Crypt Creeper's coffin), or none (it carries on)
+ let pseq=null;{const psp=pp&&(am?(()=>{const R=e.r.taunt.custom_taunt_prop_input_remap;const K=R&&Object.keys(R).find(x=>x.toLowerCase()===am[2].toLowerCase());const P=K&&R[K]&&R[K].pressed;return P&&typeof P=='object'?pc(P):null})():pc(e.r.taunt.custom_taunt_prop_scene_per_class));if(psp){let pe=null;try{pe=await scene(psp)}catch(err){console.warn('[ZLIVE] prop scene',psp,err)}
   const sq=(pe||[]).find(x=>x.type=='sequence');if(sq){const pl=loopOf(pe);pseq={seq:sq.p1||sq.name,off:sq.s,loop:pl}}
   for(const x of (pe||[])){if(x.type=='speak'&&x.p1){const w=await soundOf(x.p1);if(w.length)ev.push({t:'speak',s:x.s,e:x.e>x.s?x.e:x.s+8,v:1,w})}}}}
- return{clip:A.clip,sc:mu?{ev,mu}:{ev},urls,prop:pp,pseq}})()}
+ // a prop that rides the merc (the Panzer Pants' tank, the Victory Lap's kart): its own bones (prop_bone_1..: the tank's parts) are moved by
+ // the merc's taunt sequence too, which the merc's skeleton hasn't room for; their part of the sequence, for the prop to play in step
+ let pclip=null;if(pp&&!pseq){try{const b=await mdlBuf(pp);if(b){const dv=new DataView(b.buffer,b.byteOffset,b.byteLength),nb=dv.getInt32(156,true),bi=dv.getInt32(160,true),own=new Set();
+   for(let k=0;k<nb;k++){const q=bi+k*216;const nm=cstr(b,q+dv.getInt32(q,true));if(!boneSet||!boneSet.has(nm))own.add(nm)}
+   if(own.size){const B=await seqClip(c,[...new Set(cand)],clipName+'#prop',own);if(B&&B.clip&&B.clip.tracks.length)pclip=B.clip}}}catch(err){console.warn('[ZLIVE] prop bones',pp,err)}}
+ return{clip:A.clip,sc:mu?{ev,mu}:{ev},urls,prop:pp,pseq,pclip}})()}
 // the prop's own sequence as a clip (bones named as in the prop model)
 async function propClip(path,seqName){const k='pclip|'+path+'|'+seqName;if(ST.cache[k])return ST.cache[k];return ST.cache[k]=(async()=>{const b=await mdlBuf(path);if(!b)return null;const r=await clipOf(b,seqName,'prop:'+seqName,null);return r&&r.clip})()}
 async function propOwn(path){const key='livepropx:'+path,lod=ST.lod|0,ck=key+'#lod'+lod;if(ST.cache[ck])return ST.cache[ck];return ST.cache[ck]=assemble(key,path,{r:{}},0,null,{allbg:1,lod}).then(A=>{A[1][key]._own=1;return A})}
@@ -2213,7 +2234,7 @@ function playerMats(cl){const c=clsKey(cl);if(PMAT[c])return PMAT[c];return PMAT
 function body(cl,bg,robot){const c=clsKey(cl);const key='livebody:'+c+':'+(ST.lod|0)+':'+(robot?'bot:'+robot+':':'')+JSON.stringify(bg||{});if(ST.cache[key])return ST.cache[key];
  // robot: the Mann vs. Machine robot of the class (models/bots/<class>/bot_<class>.mdl), on the same skeleton
  return ST.cache[key]=assemble(key,robot?(/^models\//.test(String(robot))?robot:'models/bots/'+SHORT[c]+'/bot_'+SHORT[c]+'.mdl'):'models/player/'+SHORT[c]+'.mdl',{r:{}},0,'m',{lod:ST.lod|0,bg:robot?{}:(bg||{})})}
-async function connect(src){SNDIX=null;SNDMAP=null;ST.src=src;ST.kept=new Set();try{if(src.keptList)for(const n of await src.keptList())ST.kept.add(n)}catch(e){}ST.lod=0;for(const k in PMAT)delete PMAT[k];ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
+async function connect(src){SNDIX=null;SNDMAP=null;PAKO.clear();for(const k in MAPAUD)delete MAPAUD[k];ST.src=src;ST.kept=new Set();try{if(src.keptList)for(const n of await src.keptList())ST.kept.add(n)}catch(e){}ST.lod=0;for(const k in PMAT)delete PMAT[k];ST.ready=false;ST.on=true;ST.cache={};OV.clear();for(const k in WS)delete WS[k];ST.icons={};ST.iconPend={};say('Reading your TF2 install\u2026',60000);
  try{const [m,t]=await Promise.all([openVpk(src,'tf2_misc'),openVpk(src,'tf2_textures')]);if(!m)throw new Error('tf2_misc_dir.vpk not found \u2014 pick your Team Fortress 2/tf folder');
   const [sm,sv,hm,ht]=await Promise.all([openVpk(src,'tf2_sound_misc').catch(()=>null),openVpk(src,'tf2_sound_vo_english').catch(()=>null),openVpk(src,'hl2_misc').catch(()=>null),openVpk(src,'hl2_textures').catch(()=>null)]);ST.vpk={tf2_misc:m,tf2_textures:t,tf2_sound_misc:sm,tf2_sound_vo_english:sv,hl2_misc:hm,hl2_textures:ht};await index();ST.ready=true;dispatchEvent(new Event('zlive'));say('TF2 install synced \u2014 '+ST.ncos.toLocaleString()+' cosmetics, '+ST.byName.size.toLocaleString()+' item names',5000);refreshMercs();
   try{localStorage.setItem('zlive','1')}catch(e){}return true}
@@ -2247,6 +2268,15 @@ async function mountPak(name){if(PAKS.has(name))return PAKS.get(name);const P=(a
   throw new Error('maps/'+name+' not found in your TF2 folder')}
   const h=new DataView(await f.slice(0,8+64*16).arrayBuffer());if(h.getUint32(0,true)!==0x50534256)throw new Error(name+': not a map');const off=h.getInt32(8+40*16,true),len=h.getInt32(8+40*16+4,true);
   const z={size:len,slice:(a,b)=>f.slice(off+a,off+Math.min(b,len))};const Z=await zipDir(z);const k={z,Z};PAKZ.push(k);return k})();PAKS.set(name,P);try{return await P}catch(e){PAKS.delete(name);throw e}}
+// a map's packed files opened for its sounds alone (a community announcer's map: pl_breadspace packs the Astronaut over the
+// Administrator's own sound/vo/announcer_* names): not mounted, so nothing else reads from it
+const PAKO=new Map(),MAPAUD={};
+function pakOpen(name){if(PAKO.has(name))return PAKO.get(name);const P=(async()=>{const f=await mapFile(name);if(!f)throw new Error('maps/'+name+' not found in your TF2 folder');
+  const h=new DataView(await f.slice(0,8+64*16).arrayBuffer());if(h.getUint32(0,true)!==0x50534256)throw new Error(name+': not a map');const off=h.getInt32(8+40*16,true),len=h.getInt32(8+40*16+4,true);
+  const z={size:len,slice:(a,b)=>f.slice(off+a,off+Math.min(b,len))};return{z,Z:await zipDir(z)}})();PAKO.set(name,P);P.catch(()=>PAKO.delete(name));return P}
+async function mapSounds(name){try{const k=await pakOpen(name.replace(/\.bsp$/i,'')+'.bsp');return[...k.Z.keys()].filter(n=>n.startsWith('sound/')&&/\.(mp3|wav)$/.test(n))}catch(e){return[]}}
+async function mapSoundURL(name,path){const key=name+'|'+path;if(key in MAPAUD)return MAPAUD[key];return MAPAUD[key]=(async()=>{const k=await pakOpen(name.replace(/\.bsp$/i,'')+'.bsp');const e=k.Z.get(path);if(!e)return null;const b=await zipGet(k.z,e);
+  return URL.createObjectURL(new Blob([b],{type:/\.mp3$/i.test(path)?'audio/mpeg':'audio/wav'}))})().catch(()=>null)}
 async function pakRead(p){for(const P of PAKS.values()){let k;try{k=await P}catch(e){continue}const e=k.Z.get(p);if(e){const b=await zipGet(k.z,e);keepPak(p,b);return b}}return null}
 // a file read out of a map is kept with the saved copy of the install (game.js), so the character loads after a reload without the map
 function keepPak(p,b){const s=ST.src;if(!s||!s.keep||!b||(ST.kept&&ST.kept.has(p)))return;(ST.kept||(ST.kept=new Set())).add(p);try{s.keep(p,b)}catch(e){}}
@@ -2304,7 +2334,7 @@ async function npcClip(path,name,boneSet){const F=await npcFiles(path);for(const
 function seqWeights(b,name,clip){if(!clip||clip.zskip)return;const S=seqList(b).find(x=>x.name.toLowerCase()===String(name).toLowerCase());if(!S)return;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
  const wl=dv.getInt32(S.o+156,true),nb=dv.getInt32(156,true),bi=dv.getInt32(160,true);if(!wl)return;const z=new Set();for(let k=0;k<nb;k++)if(dv.getFloat32(S.o+wl+4*k,true)===0){const q=bi+k*216;z.add(cstr(b,q+dv.getInt32(q,true)))}
  if(!z.size||z.size>=nb)return;clip.zskip=z;clip.tracks=clip.tracks.filter(t=>!z.has(t.name.split('.')[0]))}
-window.ZLIVE={tauntActions,soundFind,soundFindAsync,phonemes,soundMaps:()=>soundFindAsync('|'),soundAll:nm=>{soundFind('');return((SNDALL&&SNDALL.get(String(nm).toLowerCase()))||[]).map(p=>p.slice(6))},zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
+window.ZLIVE={mapSounds,mapSoundURL,tauntActions,soundFind,soundFindAsync,phonemes,soundMaps:()=>soundFindAsync('|'),soundAll:nm=>{soundFind('');return((SNDALL&&SNDALL.get(String(nm).toLowerCase()))||[]).map(p=>p.slice(6))},zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
  mdlSkins:async p=>{const b=await mdlBuf(p);if(!b||b.length<232)return 1;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);return Math.max(1,dv.getInt32(224,true))},iconAt,workshop:{list:wsList,open:wsOpen,blob:it=>srcBlob(WSDIR+'/'+it.name.toLowerCase())},custom:{get can(){return !!(ST.src&&ST.src.custom)},access:()=>ST.src&&ST.src.writable?ST.src.writable():Promise.resolve(false),save:(n,b)=>ST.src.custom(n,b)},source,gesture,mercAtts,tauntSound,tauntWeaponModel,expressions,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint

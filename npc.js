@@ -227,7 +227,7 @@
 .spv-maps a{color:inherit;text-decoration:underline;text-decoration-color:#766B5E;text-underline-offset:2px}
 .spv-maps a:hover{color:#ffb84d;text-decoration-color:currentColor}
 .sec.closed .npcgrid{display:none}
-.npcgrid{display:grid;grid-template-columns:repeat(auto-fill,196px);gap:16px 18px;justify-content:center;padding:8px 0 22px}
+.npcgrid{display:grid;grid-template-columns:repeat(auto-fill,196px);gap:16px 18px;justify-content:center;padding:8px 18px 22px}
 .npcc{position:relative;width:196px;height:99px}
 .npcgrid .zcc{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(.55)}
 .npcgrid .zcc{position:relative;width:356px;height:179px;border:0;padding:0;background:center/100% 100% no-repeat;cursor:pointer;border-radius:10px}
