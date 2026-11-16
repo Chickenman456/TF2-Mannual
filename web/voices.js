@@ -32,7 +32,7 @@
     ghost: {npc: 'ghost', card: 'npc_ghost.webp', level: 'Halloween', mdl: 'models/props_halloween/ghost.mdl', wiki: [['Ghost', 'Ghost']]},
     // the pumpkin bombs (their lines heard in Laughter and Bloodwater); Morice, Farmageddon's talking pumpkin: the pumpkin on the table where
     // his lines play (models/props_farmageddon/pumpkin), his lines packed in the map
-    pumpkin_bomb: {level: 'Halloween', mdl: 'models/props_halloween/pumpkin_explode.mdl', wiki: [['Pumpkin bomb', 'Pumpkin_bomb']]},
+    pumpkin_bomb: {card: 'vo_t_pumpkin_bomb.webp', level: 'Halloween', mdl: 'models/props_halloween/pumpkin_explode.mdl', wiki: [['Pumpkin bomb', 'Pumpkin_bomb']]},
     morice: {level: 'Farmageddon', mdl: 'models/props_farmageddon/pumpkin.mdl', pak: 'pd_farmageddon.bsp', maps: ['pd_farmageddon'], wiki: [['Farmageddon', 'Farmageddon#Pumpkin_lines']]},
     // the Mann brothers: Helltower's carts, each brother's own bomb (models/props_trainyard/bomb_<name>), no art of their own
     redmond: {card: 'vo_t_redmond.webp', level: 'Helltower', noshadow: 1, mdl: 'models/props_trainyard/bomb_redmond.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Redmond Mann', 'Redmond_Mann'], ['Helltower', 'Helltower']]},
@@ -40,8 +40,11 @@
     administrator: {card: 'vo_administrator.webp', tile: 'vo_t_administrator.webp', wiki: [['Administrator', 'Administrator']]},
     pauling: {card: 'vo_pauling.webp', tile: 'vo_t_pauling.webp', wiki: [['Miss Pauling', 'Miss_Pauling']]},
     // announcers with a portrait (their art, no model): shown in the window in place of the megaphone
-    ann_dracula: {card: 'vo_dracula.webp', tile: 'vo_t_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp', tile: 'vo_t_nutcracker.webp', level: 'Announcer', mdl: 'models/props_nutcracker/nutcracker_head.mdl', pak: 'pd_nutcracker.bsp'},
-    ann_agent_96: {card: 'vo_agent_96.webp', tile: 'vo_t_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp', tile: 'vo_t_el_comandante.webp'},
+    ann_dracula: {card: 'vo_dracula.webp', tile: 'vo_t_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp', tile: 'vo_t_nutcracker.webp', level: 'Announcer', meshFit: 1, mdl: 'models/props_nutcracker/nutcracker_body.mdl', pak: 'pd_nutcracker.bsp',
+      // put together as his map does: his body, its machinery and pipes where it stands; his head and eyes 552 units up (on his mouth, turned to face the same way)
+      attach: ['models/props_nutcracker/nutcracker_machinery.mdl', 'models/props_nutcracker/nutcracker_pipes.mdl',
+        {mdl: 'models/props_nutcracker/nutcracker_head.mdl', root: ['static_prop', [0, 0, 552], [0, 0, Math.PI / 2]]}, {mdl: 'models/props_nutcracker/nutcracker_eyes.mdl', root: ['static_prop', [0, 0, 552], [0, 0, Math.PI / 2]]}]},
+    ann_devil: {card: 'vo_t_devil.webp'}, ann_agent_96: {card: 'vo_agent_96.webp', tile: 'vo_t_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp', tile: 'vo_t_el_comandante.webp'},
     // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
     ann_davy_jones: {npc: 'dutchman', card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     ann_seal: {npc: 'seal', card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'walk', over: {idle: 'walk'}, zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
@@ -278,7 +281,7 @@
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st && st.npc && window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.npc) ? Object.assign({}, NPCVIEW.def(st.npc), {zoom: st.zoom}, st.over || {}) : st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach, noshadow: st.noshadow} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st && st.npc && window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.npc) ? Object.assign({}, NPCVIEW.def(st.npc), {zoom: st.zoom}, st.over || {}) : st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach, noshadow: st.noshadow, meshFit: st.meshFit} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c] && !NPC[c].bot) {   // a character of his own (the NPC viewer): ready once his idle plays
