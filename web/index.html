@@ -163,6 +163,8 @@ body.vnpc .finder,body.vnpc #filters,body.vnpc #fsum{opacity:0;visibility:hidden
 .gi{display:inline-block;width:20px;height:20px;vertical-align:middle;background:currentColor;-webkit-mask:var(--g) center/contain no-repeat;mask:var(--g) center/contain no-repeat}
 .ibtn{display:inline-grid;place-items:center;padding-inline:10px}
 #setBtn{position:relative}
+/* the game was linked and isn't now (its folder's permission lapsed, or it couldn't be read): a ! on the Settings button, where it's linked again */
+#setBtn.unsync::before{content:'!';position:absolute;top:-6px;left:-6px;width:17px;height:17px;border-radius:50%;background:#B8383B;color:#fff;font:700 12px/17px var(--body);text-align:center;box-shadow:0 0 0 2px #2B2725;z-index:1}
 #setBtn.upd::after{content:'';position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:#CF6A32;box-shadow:0 0 0 2px #2B2725}
 #updMsg a{color:#E4AE39}
 .wopts{display:contents}
@@ -737,7 +739,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.30</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.31</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -2291,6 +2293,18 @@ function settingsPanel(current, source){
     await sleep(2000);
     try { const j = await (await fetch('/api/status')).json(); if (!j.job.msg){ await Promise.all([loadIconMap(), loadExtra()]); render(); break; } } catch { break; }
   }
+})();
+</script>
+<script>
+/* the ! on Settings: the game is meant to be linked (store3d.js keeps localStorage zlive '1' until it's unlinked on purpose) but isn't */
+(() => {
+  const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; };
+  const mark = () => { const b = document.getElementById('setBtn'); if (!b) return; const on = !!(window.ZLIVE && ZLIVE.ready);
+    const lost = !on && ls('zlive') === '1';
+    b.classList.toggle('unsync', lost); if (lost) b.title = 'Settings: your TF2 folder isn’t linked any more. Link it again here.'; else b.title = 'Settings'; };
+  addEventListener('zlive', mark);
+  // after the page has had its chance to link the game again by itself
+  addEventListener('load', () => setTimeout(mark, 6000));
 })();
 </script>
 </body></html>
