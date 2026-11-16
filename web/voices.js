@@ -3,30 +3,34 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
   const annList = () => (data().announcers || []);
-  const annMaps = c => { const a = annList().find(x => x[0] === c); return a ? a[2] : null; };
+  const annMaps = c => { const a = annList().find(x => x[0] === c); return a ? a[2] : (NPC[c] && NPC[c].maps) || null; };
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'merasmus', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
   // each with the lines his maps pack (dirs: sound/mvm/<dir>_<year>_<n>/). The Administrator: the game has no model of her own
   const NPC = {
-    saxton: {card: 'npc_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
+    saxton: {card: 'npc_saxton.webp', tile: 'vo_t_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
     santa_hale: {card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
     hellfire_hale: {card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
-    krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
-    bombinomicon: {card: 'vo_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
-    administrator: {card: 'vo_administrator.webp', wiki: [['Administrator', 'Administrator']]},
-    pauling: {wiki: [['Miss Pauling', 'Miss_Pauling']]},
+    krampus: {card: 'npc_krampus.webp', tile: 'vo_t_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
+    bombinomicon: {card: 'vo_bombinomicon.webp', tile: 'vo_t_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
+    merasmus: {card: 'npc_merasmus.webp', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', wiki: [['Merasmus', 'Merasmus']]},
+    // Embargo's robot butler: his sounds packed in the map (maps), named by their files
+    botler: {card: 'npc_botler.webp', level: 'Summer', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', maps: ['pl_embargo'], wiki: [['Embargo', 'Embargo#Robots']]},
+    administrator: {card: 'vo_administrator.webp', tile: 'vo_t_administrator.webp', wiki: [['Administrator', 'Administrator']]},
+    pauling: {card: 'vo_pauling.webp', tile: 'vo_t_pauling.webp', wiki: [['Miss Pauling', 'Miss_Pauling']]},
     // announcers with a portrait (their art, no model): shown in the window in place of the megaphone
-    ann_dracula: {card: 'vo_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp'}, ann_agent_96: {card: 'vo_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp'},
+    ann_dracula: {card: 'vo_dracula.webp', tile: 'vo_t_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp', tile: 'vo_t_nutcracker.webp'},
+    ann_agent_96: {card: 'vo_agent_96.webp', tile: 'vo_t_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp', tile: 'vo_t_el_comandante.webp'},
     // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
     ann_davy_jones: {card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
@@ -38,7 +42,7 @@
   const wikis = c => NPC[c] && NPC[c].wiki ? NPC[c].wiki : annPage(c) ? [[annPage(c).replace(/ \(map\)$/, ''), annPage(c).replace(/ /g, '_')]] : CLS.slice(0, 9).some(x => x[0] === c) ? [[nameOf(c), nameOf(c)]] : [];
   // a line from the TF2 Wiki (its Special:FilePath): its file there is the line's name with a capital and .wav, or (w) .mp3 (1) or a name of its own
   // (straight from the wiki's images folder, /w/images/<md5 of the name: its first digit>/<its first two>/<name>, as MediaWiki keeps them)
-  const wikiURL = (b, w) => { const n = typeof w === 'string' ? w : String(b)[0].toUpperCase() + String(b).slice(1) + (w == 1 ? '.mp3' : '.wav'), h = md5(n);
+  const wikiURL = (b, w) => { if (w === 0) return null; const n = typeof w === 'string' ? w : String(b)[0].toUpperCase() + String(b).slice(1) + (w == 1 ? '.mp3' : '.wav'), h = md5(n);
     return 'https://wiki.teamfortress.com/w/images/' + h[0] + '/' + h.slice(0, 2) + '/' + encodeURIComponent(n); };
   function md5(str) {
     const m = new TextEncoder().encode(str), n = ((m.length + 8) >> 6) + 1, X = new Uint32Array(n * 16);
@@ -64,7 +68,7 @@
   const meg = c => (isAnn(c) || c === 'pauling') && !(NPC[c] && NPC[c].card);   // a voice with no art: a megaphone
   const art = c => (window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card;
   const tile = c => meg(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
-    : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
+    : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].tile || NPC[c].card]) || 'ui/cards/' + (NPC[c].tile || NPC[c].card)) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
   const V = Object.assign({cls: 'scout', tab: 0}, ls('mannual_vo') || {}, {q: '', audio: null, key: '', note: '', maps: false});
@@ -314,12 +318,13 @@
       const a = new Audio(url); V.audio = a; let done = false; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
       if (game) { const m = window.Store3D && Store3D.M && Store3D.M[CN(V.cls)]; if (m && c === V.cls && window.ZFACE && ZFACE.say && document.querySelector('.vov .vdock.ready')) ZFACE.say(m, p, a); }
       const fail = () => { if (done || V.audio !== a) return; done = true;
-        if (game) { go(wu, false); return; }
+        if (game && wu) { go(wu, false); return; }
         V.audio = null; V.key = ''; BAD.add(b); mark(b); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); note('That line couldn’t be played from your game files or the TF2 Wiki.'); };
       a.onerror = fail;
       a.onended = () => { done = true; if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } };
       a.play().catch(err => { if (err && err.name === 'AbortError') return; fail(); });
     };
+    if (!u && !wu) { V.key = ''; mark(b); note(live() ? 'That sound isn’t in your game files.' : 'Link your TF2 folder to hear these: they’re only in the game’s files.'); return; }
     go(u || wu, !!u);
   }
   function random() {
@@ -350,7 +355,7 @@
       const back = () => { if (window.ItemPreview && ItemPreview.isOpen() && !document.querySelector('.vov .vdock .spv')) { setTimeout(back, 300); return; } const d = document.querySelector('.vov .vdock'); if (d && !d.querySelector('.spv')) { d.classList.remove('ready'); show3d(); } };
       setTimeout(back, 300); return;
     }
-    const l = e.target.closest('[data-vo]'); if (l) { if (!l.classList.contains('na')) play(l.dataset.vo, l.dataset.vc, l.dataset.vw == null ? undefined : l.dataset.vw === '1' ? 1 : l.dataset.vw); return; }
+    const l = e.target.closest('[data-vo]'); if (l) { if (!l.classList.contains('na')) play(l.dataset.vo, l.dataset.vc, l.dataset.vw == null ? undefined : l.dataset.vw === '1' ? 1 : l.dataset.vw === '0' ? 0 : l.dataset.vw); return; }
   });
   const inDock = e => e.target && e.target.closest && e.target.closest('.vov .vdock');
   document.addEventListener('wheel', e => { if (inDock(e)) e.stopPropagation(); }, true);

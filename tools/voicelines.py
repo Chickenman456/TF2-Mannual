@@ -192,6 +192,26 @@ def main():
         print("bombinomicon", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
     except Exception as e:
         print("skip the Bombinomicon", e)
+    # Merasmus: his section of the Halloween Boss voice responses page, a tab for each of its headings
+    try:
+        t = wikitext("Halloween Boss voice responses")
+        i = t.index("== [[Merasmus]] =="); j = t.find("\n== ", i + 5)
+        sec = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", t[t.index("\n", i):j if j > 0 else None])
+        cls = []
+        for tn, G in parse(sec):
+            GG = []
+            for g, lines, gl in G:
+                L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
+                if L: GG.append([g, L, gl] if gl else [g, L])
+            if GG: cls.append([tn, GG])
+        data["merasmus"] = cls
+        print("merasmus", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    except Exception as e:
+        print("skip Merasmus", e)
+    # Embargo's robot butler: the wiki has none of his sounds, so they're the map's own (sound/mvm/botler/<what>_<n>.mp3, packed in
+    # pl_embargo), named by their files; 0: none on the wiki to play
+    BOTLER = {"Idle": 4, "Heal": 3, "Pain": 3}
+    data["botler"] = [["Sounds", [[g, [["botler_%s_%02d" % (g.lower(), n), ti("%s %d" % (g, n)), 0] for n in range(1, k + 1)]] for g, k in BOTLER.items()]]]
     # Miss Pauling: her responses page (the Contracts' lines, Gun Mettle and Tough Break: sound/vo/pauling/plng_*), a tab for each
     try:
         cls = []
