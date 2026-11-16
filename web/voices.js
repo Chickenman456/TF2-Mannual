@@ -12,8 +12,8 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon']],
-    ['Announcers', ['administrator', ...annList().map(x => x[0])]]];
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal']],
+    ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
   // each with the lines his maps pack (dirs: sound/mvm/<dir>_<year>_<n>/). The Administrator: the game has no model of her own
@@ -24,12 +24,15 @@
     krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
     bombinomicon: {card: 'npc_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
     administrator: {wiki: [['Administrator', 'Administrator']]},
+    // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
+    ann_davy_jones: {card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
+    ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
   };
   const HALE = c => !!(NPC[c] && NPC[c].dirs);
   const src = c => HALE(c) ? 'saxton' : c;
   const WK = 'https://wiki.teamfortress.com/wiki/';
   // the wiki pages a character links to: a merc's class page, a character's own (and his map's), an announcer's map
-  const wikis = c => NPC[c] ? NPC[c].wiki : annPage(c) ? [[annPage(c).replace(/ \(map\)$/, ''), annPage(c).replace(/ /g, '_')]] : CLS.slice(0, 9).some(x => x[0] === c) ? [[nameOf(c), nameOf(c)]] : [];
+  const wikis = c => NPC[c] && NPC[c].wiki ? NPC[c].wiki : annPage(c) ? [[annPage(c).replace(/ \(map\)$/, ''), annPage(c).replace(/ /g, '_')]] : CLS.slice(0, 9).some(x => x[0] === c) ? [[nameOf(c), nameOf(c)]] : [];
   // a line from the TF2 Wiki (its Special:FilePath): its file there is the line's name with a capital and .wav, or (w) .mp3 (1) or a name of its own
   // (straight from the wiki's images folder, /w/images/<md5 of the name: its first digit>/<its first two>/<name>, as MediaWiki keeps them)
   const wikiURL = (b, w) => { const n = typeof w === 'string' ? w : String(b)[0].toUpperCase() + String(b).slice(1) + (w == 1 ? '.mp3' : '.wav'), h = md5(n);
@@ -55,7 +58,8 @@
     return [a0, b0, c0, d0].map(v => [0, 8, 16, 24].map(k => ((v >>> k) & 255).toString(16).padStart(2, '0')).join('')).join('');
   }
   const isAnn = c => ANN.has(c) || !!annMaps(c);
-  const tile = c => isAnn(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
+  const meg = c => isAnn(c) && !(NPC[c] && NPC[c].mdl);   // an announcer with no model: a megaphone
+  const tile = c => meg(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
@@ -217,7 +221,7 @@
     const tabs = tabsOf(V.cls), nm = nameOf(V.cls);
     if (V.tab >= tabs.length) V.tab = 0;
     return `<h1>Dialogue Player</h1><div class="vogrid">
-      <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${isAnn(c) ? ' ann' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
+      <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${meg(c) ? ' ann' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
         <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
@@ -242,11 +246,11 @@
   function show3d() {
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
-    if (isAnn(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
+    if (meg(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays
@@ -304,7 +308,6 @@
     const go = (url, game) => {
       const a = new Audio(url); V.audio = a; let done = false; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
       if (game) { const m = window.Store3D && Store3D.M && Store3D.M[CN(V.cls)]; if (m && c === V.cls && window.ZFACE && ZFACE.say && document.querySelector('.vov .vdock.ready')) ZFACE.say(m, p, a); }
-      else note(live() ? 'Playing from the TF2 Wiki: that line isn’t in your game files.' : 'Playing from the TF2 Wiki. Link your TF2 folder to play the lines from the game.');
       const fail = () => { if (done || V.audio !== a) return; done = true;
         if (game) { go(wu, false); return; }
         V.audio = null; V.key = ''; BAD.add(b); mark(b); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); note('That line couldn’t be played from your game files or the TF2 Wiki.'); };
@@ -332,7 +335,7 @@
   document.addEventListener('click', e => {
     const r = e.target.closest && e.target.closest('.vov'); if (!r) return;
     const c = e.target.closest('[data-vcls]');
-    if (c) { if (typeof sfx === 'function') sfx('buttonclick'); if (V.cls !== c.dataset.vcls) { V.cls = c.dataset.vcls; V.tab = 0; V.q = ''; save(); note(''); draw(); } return; }
+    if (c) { if (typeof sfx === 'function') sfx('buttonclick'); if (V.cls !== c.dataset.vcls) { stop(); V.cls = c.dataset.vcls; V.tab = 0; V.q = ''; save(); note(''); draw(); } return; }
     const t = e.target.closest('[data-vtab]');
     if (t) { if (typeof sfx === 'function') sfx('buttonclick'); V.tab = +t.dataset.vtab; save(); r.querySelectorAll('.vt').forEach(x => x.classList.toggle('on', x === t)); draw(true); r.querySelector('.vlist').scrollTop = 0; return; }
     if (e.target.closest('[data-vrand]')) { random(); return; }
