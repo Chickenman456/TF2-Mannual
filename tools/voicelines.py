@@ -192,10 +192,12 @@ def main():
         print("bombinomicon", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
     except Exception as e:
         print("skip the Bombinomicon", e)
-    # Merasmus: his section of the Halloween Boss voice responses page, a tab for each of its headings
-    try:
+    # Merasmus, the Horseless Headless Horsemann, MONOCULUS: each his section of the Halloween Boss voice responses page, a tab for
+    # each of its headings
+    for key, head in (("merasmus", "Merasmus"), ("hhh", "Horseless Headless Horsemann"), ("monoculus", "MONOCULUS")):
+      try:
         t = wikitext("Halloween Boss voice responses")
-        i = t.index("== [[Merasmus]] =="); j = t.find("\n== ", i + 5)
+        i = t.index("== [[%s]] ==" % head); j = t.find("\n== ", i + 5)
         sec = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", t[t.index("\n", i):j if j > 0 else None])
         cls = []
         for tn, G in parse(sec):
@@ -204,10 +206,10 @@ def main():
                 L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
-        data["merasmus"] = cls
-        print("merasmus", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
-    except Exception as e:
-        print("skip Merasmus", e)
+        data[key] = cls
+        print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+      except Exception as e:
+        print("skip", head, e)
     # Embargo's robot butler: the wiki has none of his sounds, so they're the map's own (sound/mvm/botler/<what>_<n>.mp3, packed in
     # pl_embargo), named by their files; 0: none on the wiki to play
     BOTLER = {"Idle": 4, "Heal": 3, "Pain": 3}

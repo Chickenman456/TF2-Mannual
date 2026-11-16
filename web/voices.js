@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
@@ -12,7 +12,7 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'merasmus', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
@@ -23,6 +23,8 @@
     hellfire_hale: {card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
     krampus: {card: 'npc_krampus.webp', tile: 'vo_t_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
     bombinomicon: {card: 'vo_bombinomicon.webp', tile: 'vo_t_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
+    hhh: {card: 'npc_hhh.webp', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], wiki: [['Horseless Headless Horsemann', 'Horseless_Headless_Horsemann']]},
+    monoculus: {card: 'npc_monoculus.webp', level: 'Halloween Boss', mdl: 'models/props_halloween/halloween_demoeye.mdl', idle: 'general_noise', nofloor: 1, wiki: [['MONOCULUS', 'MONOCULUS']]},
     merasmus: {card: 'npc_merasmus.webp', level: 'Halloween Boss', mdl: 'models/bots/merasmus/merasmus.mdl', wiki: [['Merasmus', 'Merasmus']]},
     // Embargo's robot butler: his sounds packed in the map (maps), named by their files
     botler: {card: 'npc_botler.webp', level: 'Summer', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', maps: ['pl_embargo'], wiki: [['Embargo', 'Embargo#Robots']]},
@@ -259,7 +261,7 @@
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays
