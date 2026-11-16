@@ -246,6 +246,8 @@
   document.head.appendChild(css);
   const SUB = {};
   window.NPCVIEW = {
+    // a character's own definition (its model, weapons, styles), for the Dialogue Player's window
+    def: id => NPCS.find(x => x.id === id) || null,
     render(){
       const groups = [...new Set(NPCS.map(n => n.group))];
       // the sections close and open like the item sections do (index.html's closed[], by data-key)
