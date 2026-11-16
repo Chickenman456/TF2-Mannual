@@ -1,14 +1,14 @@
 <meta charset="utf-8">
 <title>The Mann-ual</title>
-<script src="game.js?v=2026.11.16.25" defer></script>
-<script src="vmtfix.js?v=2026.11.16.25" defer></script>
-<script src="store3d.js?v=2026.11.16.25" defer></script>
-<script src="pfx.js?v=2026.11.16.25" defer></script>
-<script src="vgui.js?v=2026.11.16.25" defer></script>
-<script src="wpi.js?v=2026.11.16.25" defer></script>
-<script src="preview.js?v=2026.11.16.25" defer></script>
-<script src="ui/cards.js?v=2026.11.16.25" defer></script>
-<script src="npc.js?v=2026.11.16.25" defer></script>
+<script src="game.js?v=2026.11.16.26" defer></script>
+<script src="vmtfix.js?v=2026.11.16.26" defer></script>
+<script src="store3d.js?v=2026.11.16.26" defer></script>
+<script src="pfx.js?v=2026.11.16.26" defer></script>
+<script src="vgui.js?v=2026.11.16.26" defer></script>
+<script src="wpi.js?v=2026.11.16.26" defer></script>
+<script src="preview.js?v=2026.11.16.26" defer></script>
+<script src="ui/cards.js?v=2026.11.16.26" defer></script>
+<script src="npc.js?v=2026.11.16.26" defer></script>
 <script>/* Voice Lines: every class's lines, as the TF2 Wiki lists them (data/voicelines.json: its responses, voice commands and taunts
    pages), laid out like Deadlock's dialogue player: the classes, the class, the lines. A line plays from the linked TF2
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
@@ -112,12 +112,12 @@
     for (const m of annMaps(c) || []) for (const p of await ZLIVE.mapSounds(m)) { const d = p.split('/'), f = d[d.length - 1]; L.push({m, p, n: f.replace(/\.(mp3|wav)$/, ''), f: d[d.length - 2] || ''}); }
     AMAP[c] = L;
   }
-  // the lines a Hale shows: his own maps' (the wiki's lines common to the Hales: Saxton's, or, once the maps are read, any his maps have)
+  // the lines a Hale shows: his own maps', and the wiki's lines common to the Hales (once the maps are read, those his maps have)
   function usable(b, c) {
     if (!HALE(c)) return true;
     const st = NPC[c], [pre] = String(b).split('|');
     if (pre !== 'saxton_hale') return st.dirs.some(d => pre.startsWith(d));
-    return live() && V.maps ? !!resolve(b, c) : c === 'saxton';
+    return live() && V.maps ? !!resolve(b, c) : true;
   }
   const data = () => (typeof RAW !== 'undefined' && RAW && RAW.voicelines) || {};
   const tabsOf = c => ((data().classes || {})[src(c)] || []).map(([n, G]) => [n, G.map(([g, L, ln]) => [g, L.filter(([b]) => usable(b, c)), ln]).filter(g => g[1].length)]).filter(t => t[1].length);
@@ -376,8 +376,8 @@
   document.addEventListener('input', e => { if (!e.target.matches || !e.target.matches('.vov [data-vq]')) return; V.q = e.target.value; clearTimeout(V.qt); V.qt = setTimeout(() => draw(true), 120); });
 })();
 </script>
-<script src="maps.js?v=2026.11.16.25" defer></script>
-<script src="lo.js?v=2026.11.16.25" defer></script>
+<script src="maps.js?v=2026.11.16.26" defer></script>
+<script src="lo.js?v=2026.11.16.26" defer></script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: TF2 backpack screen. Sticky control strip (sync, views, filters) over stacked panels of backpack slots.
@@ -1117,7 +1117,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.25</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.26</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
