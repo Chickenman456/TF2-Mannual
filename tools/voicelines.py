@@ -192,6 +192,19 @@ def main():
         print("bombinomicon", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
     except Exception as e:
         print("skip the Bombinomicon", e)
+    # Miss Pauling: her responses page (the Contracts' lines, Gun Mettle and Tough Break: sound/vo/pauling/plng_*), a tab for each
+    try:
+        cls = []
+        for tn, G in parse(wikitext("Miss Pauling responses")):
+            GG = []
+            for g, lines, gl in G:
+                L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
+                if L: GG.append([g, L, gl] if gl else [g, L])
+            if GG: cls.append([tn, GG])
+        data["pauling"] = cls
+        print("pauling", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+    except Exception as e:
+        print("skip Miss Pauling", e)
     # Krampus (Smissmas 2023, koth_krampus): the Krampus section of the map's page; his lines are packed in the map (sound/mvm/krampus_*)
     try:
         t = wikitext("Krampus")

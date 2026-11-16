@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
@@ -12,7 +12,7 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
@@ -22,8 +22,11 @@
     santa_hale: {card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
     hellfire_hale: {card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
     krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
-    bombinomicon: {card: 'npc_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
-    administrator: {wiki: [['Administrator', 'Administrator']]},
+    bombinomicon: {card: 'vo_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
+    administrator: {card: 'vo_administrator.webp', wiki: [['Administrator', 'Administrator']]},
+    pauling: {wiki: [['Miss Pauling', 'Miss_Pauling']]},
+    // announcers with a portrait (their art, no model): shown in the window in place of the megaphone
+    ann_dracula: {card: 'vo_dracula.webp'}, ann_nutcracker: {card: 'vo_nutcracker.webp'}, ann_agent_96: {card: 'vo_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp'},
     // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
     ann_davy_jones: {card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
     ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
@@ -58,7 +61,8 @@
     return [a0, b0, c0, d0].map(v => [0, 8, 16, 24].map(k => ((v >>> k) & 255).toString(16).padStart(2, '0')).join('')).join('');
   }
   const isAnn = c => ANN.has(c) || !!annMaps(c);
-  const meg = c => isAnn(c) && !(NPC[c] && NPC[c].mdl);   // an announcer with no model: a megaphone
+  const meg = c => (isAnn(c) || c === 'pauling') && !(NPC[c] && NPC[c].card);   // a voice with no art: a megaphone
+  const art = c => (window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card;
   const tile = c => meg(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -160,6 +164,7 @@
 .vov .vl.na:hover{background:#2E2A26}
 .vov .vmeg{display:block;width:100%;height:100%;background:var(--TanLight,#EBE2CA);-webkit-mask:url(ui/glyph_commentary.webp) center/46% no-repeat;mask:url(ui/glyph_commentary.webp) center/46% no-repeat}
 .vov .vc .vmeg{filter:none}
+.vov .vdin .vart{position:absolute;inset:8% 6%;width:88%;height:84%;object-fit:contain;object-position:center bottom}
 .vov .vgr{overflow-y:auto;overflow-x:hidden;min-height:0}
 .vov .vc.ann{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}
 .vov .vc.ann .vmeg{height:auto;flex:1;width:100%;-webkit-mask-size:auto 60%;mask-size:auto 60%}
@@ -246,7 +251,7 @@
   function show3d() {
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
-    if (meg(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
+    if (!(NPC[c] && NPC[c].mdl) && (isAnn(c) || c === 'pauling')) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = meg(c) ? '<span class="vmeg"></span>' : `<img class="vart" src="${art(c)}" alt="">`; box.classList.add('ready'); return; }
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
