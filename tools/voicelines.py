@@ -213,7 +213,20 @@ def main():
     # Embargo's robot butler: the wiki has none of his sounds, so they're the map's own (sound/mvm/botler/<what>_<n>.mp3, packed in
     # pl_embargo), named by their files; 0: none on the wiki to play
     BOTLER = {"Idle": 4, "Heal": 3, "Pain": 3}
-    data["botler"] = [["Sounds", [[g, [["botler_%s_%02d" % (g.lower(), n), ti("%s %d" % (g, n)), 0] for n in range(1, k + 1)]] for g, k in BOTLER.items()]]]
+    data["botler"] = [["Sounds", [[g, [["botler_%s_%02d" % (g.lower(), n), ti("%s %d" % (g, n)), 1] for n in range(1, k + 1)]] for g, k in BOTLER.items()]]]
+    # the robots (Mann vs. Machine): each class's lines that the game has a robot's version of (sound/vo/mvm/norm/<class>_mvm_<rest>,
+    # the same words), checked against the game's files; the wiki has them as <Class>_mvm_<rest>.mp3 (1)
+    if have is not None:
+        for key, name in CLASSES:
+            tabs = []
+            for tn, G in data.get(key, []):
+                GG = []
+                for g in G:
+                    L = [[key + "_mvm_" + x[0][len(key) + 1:], x[1], 1] for x in g[1] if x[0].startswith(key + "_") and key + "_mvm_" + x[0][len(key) + 1:] in have]
+                    if L: GG.append([g[0], L] + g[2:])
+                if GG: tabs.append([tn, GG])
+            data["robot_" + key] = tabs
+            print("robot_" + key, sum(len(g[1]) for _, G in tabs for g in G), "lines")
     # Miss Pauling: her responses page (the Contracts' lines, Gun Mettle and Tough Break: sound/vo/pauling/plng_*), a tab for each
     try:
         cls = []

@@ -3,7 +3,8 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
+    ...['Scout', 'Soldier', 'Pyro', 'Demoman', 'Heavy', 'Engineer', 'Medic', 'Sniper', 'Spy'].map(n => ['robot_' + n.toLowerCase(), n + ' Robot'])];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
@@ -12,7 +13,7 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => !(NPC[c] && NPC[c].mdl))]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
@@ -35,8 +36,13 @@
     ann_agent_96: {card: 'vo_agent_96.webp', tile: 'vo_t_agent_96.webp'}, ann_el_comandante: {card: 'vo_el_comandante.webp', tile: 'vo_t_el_comandante.webp'},
     // the community maps' voices who are characters of their own (npc.js): Cursed Cove's Davy Jones, Selbyen's Seal; packed in their maps
     ann_davy_jones: {card: 'npc_dutchman.webp', level: 'Halloween', mdl: 'models/props_pirate/pirate_character/pirate_character.mdl', pak: 'pd_cursed_cove_event.bsp'},
-    ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'idle', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
+    ann_seal: {card: 'npc_seal.webp', level: 'Summer', mdl: 'models/props_selbyen/seal.mdl', pak: 'pd_selbyen.bsp', idle: 'walk', zoom: 1.9},   // zoom: wide, so stood back to fit the narrow window
   };
+  // the robots (Mann vs. Machine): each the Characters' own robot (npc.js bot_<class>: his model and weapons), his lines the class's that
+  // the game has a robot's version of
+  const RB = c => /^robot_/.test(c) ? c.slice(6) : null, RBN = c => RB(c) === 'demoman' ? 'demo' : RB(c);
+  for (const x of ['scout', 'soldier', 'pyro', 'demoman', 'heavy', 'engineer', 'medic', 'sniper', 'spy']) { const k = 'robot_' + x, s = x === 'demoman' ? 'demo' : x;
+    NPC[k] = {card: x === 'engineer' ? 'npc_bot_engineer.webp' : 'bot_' + s + '.webp', tile: 'vo_t_robot_' + s + '.webp', level: 'Robot', bot: 'bot_' + s, wiki: [[x[0].toUpperCase() + x.slice(1) + ' Robot', x[0].toUpperCase() + x.slice(1) + '_Robot']]}; }
   const HALE = c => !!(NPC[c] && NPC[c].dirs);
   const src = c => HALE(c) ? 'saxton' : c;
   const WK = 'https://wiki.teamfortress.com/wiki/';
@@ -261,21 +267,21 @@
     try {
       const st = NPC[c];
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
-        def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
+        def: st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
-    if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays
+    if (NPC[c] && !NPC[c].bot) {   // a character of his own (the NPC viewer): ready once his idle plays
       const w = () => { if (tok !== V.t3 || !box.isConnected) return; const N = window.Store3D && Store3D.npc && Store3D.npc._, mdl = NPC[c].mdl; if ((N && N.g && N.def && N.def.mdl === mdl && (N.act || performance.now() - t0 > 2500)) || performance.now() - t0 > 30000) box.classList.add('ready'); else setTimeout(w, 150); };
       const t0 = performance.now(); w(); return;
     }
     const t0 = performance.now(); let posed = false;
     const wait = () => {
       if (tok !== V.t3 || !box.isConnected) return;
-      const m = window.Store3D && Store3D.M && Store3D.M[CN(c)];
+      const m = window.Store3D && Store3D.M && Store3D.M[CN(RB(c) || c)];
       if (!(m && m.o && m.o.visible && m.started && m.cn)) { if (performance.now() - t0 < 30000) setTimeout(wait, 150); else box.classList.add('ready'); return; }
       if (window.ZLIVE && ZLIVE.ready && m.play) {
         // the class select menu's pose, with the weapon each class holds there
-        const key = 'live:@seq:selectionMenu_Idle' + ({engineer: '#melee', spy: '#melee', medic: '#secondary'}[c] || '');
+        const key = 'live:@seq:selectionMenu_Idle' + (RB(c) ? '' : {engineer: '#melee', spy: '#melee', medic: '#secondary'}[c] || '');
         if (m.cn === key) { box.classList.add('ready'); return; }
         if (!posed) { posed = true; m.play(key); }
         if (performance.now() - t0 < 20000 && m.cn !== key) { setTimeout(wait, 150); return; }
