@@ -1,43 +1,71 @@
 /* Voice Lines: every class's lines, as the TF2 Wiki lists them (data/voicelines.json: its responses, voice commands and taunts
    pages), laid out like Deadlock's dialogue player: the classes, the class, the lines. A line plays from the linked TF2
-   install's own sound files, found by the file's name (ZLIVE.soundFind). */
+   install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['administrator', 'Administrator']];
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['administrator', 'Administrator']];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
   const ANN = new Set(['administrator']);
   const annList = () => (data().announcers || []);
   const annMaps = c => { const a = annList().find(x => x[0] === c); return a ? a[2] : null; };
+  const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['bombinomicon']],
     ['Announcers', ['administrator', ...annList().map(x => x[0])]]];
-  // the characters who aren't mercs. Saxton Hale: the Characters' own Hales (npc.js: Saxton Hale packed in vsh_nucleus, Santa Hale in
-  // vsh_maul, Hellfire Hale in vsh_outburst), each Style with the lines his map packs (dirs: sound/mvm/<dir>_<year>_<n>/). The
-  // Administrator: the game has no model of her own; she's the Pocket Admin's (31019) figure, its backpack icon her portrait.
+  // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
+  // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
+  // each with the lines his maps pack (dirs: sound/mvm/<dir>_<year>_<n>/). The Administrator: the game has no model of her own
   const NPC = {
-    saxton: {card: 'npc_saxton.webp', level: 'Boss', styles: [
-      {n: 'Saxton Hale', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr']},
-      {n: 'Santa Hale', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml']},
-      {n: 'Hellfire Hale', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob']}]},
-    krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', styles: [{n: 'Krampus', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle'}]},
-    bombinomicon: {card: 'npc_bombinomicon.webp', level: 'Halloween', styles: [{n: 'Bombinomicon', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1}]},
-    administrator: {styles: [{n: 'Administrator'}]},
+    saxton: {card: 'npc_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
+    santa_hale: {card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
+    hellfire_hale: {card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
+    krampus: {card: 'npc_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
+    bombinomicon: {card: 'npc_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
+    administrator: {wiki: [['Administrator', 'Administrator']]},
   };
-  const styleOf = c => NPC[c] ? NPC[c].styles[Math.min((V.sty || {})[c] || 0, NPC[c].styles.length - 1)] : null;
+  const HALE = c => !!(NPC[c] && NPC[c].dirs);
+  const src = c => HALE(c) ? 'saxton' : c;
+  const WK = 'https://wiki.teamfortress.com/wiki/';
+  // the wiki pages a character links to: a merc's class page, a character's own (and his map's), an announcer's map
+  const wikis = c => NPC[c] ? NPC[c].wiki : annPage(c) ? [[annPage(c).replace(/ \(map\)$/, ''), annPage(c).replace(/ /g, '_')]] : CLS.slice(0, 9).some(x => x[0] === c) ? [[nameOf(c), nameOf(c)]] : [];
+  // a line from the TF2 Wiki (its Special:FilePath): its file there is the line's name with a capital and .wav, or (w) .mp3 (1) or a name of its own
+  // (straight from the wiki's images folder, /w/images/<md5 of the name: its first digit>/<its first two>/<name>, as MediaWiki keeps them)
+  const wikiURL = (b, w) => { const n = typeof w === 'string' ? w : String(b)[0].toUpperCase() + String(b).slice(1) + (w == 1 ? '.mp3' : '.wav'), h = md5(n);
+    return 'https://wiki.teamfortress.com/w/images/' + h[0] + '/' + h.slice(0, 2) + '/' + encodeURIComponent(n); };
+  function md5(str) {
+    const m = new TextEncoder().encode(str), n = ((m.length + 8) >> 6) + 1, X = new Uint32Array(n * 16);
+    for (let i = 0; i < m.length; i++) X[i >> 2] |= m[i] << ((i % 4) * 8);
+    X[m.length >> 2] |= 0x80 << ((m.length % 4) * 8); X[n * 16 - 2] = m.length * 8;
+    const K = [], S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+    for (let i = 0; i < 64; i++) K[i] = (Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    for (let o = 0; o < X.length; o += 16) {
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        const r = i >> 4; let F, g;
+        if (r === 0) { F = (B & C) | (~B & D); g = i; } else if (r === 1) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+        else if (r === 2) { F = B ^ C ^ D; g = (3 * i + 5) % 16; } else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+        const t = D; D = C; C = B; const x = (A + F + K[i] + X[o + g]) >>> 0, sh = S[r * 4 + (i % 4)];
+        B = (B + ((x << sh) | (x >>> (32 - sh)))) >>> 0; A = t;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    return [a0, b0, c0, d0].map(v => [0, 8, 16, 24].map(k => ((v >>> k) & 255).toString(16).padStart(2, '0')).join('')).join('');
+  }
   const isAnn = c => ANN.has(c) || !!annMaps(c);
   const tile = c => isAnn(c) ? `><span class="vmeg"></span><span class="vann">${E(nameOf(c))}</span>`
     : ` style="background-image:url('${NPC[c] && NPC[c].card ? ((window.ZCARDS && ZCARDS[NPC[c].card]) || 'ui/cards/' + NPC[c].card) : 'ui/store/portrait_' + c + '.webp'}')">`;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const ls = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} return null; };
-  const V = Object.assign({cls: 'scout', tab: 0, sty: {}}, ls('mannual_vo') || {}, {q: '', audio: null, key: '', note: '', maps: false});
+  const V = Object.assign({cls: 'scout', tab: 0}, ls('mannual_vo') || {}, {q: '', audio: null, key: '', note: '', maps: false});
   const live = () => !!(window.ZLIVE && ZLIVE.ready);
   // a line's sound: by its file's name; Saxton Hale's from his Style's own folders, and only the lines that Hale has
   function resolve(b, c) {
     if (!live()) return null;
-    if (c === 'saxton') {
-      const st = styleOf(c), [pre, nm] = String(b).split('|');
+    if (HALE(c)) {
+      const st = NPC[c], [pre, nm] = String(b).split('|');
       if (pre !== 'saxton_hale' && !st.dirs.some(d => pre.startsWith(d))) return null;
       return (ZLIVE.soundAll ? ZLIVE.soundAll(nm) : []).find(p => { const d = p.split('/'); return st.dirs.some(x => (d[d.length - 2] || '').startsWith(x)); }) || null;
     }
@@ -61,18 +89,18 @@
     for (const m of annMaps(c) || []) for (const p of await ZLIVE.mapSounds(m)) { const d = p.split('/'), f = d[d.length - 1]; L.push({m, p, n: f.replace(/\.(mp3|wav)$/, ''), f: d[d.length - 2] || ''}); }
     AMAP[c] = L;
   }
-  // the lines a character shows: for Saxton Hale, those of the Hale picked (once the maps are read, only the ones his map has)
+  // the lines a Hale shows: his own maps' (the wiki's lines common to the Hales: Saxton's, or, once the maps are read, any his maps have)
   function usable(b, c) {
-    if (c !== 'saxton') return true;
-    const st = styleOf(c), [pre] = String(b).split('|');
-    if (pre !== 'saxton_hale' && !st.dirs.some(d => pre.startsWith(d))) return false;
-    return !(live() && V.maps) || pre !== 'saxton_hale' || !!resolve(b, c);
+    if (!HALE(c)) return true;
+    const st = NPC[c], [pre] = String(b).split('|');
+    if (pre !== 'saxton_hale') return st.dirs.some(d => pre.startsWith(d));
+    return live() && V.maps ? !!resolve(b, c) : c === 'saxton';
   }
   const data = () => (typeof RAW !== 'undefined' && RAW && RAW.voicelines) || {};
-  const tabsOf = c => ((data().classes || {})[c] || []).map(([n, G]) => [n, G.map(([g, L, ln]) => [g, L.filter(([b]) => usable(b, c)), ln]).filter(g => g[1].length)]).filter(t => t[1].length);
+  const tabsOf = c => ((data().classes || {})[src(c)] || []).map(([n, G]) => [n, G.map(([g, L, ln]) => [g, L.filter(([b]) => usable(b, c)), ln]).filter(g => g[1].length)]).filter(t => t[1].length);
   const T = i => (data().text || [])[i] || '';
   const count = c => tabsOf(c).reduce((n, [, G]) => n + G.reduce((m, [, L]) => m + L.length, 0), 0);
-  const save = () => ls('mannual_vo', {cls: V.cls, tab: V.tab, sty: V.sty});
+  const save = () => ls('mannual_vo', {cls: V.cls, tab: V.tab});
 
   const css = document.createElement('style');
   css.textContent = `
@@ -97,7 +125,7 @@
 .vov .vdock.ready .vspin{display:none}
 .vov .vdock .spv{opacity:0;transition:opacity .25s}.vov .vdock.ready .spv{opacity:1}
 @keyframes vospin{to{transform:rotate(360deg)}}
-.vov .vname{font:400 40px/1 var(--head);text-transform:uppercase;color:var(--TanLight);margin:8px 0 4px;text-shadow:0 2px 0 #000a}
+.vov .vname{font:400 40px/1 var(--head);text-align:center;padding:0 14px;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;text-transform:uppercase;color:var(--TanLight);margin:8px 0 4px;text-shadow:0 2px 0 #000a}
 .vov .vcount{font:400 13px var(--head);letter-spacing:.18em;color:var(--Strange,#CF6A32);text-transform:uppercase}
 .vov .vrand{margin:14px 0 22px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--va);background:#0003;color:var(--TanLight);border-radius:999px;padding:9px 20px;font:400 15px var(--head);text-transform:uppercase;cursor:pointer}
 .vov .vrand:hover{background:#EBE2CA22}
@@ -134,8 +162,10 @@
 .vov .vann{font:400 10px/1.1 var(--head);text-transform:uppercase;color:var(--TanLight);text-align:center;letter-spacing:.03em;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .vov .vdock .vmeg{position:absolute;inset:0;-webkit-mask-size:34%;mask-size:34%;opacity:.85}
 .vov .vh+.vcl+.vh{padding-top:4px}
-.vov .vsty{display:flex;align-items:center;gap:8px;margin-top:10px;font:400 13px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#B9AE98)}
-.vov .vsty select{background:#2B2725F2;color:#EBE2CA;border:1px solid #756B5E;border-radius:4px;font:400 14px var(--body);padding:4px 8px;cursor:pointer}
+.vov .vwiki{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-top:10px;padding:0 14px}
+.vov .vwiki a{display:inline-flex;align-items:center;gap:5px;font:400 13px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2,#B9AE98);text-decoration:none}
+.vov .vwiki a:hover{color:var(--TanLight)}
+.vov .vwiki svg{width:12px;height:12px}
 .vov .vl i{flex:none;width:26px;height:26px;border:1.5px solid var(--TanLight);border-radius:50%;display:flex;align-items:center;justify-content:center}
 .vov .vl i svg{width:10px;height:10px;margin-left:2px}
 .vov .vl.on i svg{margin-left:0}
@@ -148,11 +178,12 @@
   const PLAY = '<svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z" fill="currentColor"/></svg>';
   const STOP = '<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>';
   const SHUF = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h3l7 8h4M1 12h3l2.2-2.5M9.8 6.5L11 5h4M13 3l2 2-2 2M13 9l2 2-2 2"/></svg>';
+  const WIKI = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 2h5v5M14 2L7 9M12 10v4H2V4h4"/></svg>';
   const LENS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>';
-  // a line that can't play (no TF2 folder linked, or its file isn't in the game's files or maps) is greyed out
-  const known = (b, c) => !live() || (annMaps(c) ? !!AMAP[c] : (V.maps || !!resolve(b, c)));
-  const row = (b, ti, c) => { c = c || V.cls; const p = resolve(b, c), na = known(b, c) && !p;
-    return `<button type="button" class="vl${V.key === b ? ' on' : ''}${na ? ' na' : ''}" data-vo="${E(b)}" data-vc="${c}" title="${E(p ? (p.startsWith('map:') ? p.split(':').slice(2).join(':') + ' (in maps/' + p.split(':')[1] + '.bsp)' : 'sound/' + p) : String(b).split('|').pop())}"${na ? ' aria-disabled="true"' : ''}><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`; };
+  // a line plays from the game's files, or else from the TF2 Wiki; one neither could play is greyed out
+  const BAD = new Set();
+  const row = (b, ti, c, w) => { c = c || V.cls; const p = resolve(b, c), na = BAD.has(b);
+    return `<button type="button" class="vl${V.key === b ? ' on' : ''}${na ? ' na' : ''}" data-vo="${E(b)}" data-vc="${c}"${w != null ? ` data-vw="${E(w)}"` : ''} title="${E(p ? (p.startsWith('map:') ? p.split(':').slice(2).join(':') + ' (in maps/' + p.split(':')[1] + '.bsp)' : 'sound/' + p) : String(b).split('|').pop())}"${na ? ' aria-disabled="true"' : ''}><i>${V.key === b ? STOP : PLAY}</i><span>${E(T(ti))}</span></button>`; };
 
   // the wiki pages a group links to that are items (the Haunted Hat, the Sandman): their backpack icons, each opening that item
   let NAMES = null;
@@ -171,16 +202,16 @@
       let h = '', n = 0;
       for (const [c, nm] of [...CLS, ...annList().map(x => [x[0], x[1]])]) {
         const seen = new Set(), hit = [];
-        for (const [, G] of tabsOf(c)) for (const [, L] of G) for (const [b, ti] of L) if (!seen.has(b) && (T(ti).toLowerCase().includes(q) || nm.toLowerCase() === q)) { seen.add(b); hit.push([b, ti]); }
+        for (const [, G] of tabsOf(c)) for (const [, L] of G) for (const [b, ti, w] of L) if (!seen.has(b) && (T(ti).toLowerCase().includes(q) || nm.toLowerCase() === q)) { seen.add(b); hit.push([b, ti, w]); }
         if (!hit.length) continue;
-        h += `<div class="vgh">${E(nm)} · ${hit.length}</div>` + hit.slice(0, 300).map(([b, ti]) => row(b, ti, c)).join('');
+        h += `<div class="vgh">${E(nm)} · ${hit.length}</div>` + hit.slice(0, 300).map(([b, ti, w]) => row(b, ti, c, w)).join('');
         n += hit.length;
       }
       return n ? h : `<div class="vempty">No lines say “${E(V.q.trim())}”.</div>`;
     }
     const tab = tabsOf(V.cls)[V.tab];
     if (!tab) return '<div class="vempty">No lines.</div>';
-    return tab[1].map(([g, L, ln]) => head(g, ln) + L.map(([b, ti]) => row(b, ti)).join('')).join('');
+    return tab[1].map(([g, L, ln]) => head(g, ln) + L.map(([b, ti, w]) => row(b, ti, V.cls, w)).join('')).join('');
   }
   function body() {
     const tabs = tabsOf(V.cls), nm = nameOf(V.cls);
@@ -189,8 +220,8 @@
       <div class="vpn"><div class="vgr">${GROUPS().map(([h, L]) => `<div class="vh">${E(h)}</div><div class="vcl">${L.map(c => `<button type="button" class="vc${isAnn(c) ? ' ann' : ''}${c === V.cls ? ' on' : ''}" data-vcls="${c}" title="${E(nameOf(c))}" aria-label="${E(nameOf(c))}"${tile(c)}</button>`).join('')}</div>`).join('')}</div></div>
       <div class="vpn vmid"><div class="vnote"${V.note ? '' : ' hidden'}>${E(V.note)}</div>
         <div class="vdock"><div class="vdin"></div><div class="vspin" aria-label="Loading"></div></div>
-        <div class="vname">${E(NPC[V.cls] && NPC[V.cls].styles.length > 1 ? styleOf(V.cls).n : nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
-        ${NPC[V.cls] && NPC[V.cls].styles.length > 1 ? `<label class="vsty">Style<select data-vsty aria-label="Style">${NPC[V.cls].styles.map((x, i) => `<option value="${i}"${x === styleOf(V.cls) ? ' selected' : ''}>${E(x.n)}</option>`).join('')}</select></label>` : ''}
+        <div class="vname">${E(nm)}</div><div class="vcount">${count(V.cls).toLocaleString()} voice lines</div>
+        ${wikis(V.cls).length ? `<div class="vwiki">${wikis(V.cls).map(([t, pg]) => `<a href="${E(WK + encodeURIComponent(pg).replace(/%23/g, '#'))}" target="_blank" rel="noopener">${WIKI}${E(t)}</a>`).join('')}</div>` : ''}
         <button type="button" class="vrand" data-vrand>${SHUF}Play Random Line</button></div>
       <div class="vpn vr"><label class="vs">${LENS}<input type="search" placeholder="Search voice lines or characters…" value="${E(V.q)}" data-vq aria-label="Search voice lines"></label>
         <div class="vtabs"${V.q.trim() ? ' hidden' : ''}>${tabs.map(([n, G], i) => `<button type="button" class="vt${i === V.tab ? ' on' : ''}" data-vtab="${i}">${E(n)}<b>${G.reduce((m, [, L]) => m + L.length, 0)}</b></button>`).join('')}</div>
@@ -200,8 +231,9 @@
   function draw(keepList) {
     const r = root(); if (!r) return;
     if (keepList) { const l = r.querySelector('.vlist'); l.innerHTML = lines(); const t = r.querySelector('.vtabs'); if (t) t.hidden = !!V.q.trim(); icons(); return; }
-    const st = r.querySelector('.vlist') ? r.querySelector('.vlist').scrollTop : 0;
+    const st = r.querySelector('.vlist') ? r.querySelector('.vlist').scrollTop : 0, gt = r.querySelector('.vgr') ? r.querySelector('.vgr').scrollTop : 0;
     r.innerHTML = body(); const l = r.querySelector('.vlist'); if (l && keepList === 0) l.scrollTop = st;
+    const g = r.querySelector('.vgr'); if (g) g.scrollTop = gt;
     icons(); show3d(); if (live()) maps();
   }
   // the class in the item preview's own window (the store's merc, his weapons and his face), docked here; with the TF2 folder
@@ -212,13 +244,13 @@
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
     if (isAnn(c)) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = '<span class="vmeg"></span>'; box.classList.add('ready'); return; }
     try {
-      const st = styleOf(c);
-      ItemPreview.openNpc({dock: din, name: st ? st.n : CN(c), level: st ? NPC[c].level : 'Mercenary',
+      const st = NPC[c];
+      ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
         def: st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
     } catch (e) { box.classList.add('ready'); return; }
     if (NPC[c]) {   // a character of his own (the NPC viewer): ready once his idle plays
-      const w = () => { if (tok !== V.t3 || !box.isConnected) return; const N = window.Store3D && Store3D.npc && Store3D.npc._, mdl = styleOf(c).mdl; if ((N && N.g && N.def && N.def.mdl === mdl && (N.act || performance.now() - t0 > 2500)) || performance.now() - t0 > 30000) box.classList.add('ready'); else setTimeout(w, 150); };
+      const w = () => { if (tok !== V.t3 || !box.isConnected) return; const N = window.Store3D && Store3D.npc && Store3D.npc._, mdl = NPC[c].mdl; if ((N && N.g && N.def && N.def.mdl === mdl && (N.act || performance.now() - t0 > 2500)) || performance.now() - t0 > 30000) box.classList.add('ready'); else setTimeout(w, 150); };
       const t0 = performance.now(); w(); return;
     }
     const t0 = performance.now(); let posed = false;
@@ -253,36 +285,46 @@
   function note(t) { V.note = t || ''; const n = document.querySelector('.vov .vnote'); if (n) { n.textContent = V.note; n.hidden = !V.note; } }
   function stop() { if (V.audio) { try { V.audio.pause(); } catch (e) {} V.audio = null; } const was = V.key; V.key = ''; mark(was); }
   function mark(b) { if (!b) return; document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => { const on = V.key === b; x.classList.toggle('on', on); x.querySelector('i').innerHTML = on ? STOP : PLAY; }); }
-  async function play(b, vc) {
+  // a line plays from the game's own files when the TF2 folder is linked and has it, otherwise (or if those fail) from the TF2 Wiki
+  async function play(b, vc, w) {
     if (V.key === b) { stop(); return; }
     stop();
-    if (!live()) { note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); return; }
-    const c = vc || V.cls;
-    if (annMaps(c) && !AMAP[c]) { note('Looking in the game’s maps…'); await annLoad(c); }
-    else if (!resolve(b, c) && !V.maps) { note('Looking in the game’s maps…'); await maps(); }
-    const p = resolve(b, c);
-    if (V.key && V.key !== b) return;
-    if (!p) { note('That line isn’t in your game files.'); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); return; }
+    const c = vc || V.cls; let p = null;
+    if (live()) {
+      if (annMaps(c) && !AMAP[c]) { note('Looking in the game’s maps…'); await annLoad(c); }
+      else if (!resolve(b, c) && !V.maps) { note('Looking in the game’s maps…'); await maps(); }
+      if (V.key && V.key !== b) return;
+      p = resolve(b, c);
+    }
     note(''); V.key = b; mark(b);
-    const u = p.startsWith('map:') ? await ZLIVE.mapSoundURL(p.split(':')[1], p.split(':').slice(2).join(':')) : await ZLIVE.sndURL([p]);
+    let u = null;
+    if (p) { try { u = p.startsWith('map:') ? await ZLIVE.mapSoundURL(p.split(':')[1], p.split(':').slice(2).join(':')) : await ZLIVE.sndURL([p]); } catch (e) { u = null; } }
     if (V.key !== b) return;
-    if (!u) { V.key = ''; mark(b); note('That line couldn’t be read from your game files.'); return; }
-    const a = new Audio(u); V.audio = a; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
-    { const m = window.Store3D && Store3D.M && Store3D.M[CN(V.cls)]; if (m && (vc || V.cls) === V.cls && window.ZFACE && ZFACE.say && document.querySelector('.vov .vdock.ready')) ZFACE.say(m, p, a); }
-    a.onended = () => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } };
-    a.play().catch(() => { if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } });
+    const wu = wikiURL(b, w);
+    const go = (url, game) => {
+      const a = new Audio(url); V.audio = a; let done = false; try { if (window.ZVOL) a.volume = Math.max(0, Math.min(1, +ZVOL() || 0)); } catch (e) {}
+      if (game) { const m = window.Store3D && Store3D.M && Store3D.M[CN(V.cls)]; if (m && c === V.cls && window.ZFACE && ZFACE.say && document.querySelector('.vov .vdock.ready')) ZFACE.say(m, p, a); }
+      else note(live() ? 'Playing from the TF2 Wiki: that line isn’t in your game files.' : 'Playing from the TF2 Wiki. Link your TF2 folder to play the lines from the game.');
+      const fail = () => { if (done || V.audio !== a) return; done = true;
+        if (game) { go(wu, false); return; }
+        V.audio = null; V.key = ''; BAD.add(b); mark(b); document.querySelectorAll(`.vov .vl[data-vo="${CSS.escape(b)}"]`).forEach(x => x.classList.add('na')); note('That line couldn’t be played from your game files or the TF2 Wiki.'); };
+      a.onerror = fail;
+      a.onended = () => { done = true; if (V.audio === a) { V.audio = null; V.key = ''; mark(b); } };
+      a.play().catch(err => { if (err && err.name === 'AbortError') return; fail(); });
+    };
+    go(u || wu, !!u);
   }
   function random() {
-    const all = []; for (const [, G] of tabsOf(V.cls)) for (const [, L] of G) for (const [b] of L) if (!live() || resolve(b, V.cls)) all.push(b);
-    if (!all.length) return; const b = all[(Math.random() * all.length) | 0];
-    play(b);
+    const all = []; for (const [, G] of tabsOf(V.cls)) for (const [, L] of G) for (const [b, , w] of L) if (!BAD.has(b)) all.push([b, w]);
+    if (!all.length) return; const [b, w] = all[(Math.random() * all.length) | 0];
+    play(b, V.cls, w);
     const el = document.querySelector(`.vov .vl[data-vo="${CSS.escape(b)}"]`); if (el) el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
   }
 
   window.VOVIEW = {
     render() {
       if (!data().classes) return '<section class="sec vov"><h1>Dialogue Player</h1><p class="empty">The voice lines didn’t load.</p></section>';
-      queueMicrotask(() => { const r = root(); if (r && !r.firstChild) { r.innerHTML = body(); icons(); show3d(); if (!live()) note('Link your TF2 folder to hear the lines: they play from the game’s own sound files.'); else maps(); } });
+      queueMicrotask(() => { const r = root(); if (r && !r.firstChild) { r.innerHTML = body(); icons(); show3d(); if (live()) maps(); } });
       return '<section class="vov"></section>';
     },
     stop,
@@ -300,19 +342,12 @@
       const back = () => { if (window.ItemPreview && ItemPreview.isOpen() && !document.querySelector('.vov .vdock .spv')) { setTimeout(back, 300); return; } const d = document.querySelector('.vov .vdock'); if (d && !d.querySelector('.spv')) { d.classList.remove('ready'); show3d(); } };
       setTimeout(back, 300); return;
     }
-    const l = e.target.closest('[data-vo]'); if (l) { if (!l.classList.contains('na')) play(l.dataset.vo, l.dataset.vc); return; }
+    const l = e.target.closest('[data-vo]'); if (l) { if (!l.classList.contains('na')) play(l.dataset.vo, l.dataset.vc, l.dataset.vw == null ? undefined : l.dataset.vw === '1' ? 1 : l.dataset.vw); return; }
   });
   const inDock = e => e.target && e.target.closest && e.target.closest('.vov .vdock');
   document.addEventListener('wheel', e => { if (inDock(e)) e.stopPropagation(); }, true);
   ['pointerdown', 'mousedown'].forEach(t => document.addEventListener(t, e => { if (inDock(e) && e.button !== 0) { e.stopPropagation(); e.preventDefault(); } }, true));
   ['dblclick', 'contextmenu'].forEach(t => document.addEventListener(t, e => { if (inDock(e)) { e.stopPropagation(); e.preventDefault(); } }, true));
   addEventListener('zlive', () => { V.maps = false; V.mp = null; if (!root() || !root().querySelector('.vlist')) return; note(live() ? '' : V.note); if (live()) maps(); refresh(); const d = document.querySelector('.vov .vdock'); if (d) { d.classList.remove('ready'); show3d(); } });
-  document.addEventListener('change', e => {
-    if (!e.target.matches || !e.target.matches('.vov [data-vsty]')) return;
-    if (typeof sfx === 'function') sfx('buttonclick'); stop();
-    V.sty = Object.assign({}, V.sty, {[V.cls]: +e.target.value}); save(); V.tab = 0;
-    const nm = document.querySelector('.vov .vname'); if (nm) nm.textContent = styleOf(V.cls).n;
-    const d = document.querySelector('.vov .vdock'); if (d) d.classList.remove('ready'); show3d(); refresh();
-  });
   document.addEventListener('input', e => { if (!e.target.matches || !e.target.matches('.vov [data-vq]')) return; V.q = e.target.value; clearTimeout(V.qt); V.qt = setTimeout(() => draw(true), 120); });
 })();

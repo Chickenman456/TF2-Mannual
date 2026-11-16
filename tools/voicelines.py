@@ -96,21 +96,21 @@ def parse(text, tab0=None):
             continue
         if group is None: new_group(h3, list(h3l))
         for f, t in L:
-            f = f.strip().replace(" ", "_").lower()
+            fo = f.strip().replace(" ", "_"); f = fo.lower()
             if not f.endswith(".wav") and not f.endswith(".mp3"):
                 continue
-            group[1].append([f, clean(t), sub, subl])
+            group[1].append([f, clean(t), sub, subl, fo])
     out = []
     for n, G in tabs:
         GG = []
         for g, lines, gl in G:
             # a bold bullet inside a group splits it: "Melee kill · Bat / Sandman / Atomizer kill"
             cur = None
-            for f, tx, sub, sl in lines:
+            for f, tx, sub, sl, fo in lines:
                 name = (g + " · " + sub) if sub and g else (sub or g)
                 if not cur or cur[0] != name:
                     cur = [name, [], list(dict.fromkeys(gl + sl))]; GG.append(cur)
-                cur[1].append([f, tx])
+                cur[1].append([f, tx, fo])
         GG = [g for g in GG if g[1]]
         if GG: out.append([n, GG])
     return out
@@ -130,6 +130,12 @@ def main():
                 if not v.entries: v._load()
                 have |= {k.rsplit("/", 1)[-1].rsplit(".", 1)[0] for k in v.entries if k.startswith("sound/")}
     texts, idx, data, miss = [], {}, {}, []
+    # a line: [its sound's name, its words] and, when the wiki's file isn't that name with a capital and .wav, the wiki's file
+    # (1: the same name, .mp3), for playing it from the wiki when the game's files aren't to hand
+    def line(base, tx, fo):
+        d = base[:1].upper() + base[1:]; o = fo[:1].upper() + fo[1:]
+        w = None if o == d + ".wav" else 1 if o == d + ".mp3" else o
+        return [base, ti(tx)] + ([w] if w is not None else [])
     def ti(t):
         if t not in idx: idx[t] = len(texts); texts.append(t)
         return idx[t]
@@ -145,10 +151,10 @@ def main():
             GG = []
             for g, lines, gl in G:
                 L = []
-                for f, tx in lines:
+                for f, tx, fo in lines:
                     base = f.rsplit(".", 1)[0]
                     if have is not None and base not in have: miss.append(f)
-                    L.append([base, ti(tx)])
+                    L.append(line(base, tx, fo))
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
         data[key] = cls
@@ -160,10 +166,10 @@ def main():
             GG = []
             for g, lines, gl in G:
                 L = []
-                for f, tx in lines:
+                for f, tx, fo in lines:
                     base = f.rsplit(".", 1)[0]
                     if have is not None and base not in have: miss.append(f)
-                    L.append([base, ti(tx)])
+                    L.append(line(base, tx, fo))
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
         data["administrator"] = cls
@@ -179,7 +185,7 @@ def main():
         for tn, G in parse(sec):
             GG = []
             for g, lines, gl in G:
-                L = [[f.rsplit(".", 1)[0], ti(tx)] for f, tx in lines]
+                L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
         data["bombinomicon"] = cls
@@ -194,7 +200,7 @@ def main():
         for tn, G in parse(t[t.index("\n", i):j if j > 0 else None], "Voice Lines"):
             GG = []
             for g, lines, gl in G:
-                L = [[f.rsplit(".", 1)[0], ti(tx)] for f, tx in lines]
+                L = [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
         # one section: each of its lists a tab of its own ("Krampus enters", "Coal attacks"...)
@@ -225,14 +231,14 @@ def main():
                 tabs = parse(body) if re.search(r"(?m)^==[^=]", body) else [["", G] for _, G in parse(body, "x")]
                 cls = []
                 for tn, G in tabs:
-                    GG = [[g, [[f.rsplit(".", 1)[0], ti(tx)] for f, tx in lines]] + ([gl] if gl else []) for g, lines, gl in G]
+                    GG = [[g, [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]] + ([gl] if gl else []) for g, lines, gl in G]
                     GG = [g for g in GG if g[1]]
                     if not GG: continue
                     if tn: cls.append([tn, GG])
                     else: cls += [[g[0], [["", g[1]] + g[2:]]] for g in GG]   # one section: each list a tab of its own
                 if not cls: continue
                 key = "ann_" + re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
-                data[key] = cls; ann.append([key, name, maps])
+                data[key] = cls; ann.append([key, name, maps, mm.group(1).strip() if mm else ""])
                 print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs", maps)
     except Exception as e:
         import traceback; traceback.print_exc(); ann = []
@@ -247,7 +253,7 @@ def main():
             GG = []
             for g, lines, gl in G:
                 L = []
-                for f, tx in lines:
+                for f, tx, fo in lines:
                     base = f.rsplit(".", 1)[0]
                     if base.startswith("saxton_hale_"):
                         # the wiki's names for the holiday maps' own lines: outburst_ (Hellfire Hale's, vsh_outburst's
@@ -257,7 +263,7 @@ def main():
                         if nm.startswith("outburst_"): pre, nm = "hellfire_hale_new_ob", nm[len("outburst_"):]
                         elif nm.startswith("maul_"): pre, nm = "saxton_hale_ml", nm[len("maul_"):]
                         base = pre + "|" + nm
-                    L.append([base, ti(tx)])
+                    L.append(line(base, tx, fo))
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
         data["saxton"] = cls
