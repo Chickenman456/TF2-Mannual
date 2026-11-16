@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['ghost', 'Ghost'], ['redmond', 'Redmond Mann'], ['blutarch', 'Blutarch Mann'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['ghost', 'Ghost'], ['pumpkin_bomb', 'Pumpkin Bomb'], ['morice', 'Morice'], ['redmond', 'Redmond Mann'], ['blutarch', 'Blutarch Mann'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
     ...['Scout', 'Soldier', 'Pyro', 'Demoman', 'Heavy', 'Engineer', 'Medic', 'Sniper', 'Spy'].map(n => ['robot_' + n.toLowerCase(), n + ' Robot'])];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
@@ -13,7 +13,7 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ghost', 'redmond', 'blutarch', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ghost', 'pumpkin_bomb', 'morice', 'redmond', 'blutarch', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => c !== 'ann_davy_jones' && c !== 'ann_seal')]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
@@ -30,6 +30,10 @@
     // Embargo's robot butler: his sounds packed in the map (maps), named by their files
     botler: {npc: 'botler', card: 'npc_botler.webp', level: 'Summer', mdl: 'models/bots/bot_worker/robot_butler_worker3.mdl', pak: 'pl_embargo.bsp', idle: 'idle', maps: ['pl_embargo'], wiki: [['Embargo', 'Embargo#Robots']]},
     ghost: {npc: 'ghost', card: 'npc_ghost.webp', level: 'Halloween', mdl: 'models/props_halloween/ghost.mdl', wiki: [['Ghost', 'Ghost']]},
+    // the pumpkin bombs (their lines heard in Laughter and Bloodwater); Morice, Farmageddon's talking pumpkin: the pumpkin on the table where
+    // his lines play (models/props_farmageddon/pumpkin), his lines packed in the map
+    pumpkin_bomb: {level: 'Halloween', mdl: 'models/props_halloween/pumpkin_explode.mdl', wiki: [['Pumpkin bomb', 'Pumpkin_bomb']]},
+    morice: {level: 'Farmageddon', mdl: 'models/props_farmageddon/pumpkin.mdl', pak: 'pd_farmageddon.bsp', maps: ['pd_farmageddon'], wiki: [['Farmageddon', 'Farmageddon#Pumpkin_lines']]},
     // the Mann brothers: Helltower's carts, each brother's own bomb (models/props_trainyard/bomb_<name>), no art of their own
     redmond: {card: 'vo_t_redmond.webp', level: 'Helltower', noshadow: 1, mdl: 'models/props_trainyard/bomb_redmond.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Redmond Mann', 'Redmond_Mann'], ['Helltower', 'Helltower']]},
     blutarch: {card: 'vo_t_blutarch.webp', level: 'Helltower', noshadow: 1, mdl: 'models/props_trainyard/bomb_blutarch.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Blutarch Mann', 'Blutarch_Mann'], ['Helltower', 'Helltower']]},

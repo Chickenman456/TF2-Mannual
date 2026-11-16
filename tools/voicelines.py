@@ -250,12 +250,27 @@ def main():
                 if GG: cls.append([tn, GG])
             return cls
         data["ghost"] = pick(section("== [[Ghost]] =="))
+        # the pumpkin bombs: the lines meant for them (now heard in Laughter and Bloodwater), under the page's previously-unused responses
+        i = t.index("=== [[Pumpkin bomb]]s ==="); j = t.find("\n==", i + 5)
+        data["pumpkin_bomb"] = pick(parse(t[t.index("\n", i):j if j > 0 else None], "Previously Unused"))
         mb = section("== [[Non-playable characters#Blutarch and Redmond Mann|Mann Brothers]] ==")
         data["redmond"] = pick(mb, "Redmond"); data["blutarch"] = pick(mb, "Blutarch")
         for k in ("ghost", "redmond", "blutarch"):
             print(k, sum(len(g[1]) for _, G in data[k] for g in G), "lines in", len(data[k]), "tabs")
     except Exception as e:
         print("skip the Ghost and the Mann brothers", e)
+    # Morice: Farmageddon's talking pumpkin, his lines on the map's page (packed in the map: sound/farmageddon_sounds/morice_<n>.wav)
+    try:
+        t = wikitext("Farmageddon")
+        i = t.index("== Pumpkin lines =="); j = t.find("\n== ", i + 5)
+        cls = []
+        for tn, G in parse(t[t.index("\n", i):j if j > 0 else None], "Pumpkin Lines"):
+            GG = [[g, [line(f.rsplit(".", 1)[0], tx, fo) for f, tx, fo in lines]] + ([gl] if gl else []) for g, lines, gl in G]
+            if GG: cls.append([tn, GG])
+        data["morice"] = cls
+        print("morice", sum(len(g[1]) for _, G in cls for g in G), "lines")
+    except Exception as e:
+        print("skip Morice", e)
     # Miss Pauling: her responses page (the Contracts' lines, Gun Mettle and Tough Break: sound/vo/pauling/plng_*), a tab for each
     try:
         cls = []
