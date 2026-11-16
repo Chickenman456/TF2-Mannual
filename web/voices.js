@@ -101,12 +101,12 @@
     for (const m of annMaps(c) || []) for (const p of await ZLIVE.mapSounds(m)) { const d = p.split('/'), f = d[d.length - 1]; L.push({m, p, n: f.replace(/\.(mp3|wav)$/, ''), f: d[d.length - 2] || ''}); }
     AMAP[c] = L;
   }
-  // the lines a Hale shows: his own maps' (the wiki's lines common to the Hales: Saxton's, or, once the maps are read, any his maps have)
+  // the lines a Hale shows: his own maps', and the wiki's lines common to the Hales (once the maps are read, those his maps have)
   function usable(b, c) {
     if (!HALE(c)) return true;
     const st = NPC[c], [pre] = String(b).split('|');
     if (pre !== 'saxton_hale') return st.dirs.some(d => pre.startsWith(d));
-    return live() && V.maps ? !!resolve(b, c) : c === 'saxton';
+    return live() && V.maps ? !!resolve(b, c) : true;
   }
   const data = () => (typeof RAW !== 'undefined' && RAW && RAW.voicelines) || {};
   const tabsOf = c => ((data().classes || {})[src(c)] || []).map(([n, G]) => [n, G.map(([g, L, ln]) => [g, L.filter(([b]) => usable(b, c)), ln]).filter(g => g[1].length)]).filter(t => t[1].length);
