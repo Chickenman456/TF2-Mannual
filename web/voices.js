@@ -283,6 +283,7 @@
     if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close();
     try {
       const st = NPC[c];
+      V.docked = true;
       ItemPreview.openNpc({dock: din, name: nameOf(c), level: st ? NPC[c].level : 'Mercenary',
         def: st && st.npc && window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.npc) ? Object.assign({}, NPCVIEW.def(st.npc), {zoom: st.zoom}, st.over || {}) : st && st.bot ? (window.NPCVIEW && NPCVIEW.def && NPCVIEW.def(st.bot)) || {cls: RBN(c), bot: 1, mdl: 'models/bots/' + RBN(c) + '/bot_' + RBN(c) + '.mdl'} : st ? {mdl: st.mdl, pak: st.pak, idle: st.idle, nofloor: st.nofloor, zoom: st.zoom, attach: st.attach, noshadow: st.noshadow, meshFit: st.meshFit} : {cls: c === 'demoman' ? 'demo' : c, mdl: 'models/player/' + (c === 'demoman' ? 'demo' : c) + '.mdl'},
         esc: E, sfx: typeof sfx === 'function' ? sfx : () => {}, close: () => {}});
@@ -361,6 +362,8 @@
     const el = document.querySelector(`.vov .vl[data-vo="${CSS.escape(b)}"]`); if (el) el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
   }
 
+  // the page gone (another view, the loadout): its window closes with it, and the character in it
+  setInterval(() => { if (V.docked && !document.querySelector('.vov .vdock')) { V.docked = false; stop(); try { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); } catch (e) {} } }, 500);
   window.VOVIEW = {
     render() {
       if (!data().classes) return '<section class="sec vov"><h1>Dialogue Player</h1><p class="empty">The voice lines didn’t load.</p></section>';
