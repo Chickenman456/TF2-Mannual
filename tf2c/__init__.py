@@ -1,2 +1,2 @@
 """The Mann-ual - local app that reads your own TF2 install."""
-__version__ = "1.3.35"
+__version__ = "1.3.36"

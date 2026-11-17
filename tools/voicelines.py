@@ -212,8 +212,24 @@ def main():
         print("skip", head, e)
     # Embargo's robot butler: the wiki has none of his sounds, so they're the map's own (sound/mvm/botler/<what>_<n>.mp3, packed in
     # pl_embargo), named by their files; 0: none on the wiki to play
-    BOTLER = {"Idle": 4, "Heal": 3, "Pain": 3}
-    data["botler"] = [["Sounds", [[g, [["botler_%s_%02d" % (g.lower(), n), ti("%s %d" % (g, n)), 1] for n in range(1, k + 1)]] for g, k in BOTLER.items()]]]
+    # his lines and their words: the Responses list on Embargo's page (a group under each bold heading); else the map's files by name
+    try:
+        t = wikitext("Embargo"); i = t.index("Media:Botler_"); i = t.rfind("{{SoundList", 0, i); j = t.index("\n}}", i)
+        # its bold headings on lines of their own (the groups), and the words' own brackets ("[glitched voice]") kept clear of the links'
+        seg = re.sub(r"(?m)^('''[^'\n]+''')[ \t]*$", r"* \1", t[i:j + 3])
+        seg = re.sub(r"(?<!\[)\[([^\[\]|]+)\](?!\])", "⟦\\1⟧", seg)
+        unb = lambda x: x.replace("⟦", "[").replace("⟧", "]")
+        cls = []
+        for tn, G in parse(seg, "Responses"):
+            GG = [[re.sub(r"^Responses · ", "", g), [line(f.rsplit(".", 1)[0], unb(tx), fo) for f, tx, fo in lines]] for g, lines, gl in G]
+            if GG: cls.append([tn, GG])
+        assert sum(len(g[1]) for _, G in cls for g in G) >= 10
+        data["botler"] = cls
+        print("botler", sum(len(g[1]) for _, G in cls for g in G), "lines")
+    except Exception as e:
+        print("botler from his files", e)
+        BOTLER = {"Idle": 4, "Heal": 3, "Pain": 3}
+        data["botler"] = [["Sounds", [[g, [["botler_%s_%02d" % (g.lower(), n), ti("%s %d" % (g, n)), 1] for n in range(1, k + 1)]] for g, k in BOTLER.items()]]]
     # the robots (Mann vs. Machine): each class's lines that the game has a robot's version of (sound/vo/mvm/norm/<class>_mvm_<rest>,
     # the same words), checked against the game's files; the wiki has them as <Class>_mvm_<rest>.mp3 (1)
     if have is not None:
