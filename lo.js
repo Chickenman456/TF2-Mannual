@@ -86,8 +86,7 @@
 .lov .loico .ph{display:none}
 .lov .lofig{position:absolute;inset:0}
 .lov .lofig canvas{display:block}
-.lov .lofsb{position:absolute;right:12px;top:12px;width:30px;height:30px;border:0;padding:0;background:#766B5E;-webkit-mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;opacity:.78;cursor:pointer;z-index:3}
-.lov .lofsb:hover{background:#807568;opacity:1}
+.lov .lofsi{position:absolute;left:18%;top:18%;width:64%;height:64%;background:rgb(235,226,202);-webkit-mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;mask:url(ui/store/store_fullscreen.webp) center/100% 100% no-repeat;pointer-events:none}
 .lofs{position:fixed;inset:0;background:#000;z-index:95}
 .lofs .lofig{position:absolute;inset:0}
 .lofs .lofsx{position:absolute;right:24px;top:24px;width:44px;height:44px;border:0;padding:0;background:url(ui/store/exit_fullscreen.webp) center/contain no-repeat;cursor:pointer;z-index:3;opacity:.8}
@@ -147,6 +146,12 @@
     for (let i = 0; i < 4; i++) pre.c.push({n: 'LoadPresetButton' + i, p: colours({controlname: 'CExButton', xpos: String(Math.round((sx + i * (bw + buf)) * 100) / 100), ypos: '0', zpos: '20', wide: String(bw), tall: String(bw),
       labeltext: '#TF_ItemPresetName' + i, font: 'HudFontMediumSmallBold', textalignment: 'center', command: 'loadpreset_' + i, sound_depressed: 'UI/buttonclick.wav', sound_released: 'UI/buttonclickrelease.wav'}, cdb(cls).pre === i)});
     def.c.push(pre);
+    // the item and taunt page buttons, and a third beside them: the merc full screen (the store preview's store_fullscreen); the three centred
+    // under the merc where the game centres its two
+    const bpos = {characterloadoutbutton: 'c-39', tauntloadoutbutton: 'c-12'};
+    def.c.forEach(k => { const x = bpos[String(k.n).toLowerCase()]; if (x) k.p = Object.assign({}, k.p, {xpos: x}); });
+    const tb = def.c.find(k => String(k.n).toLowerCase() === 'tauntloadoutbutton');
+    if (tb) def.c.push({n: 'FullscreenButton', p: Object.assign({}, tb.p, {fieldname: 'FullscreenButton', xpos: 'c15', command: 'fullscreen'}), c: []});
     def.c.push(popupDef());
     return def;
   }
@@ -177,8 +182,10 @@
     }
     const bd = uq ? 'BackpackItemBorder_Unique' : small ? 'BackpackItemBorder' : 'EconItemBorder';
     const ba = uq ? 'BackpackItemMouseOverBorder_Unique' : small ? 'BackpackItemMouseOverBorder' : 'LoadoutItemMouseOverBorder';
-    return {n, slot, id, p: {controlname: 'CExButton', xpos: x, ypos: y, zpos: '1', wide: String(w), tall: String(h), labeltext: '', paintbackground: '0', paintborder: '1',
-      border_default: bd, border_armed: ba, command: 'change_' + slot, sound_depressed: 'UI/buttonclick.wav', sound_released: 'UI/buttonclickrelease.wav'}, c};
+    // an item's own sounds play for it (command()); an empty one clicks
+    const sd = it ? {} : {sound_depressed: 'UI/buttonclick.wav', sound_released: 'UI/buttonclickrelease.wav'};
+    return {n, slot, id, p: Object.assign({controlname: 'CExButton', xpos: x, ypos: y, zpos: '1', wide: String(w), tall: String(h), labeltext: '', paintbackground: '0', paintborder: '1',
+      border_default: bd, border_armed: ba, command: 'change_' + slot}, sd), c};
   }
   // mouseoveritempanel: the item's name in its quality colour and its type, in the item popup border
   function popupDef() {
@@ -246,12 +253,14 @@
       ['TauntLabel', 'TauntCaratLabel', 'TauntHintLabel'].forEach(n => { const c = ROOT.find(n); if (c) c.vis = !!ST.taunt; });
       const cb = ROOT.find('CharacterLoadoutButton'), tb = ROOT.find('TauntLoadoutButton');
       if (cb) colours(cb.p, !ST.taunt); if (tb) colours(tb.p, !!ST.taunt);
+      const fb = ROOT.find('FullscreenButton'); if (fb) colours(fb.p, false);
     } else {
       const sl = ROOT.find('ItemSlotLabel'); if (sl) sl.o.text = vgLoc(NOITEM[ST.sel] || '');
       const nl = ROOT.find('NoItemsLabel'); if (nl) nl.vis = ST.pages === 1 && selectionList().length <= 1;
       ['PrevPageButton', 'NextPageButton', 'CurPageLabel'].forEach(n => { const c = ROOT.find(n); if (c) c.vis = ST.pages > 1; });
     }
     ROOT.layout(); ROOT.paint();
+    { const fb = ROOT.find('FullscreenButton'); if (fb) { const i = document.createElement('span'); i.className = 'lofsi'; fb.el.appendChild(i); fb.el.title = 'Full screen'; fb.el.setAttribute('aria-label', 'Full screen'); } }
     icons(); hovers();
     if (ST.sel) { searchBox(); viewBar(); } else model();
   }
@@ -372,7 +381,7 @@
   }
   function fsOff() {
     if (!ST || !ST.fs) return; const ov = ST.fs; ST.fs = null; const mp = ROOT && ROOT.find('classmodelpanel');
-    if (mp && ST.fig) mp.el.insertBefore(ST.fig, mp.el.querySelector('.lofsb')); ov.remove();
+    if (mp && ST.fig) mp.el.appendChild(ST.fig); ov.remove();
     const V = window.Store3D && Store3D.V; if (V) { V.storeFS = false; V.storeApply(ST.cls); } sizeR(ST.fig);
   }
   addEventListener('resize', () => { if (ST && ST.fs) sizeR(ST.fig); });
@@ -381,15 +390,19 @@
     let f = ST.fig;
     if (!f) { f = ST.fig = document.createElement('div'); f.className = 'lofig'; f.setAttribute('aria-label', ST.cls); }
     mp.el.appendChild(f); dress();
-    // full screen, as the store's preview has it (store_fullscreen in its corner)
-    if (!mp.el.querySelector('.lofsb')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'lofsb'; b.title = 'Full screen'; b.setAttribute('aria-label', 'Full screen');
-      b.addEventListener('click', e => { e.stopPropagation(); snd('buttonclick'); fsOn(); }); mp.el.appendChild(b); }
     const tok = ST.tok = (ST.tok || 0) + 1;
+    { const m = window.Z3D && Z3D.M && Z3D.M[ST.cls]; if (m && !ST.tauntName && /^(taunt|live:)/.test(m.cn || '')) m.started = 0; }
     try { await Store3D.show(f); } catch (e) { return; }
     if (!ST || tok !== ST.tok) return;
     if (Store3D.nowep) Store3D.nowep(ST.cls, !!ST.bare);
     Store3D.redress(ST.cls);
     playTaunt(tok);
+    // no taunt in hand: one still loading from before (or playing) gives way to the stand, as the game's preview drops a taunt for the item picked
+    if (!ST.tauntName) { let n = 0;
+      const calm = () => { if (!ST || tok !== ST.tok || ++n > 150) return; const m = window.Z3D && Z3D.M && Z3D.M[ST.cls];
+        if (m && /^(taunt|live:)/.test(m.cn || '') && m.st0 && m.st0.idle) m.play(m.st0.idle, true);
+        setTimeout(calm, 100); };
+      setTimeout(calm, 100); }
     if (!linked() && !OV.querySelector('.lonote')) { const n = document.createElement('div'); n.className = 'lonote'; n.textContent = 'Link your TF2 folder to see the cosmetics on the merc.'; OV.querySelector('.lostage').appendChild(n); }
   }
 
@@ -397,12 +410,15 @@
     const cls = ST.cls;
     if (c === 'back') { if (ST.sel) { ST.sel = null; build(); } else close(); return true; }
     if (c === 'vguicancel') { ST.sel = null; build(); return true; }
+    if (c === 'fullscreen') { fsOn(); return true; }
     if (c === 'characterloadout' || c === 'tauntloadout') { ST.taunt = c === 'tauntloadout'; build(); return true; }
     let m = c.match(/^loadpreset_(\d)$/); if (m) { cdb(cls).pre = +m[1]; save(); build(); return true; }
     m = c.match(/^change_(\w+)$/); if (m) { const s = m[1];
+      { const id = WEAPON.has(s) ? wep(cls, s) : cur(cls)[s]; if (id != null && IT(id) && typeof itemSound === 'function') itemSound(id, true); }
       ST.held = s; ST.sel = s; ST.page = 0; ST.find = ''; ST.focusFind = false; build(); return true; }
     if (c === 'prevpage' || c === 'nextpage') { const n = ST.pages || 1; ST.page = (ST.page + (c === 'nextpage' ? 1 : n - 1)) % n; build(); return true; }
     m = c.match(/^pick_(none|\d+)$/); if (m) { const L = cur(cls), s = ST.sel, id = m[1] === 'none' ? null : +m[1];
+      if (id != null && IT(id) && typeof itemSound === 'function') itemSound(id, false);
       if (id == null) delete L[s];   // (a zombie's weapon slot can be emptied again: bare hands)
       else {
         // one item in one slot; a cosmetic sharing an equip region with another one takes its place
