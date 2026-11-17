@@ -94,13 +94,15 @@
 .lofs .lofsx:hover{opacity:1}
 .lov .lofind{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;padding:0 8px;box-sizing:border-box;background:rgb(251,235,202);color:rgb(117,107,94);font:inherit;font-size:28px;font-family:TF2Secondary,sans-serif;border-radius:5px}
 .lov .loview{position:absolute;display:flex;align-items:center;gap:36px;z-index:600;font:400 26px TF2Secondary,sans-serif;color:rgb(235,226,202)}
-.lov .lovb{height:56px;min-width:150px;padding:0 22px;border:0;border-radius:9px;background:rgb(117,107,94);color:rgb(235,226,202);font:400 30px TF2Build,sans-serif;cursor:pointer}
+.lov .lovb{height:46px;min-width:150px;padding:0 22px;border:0;border-radius:9px;background:rgb(117,107,94);color:rgb(235,226,202);font:400 30px TF2Build,sans-serif;cursor:pointer}
 .lov .lovb:hover{background:rgb(145,73,59)}
 .lov .lovc{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
 .lov .lovc input{position:absolute;opacity:0;pointer-events:none}
 .lov .lovc i{width:30px;height:30px;border-radius:4px;background:rgb(42,39,37);box-shadow:inset 0 0 0 2px rgb(117,107,94);display:inline-block;position:relative}
 .lov .lovc input:checked+i::after{content:'';position:absolute;left:9px;top:3px;width:9px;height:17px;border:solid rgb(235,226,202);border-width:0 4px 4px 0;transform:rotate(45deg)}
 .lov .lovc:hover i{box-shadow:inset 0 0 0 2px rgb(145,73,59)}
+.lov .lovs{display:flex;align-items:center;gap:12px}
+.lov .lovs select{height:42px;border:0;border-radius:6px;padding:0 12px;background:rgb(42,39,37);color:rgb(235,226,202);box-shadow:inset 0 0 0 2px rgb(117,107,94);font:400 24px TF2Secondary,sans-serif;cursor:pointer;width:210px}
 .lov .lonote{position:absolute;left:0;right:0;top:470px;text-align:center;color:#b8ab95;font:400 26px TF2Secondary,sans-serif;pointer-events:none}`;
   document.head.appendChild(css);
   // the screen: 1080 tall and as wide as the window's shape (no narrower than 4:3), as the game lays its menus out for any aspect ratio
@@ -189,16 +191,21 @@
   // the page's grid: the game's 6 x 3 (CItemSelectionPanel), or more, smaller panels in the same space; and which items it leaves out
   // (multi-class: for some classes; all-class: for every class), kept in this browser
   const GRIDS = [[6, 3], [8, 4], [10, 5]], VKEY = 'mannual.loadout.view';
-  let VIEW = {grid: 0, multi: false, all: false};
+  // (and, for cosmetics: only those owned, none of the holiday-restricted or unobtainable ones, one equip region)
+  let VIEW = {grid: 0, multi: false, all: false, own: false, holiday: false, unob: false, region: ''};
   try { VIEW = Object.assign(VIEW, JSON.parse(localStorage.getItem(VKEY) || '{}') || {}); } catch (e) {}
   const vsave = () => { try { localStorage.setItem(VKEY, JSON.stringify(VIEW)); } catch (e) {} };
   const GRID = () => GRIDS[VIEW.grid] || GRIDS[0];
   const PERP = () => GRID()[0] * GRID()[1];
   const ncls = it => (it && it.classes ? it.classes.length : 0);
+  const rnames = it => String((it && it.region) || '').split(',').map(x => x.trim()).filter(Boolean);
+  const owned = id => typeof owns === 'function' && !!owns(id);
   function selectionList() {
     const cls = ST.cls, slot = ST.sel, q = (ST.find || '').trim().toLowerCase(), out = [];
     for (const k in ITEMS) { const it = ITEMS[k]; if (!fits(cls, slot, it)) continue; if (q && !it.name.toLowerCase().includes(q)) continue;
-      const n = ncls(it); if (VIEW.all && n >= 9 || VIEW.multi && n > 1 && n < 9) continue; out.push(+k); }
+      const n = ncls(it); if (VIEW.all && n >= 9 || VIEW.multi && n > 1 && n < 9) continue;
+      if (COSM.includes(slot) && (VIEW.own && !owned(+k) || VIEW.holiday && it.holiday || VIEW.unob && (it.unob || it.expired) || VIEW.region && !rnames(it).includes(VIEW.region))) continue;
+      out.push(+k); }
     const own = id => (typeof owns === 'function' ? owns(id) : 0) ? 0 : 1;
     out.sort((a, b) => own(a) - own(b) || ITEMS[a].name.localeCompare(ITEMS[b].name));
     return WEAPON.has(slot) && !(ST && ST.zombie) ? out : [null].concat(out);   // the first panel empties the slot (#SelectNoItemSlot); a weapon slot always holds one
@@ -303,11 +310,25 @@
   function viewBar() {
     const host = OV.querySelector('.lostage'), Y = VG.YRES, [c, r] = GRID();
     const bar = document.createElement('div'); bar.className = 'loview';
-    bar.style.cssText = `left:${ST.W / 2 + Y(-288)}px;top:${Y(60 + 3 * 70 + 2 * 3 + 12)}px`;
+    bar.style.cssText = `left:${ST.W / 2 + Y(-288)}px;top:${Y(60 + 3 * 70 + 2 * 3 + 6)}px`;
     bar.innerHTML = `<button type="button" class="lovb" data-lv="grid" title="Show more items at a time">${c} \u00d7 ${r}</button>`
       + `<label class="lovc"><input type="checkbox" data-lv="multi"${VIEW.multi ? ' checked' : ''}><i></i>Hide multi-class</label>`
       + `<label class="lovc"><input type="checkbox" data-lv="all"${VIEW.all ? ' checked' : ''}><i></i>Hide all-class</label>`;
     host.appendChild(bar);
+    // the cosmetics' own filters, on a second row: owned, holiday-restricted, unobtainable, the equip region (those the class's cosmetics use)
+    if (COSM.includes(ST.sel)) {
+      const R = new Set(); for (const k in ITEMS) { const it = ITEMS[k]; if (fits(ST.cls, ST.sel, it)) rnames(it).forEach(r => R.add(r)); }
+      if (VIEW.region && !R.has(VIEW.region)) R.add(VIEW.region);
+      const b2 = document.createElement('div'); b2.className = 'loview';
+      b2.style.cssText = `left:${ST.W / 2 + Y(-288)}px;top:${Y(60 + 3 * 70 + 2 * 3 + 6 + 24)}px`;
+      const ck = (k, t) => `<label class="lovc"><input type="checkbox" data-lv="${k}"${VIEW[k] ? ' checked' : ''}><i></i>${t}</label>`;
+      b2.innerHTML = ck('own', 'Owned only') + ck('holiday', 'Hide holiday-restricted') + ck('unob', 'Hide unobtainable');
+      // the equip region on the first row, beside the class filters (clear of the page buttons)
+      bar.insertAdjacentHTML('beforeend', `<label class="lovs">Region <select data-lv="region"><option value="">Any</option>${[...R].sort().map(r => `<option${r === VIEW.region ? ' selected' : ''}>${r.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('')}</select></label>`);
+      host.appendChild(b2);
+      bar.querySelector('select').addEventListener('change', e => { snd('buttonclick'); VIEW.region = e.target.value; vsave(); ST.page = 0; build(); });
+      b2.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { snd('buttonclick'); VIEW[i.dataset.lv] = i.checked; vsave(); ST.page = 0; build(); }));
+    }
     bar.querySelector('[data-lv="grid"]').addEventListener('click', () => { snd('buttonclick'); VIEW.grid = (VIEW.grid + 1) % GRIDS.length; vsave(); ST.page = 0; build(); });
     bar.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { snd('buttonclick'); VIEW[i.dataset.lv] = i.checked; vsave(); ST.page = 0; build(); }));
   }
