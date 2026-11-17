@@ -33,7 +33,7 @@ void main(){vUv=uv;
 #include <project_vertex>
 vViewPosition=-mvPosition.xyz;vNormalV=normalize(transformedNormal);vWPos=(modelMatrix*vec4(transformed,1.)).xyz;}`;
  const FS=`uniform mat3 uvXf;uniform float frames,frame,siOn,hasSiMask,siFresOn,envOn,aTest;uniform vec3 rimTint;uniform vec3 siTint,c2,envTint;uniform vec4 siFres;uniform sampler2D siMask;uniform samplerCube envMap;uniform float envMask;uniform float envSkin,envFres,envCon,envSat,hasEnvMask,aRef,useBA,opac;uniform sampler2D envMaskMap;
-uniform sampler2D map,normalMap,expMap,warp,pWarp,detMap;uniform float detOn,detMode,detBlend,detScale;uniform vec4 detXf;uniform float pWarpOn,warpOn;uniform vec2 normalScale;uniform vec3 tint;uniform float tintA,tintOver;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
+uniform sampler2D map,normalMap,expMap,warp,pWarp,detMap;uniform float detOn,detMode,detBlend,detScale;uniform vec4 detXf;uniform float pWarpOn,warpOn;uniform vec2 normalScale;uniform vec3 tint,pTint;uniform float tintA,tintOver,pTintOn;uniform float hlOn;uniform float hasNormal,hasExp,expFactor,cExp,maskMode,albTint,rimMaskOn,boost,rimBoost,rimExp,rimOn,specOn;uniform vec3 amb[6],lDir[2],lCol[2],fres;
 varying vec2 vUv;varying vec3 vViewPosition;varying vec3 vNormalV;varying vec3 vWPos;
 #include <common>
 vec3 ambCube(vec3 n){vec3 n2=n*n;return n2.x*(n.x>=0.?amb[0]:amb[1])+n2.y*(n.y>=0.?amb[2]:amb[3])+n2.z*(n.z>=0.?amb[4]:amb[5]);}
@@ -50,7 +50,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
  vec4 ex=hasExp>.5?texture2D(expMap,tUv):vec4(1.);
  float sExp=clamp(expFactor>0.?1.+expFactor*ex.r:(cExp>0.?cExp:1.+149.*ex.r),1.,255.);
  float mask=maskMode<.5?nt.a:(maskMode<1.5?base.a:1.);           // normal.a | $basemapalphaphongmask | flat
- float rimMask=rimMaskOn>.5?ex.a:1.;vec3 tint=albTint>.5?mix(vec3(1.),albedo,ex.g):vec3(1.);
+ float rimMask=rimMaskOn>.5?ex.a:1.;vec3 tint=pTintOn>.5?pTint:(albTint>.5?mix(vec3(1.),albedo,ex.g):vec3(1.));
  float f=clamp(1.-dot(N,V),0.,1.);float f2=f*f-.5;float fR=fres.y+(f2>=0.?fres.z:fres.x)*f2;float f4=f*f*f*f;
  vec3 R=2.*N*dot(N,V)-V;vec3 diff=ambCube(N),spec=vec3(0.),rim=vec3(0.);
  for(int i=0;i<2;i++){vec3 L=normalize(lDir[i]);float NL=dot(N,L);float hl=hlOn>.5?clamp(NL*.5+.5,0.,1.):clamp(NL,0.,1.);diff+=(warpOn>.5?2.*texture2D(warp,vec2(hl,.5)).rgb:vec3(hlOn>.5?hl*hl:hl))*lCol[i];
@@ -121,7 +121,7 @@ void main(){vec2 tUv=(uvXf*vec3(vUv,1.)).xy;vec2 bUv=frames>1.5?vec2(tUv.x,(frac
    uvXf:{value:new THREE.Matrix3()},frames:{value:1},frame:{value:0},siOn:{value:P.si?1:0},siTint:{value:new THREE.Vector3(...(P.siTint||[1,1,1]))},siMask:{value:P.siMask?(P.siMask.isTexture?P.siMask:texLoad('models/'+P.siMask)):BLANK()},hasSiMask:{value:P.siMask?1:0},
    siFresOn:{value:P.siFres?1:0},siFres:{value:FRES(P.siFres||[0,1,1])},envOn:{value:P.env?1:0},envTint:{value:new THREE.Vector3(...(P.env||[0,0,0]))},envMap:{value:P.env?(P.envCube||ECUBE()):null},envMask:{value:P.envMask||0},envSkin:{value:P.envSkin?1:0},envFres:{value:P.envFres||0},envCon:{value:P.envCon||0},envSat:{value:P.envSat??1},hasEnvMask:{value:P.envMaskTex?1:0},envMaskMap:{value:P.envMaskTex||BLANK()},
    aRef:{value:P.aRef||.5},detMap:{value:P.det||BLANK()},detOn:{value:P.det?1:0},detMode:{value:P.detMode??5},detBlend:{value:P.detBlend??1},detScale:{value:P.detScale??4},detXf:{value:new THREE.Vector4(...(P.detXf||[1,1,0,0]))},useBA:{value:P.useBA==null?1:P.useBA},opac:{value:P.opac??1},
-   aTest:{value:P.aTest?1:0},rimTint:{value:new THREE.Vector3(...(P.rimTint||[1,1,1]))},c2:{value:new THREE.Color(...((P.itemTint&&!P.tintA&&(o.tint||P.tintBase))||P.c2||[1,1,1])).convertSRGBToLinear()},tintA:{value:P.tintA?1:0},tintOver:{value:P.tintOver||0},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
+   aTest:{value:P.aTest?1:0},rimTint:{value:new THREE.Vector3(...(P.rimTint||[1,1,1]))},c2:{value:new THREE.Color(...((P.itemTint&&!P.tintA&&(o.tint||P.tintBase))||P.c2||[1,1,1])).convertSRGBToLinear()},tintA:{value:P.tintA?1:0},tintOver:{value:P.tintOver||0},pTintOn:{value:(P.pTintPaint||P.pTint)?1:0},pTintPaint:{value:P.pTintPaint?1:0},pTint:{value:new THREE.Color(...((P.pTintPaint&&(o.tint||P.tintBase))||P.pTint||[1,1,1])).convertSRGBToLinear()},amb:{value:LIGHT.amb},lDir:{value:LIGHT.dir},lCol:{value:LIGHT.col}};
   const t=new THREE.ShaderMaterial({name:nm,uniforms:u,vertexShader:VS,fragmentShader:FS,side:THREE.FrontSide,transparent:!!(P.translucent||P.additive),depthWrite:!(P.translucent||P.additive),blending:(P.translucent||P.additive)?THREE.CustomBlending:THREE.NormalBlending});
   if(P.translucent||P.additive){t.premultipliedAlpha=true;t.blendEquation=t.blendEquationAlpha=THREE.AddEquation;t.blendSrc=THREE.OneFactor;t.blendDst=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;t.blendSrcAlpha=P.additive?THREE.ZeroFactor:THREE.OneFactor;t.blendDstAlpha=P.additive?THREE.OneFactor:THREE.OneMinusSrcAlphaFactor;
    t.fragmentShader=FS.replace('gl_FragColor=vec4(max(col,vec3(0.)),1.);','float zA=clamp(opac*(useBA>.5?base.a:1.),0.,1.);gl_FragColor=vec4(max(col,vec3(0.)),zA);').replace('#include <encodings_fragment>\n}','#include <encodings_fragment>\ngl_FragColor.rgb*=zA;'+(P.additive?'gl_FragColor.a=0.;':'')+'\n}')}
@@ -1482,6 +1482,10 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  // WantsSkinShader: $phong reaches the skin shader only with a lightwarp, a base-alpha phong mask or a bump map. Without one (the Warrior's Spirit claws)
  // the material is plain vertex-lit: no phong, no rim light. Kept narrow: a material with its own $phongexponenttexture keeps its phong as before.
  if(phong&&!k.$lightwarptexture&&!num(k.$basemapalphaphongmask,0)&&!bm&&!et){P.phong=0;P.rim=0}
+ // $phongtint: the specular tint (skin_ps20b.fxc: result = specularLighting*vSpecularTint, the rim folded into the specular first), a constant
+ // or, when a Multiply proxy writes it from $color2 (the Balloonihelm's), the item's own color: its paint, else $colortint_base
+ {const pt=vec(k.$phongtint,null);if(pt&&pt.length>=3&&(pt[0]||pt[1]||pt[2]))P.pTint=pt.slice(0,3);
+  for(const n in (k.proxies||{}))for(const q of [].concat(k.proxies[n]))if(q&&typeof q=='object'&&String(q.resultvar||'').toLowerCase()=='$phongtint'&&/^\$color2$/i.test(String(q.srcvar1||'').trim()))P.pTintPaint=1}
  P.tintA=flag(k.$blendtintbybasealpha);P.tintOver=num(k.$blendtintcoloroverbase,0);if(k.$colortint_base)P.tintBase=vec(k.$colortint_base,null);
  if(k.proxies&&Object.keys(k.proxies).some(x=>x=='itemtintcolor'))P.itemTint=1;
  if(flag(k.$translucent))P.translucent=1;if(flag(k.$additive))P.additive=1;if(flag(k.$alphatest))P.aTest=1;
@@ -2347,7 +2351,7 @@ window.ZSPELL=(()=>{const T=[[5328971,5328971,5328971,5328971,5328971,5328971,53
  const hex=v=>'#'+(v&0xffffff).toString(16).padStart(6,'0');
  const css=(i,team)=>{const D=(team=='BLU'?T1:T0)[i];if(!D)return'none';const st=[];for(let k=0;k<=64;k++)st.push(hex(D[(k*4)%256])+' '+(k/64*100).toFixed(2)+'%');return'linear-gradient(90deg,'+st.join(',')+')'};
  const L=new Set();let raf=0;const t0=performance.now();
- const tick=()=>{raf=0;const t=(performance.now()-t0)/1000;for(const o of L){if(!o.m.parent){L.delete(o);continue}const c=rgb(o.i,o.team,t);const tu=o.u.tintA&&o.u.tintA.value<.5?o.u.c2:o.u.tint;if(c&&tu)tu.value.setRGB(c[0],c[1],c[2]).convertSRGBToLinear()}if(L.size)raf=requestAnimationFrame(tick)};
+ const tick=()=>{raf=0;const t=(performance.now()-t0)/1000;for(const o of L){if(!o.m.parent){L.delete(o);continue}const c=rgb(o.i,o.team,t);const tu=o.u.tintA&&o.u.tintA.value<.5?o.u.c2:o.u.tint;if(c&&tu)tu.value.setRGB(c[0],c[1],c[2]).convertSRGBToLinear();if(c&&o.u.pTintPaint&&o.u.pTintPaint.value>.5)o.u.pTint.value.setRGB(c[0],c[1],c[2]).convertSRGBToLinear()}if(L.size)raf=requestAnimationFrame(tick)};
  const reg=(mesh,i,team)=>{const u=mesh.material&&mesh.material.uniforms;if(!u)return;L.add({m:mesh,u,i,team});if(!raf)raf=requestAnimationFrame(tick)};
  const tint=(i,team)=>{const c=rgb(i,team,0);if(!c)return null;c.spell=i;return c};
  return{NAMES,rgb,css,reg,tint}})();
