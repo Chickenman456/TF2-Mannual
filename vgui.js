@@ -148,6 +148,9 @@ P.prototype.paint=function(){const e=this.el,st=e.style,p=this.p;
  const bg=this.bg();st.backgroundColor=bg?css(bg):'';
  const bs=this.st,sb=this.isButton()?((!bs.enabled&&p.border_disabled)||(bs.depressed&&(p.border_depressed||p.border_armed))||((bs.armed||bs.selected)&&p.border_armed)||p.border_default):null;const bn=this.o.border!==undefined?this.o.border:(sb||p.border);const bc=bn&&p.paintborder!='0'?borderCss(bn):null;
  // borders live on their own layer so children keep vgui's border-less coordinate space
+ // Panel::PaintBackground type 2, DrawBox: rounded corners, GetCornerTextureSize's max(scaled 8 / 2, 8) screen pixels. A button's own border
+ // (ButtonBorder, clientscheme.res) sets that type (backgroundtype 2), as does paintbackgroundtype 2
+ st.borderRadius=bg&&(p.paintbackgroundtype=='2'||(this.isButton()&&!bn))?Math.max(YRES(8)/2,8)+'px':'';
  if(bc&&(bc.img||bc.lines)){
   // ScalableImageBorder: drawn as a real 9-slice onto a canvas at the panel's exact pixel size (CSS border-image leaves hairline seams between slices)
   const want=bc.img?'CANVAS':'I';if(this._b&&this._b.tagName!==want){this._b.remove();this._b=null}
