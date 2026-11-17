@@ -93,6 +93,14 @@
 .lofs .lofsx{position:absolute;right:24px;top:24px;width:44px;height:44px;border:0;padding:0;background:url(ui/store/exit_fullscreen.webp) center/contain no-repeat;cursor:pointer;z-index:3;opacity:.8}
 .lofs .lofsx:hover{opacity:1}
 .lov .lofind{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;padding:0 8px;box-sizing:border-box;background:rgb(251,235,202);color:rgb(117,107,94);font:inherit;font-size:28px;font-family:TF2Secondary,sans-serif;border-radius:5px}
+.lov .loview{position:absolute;display:flex;align-items:center;gap:36px;z-index:600;font:400 26px TF2Secondary,sans-serif;color:rgb(235,226,202)}
+.lov .lovb{height:56px;min-width:150px;padding:0 22px;border:0;border-radius:9px;background:rgb(117,107,94);color:rgb(235,226,202);font:400 30px TF2Build,sans-serif;cursor:pointer}
+.lov .lovb:hover{background:rgb(145,73,59)}
+.lov .lovc{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.lov .lovc input{position:absolute;opacity:0;pointer-events:none}
+.lov .lovc i{width:30px;height:30px;border-radius:4px;background:rgb(42,39,37);box-shadow:inset 0 0 0 2px rgb(117,107,94);display:inline-block;position:relative}
+.lov .lovc input:checked+i::after{content:'';position:absolute;left:9px;top:3px;width:9px;height:17px;border:solid rgb(235,226,202);border-width:0 4px 4px 0;transform:rotate(45deg)}
+.lov .lovc:hover i{box-shadow:inset 0 0 0 2px rgb(145,73,59)}
 .lov .lonote{position:absolute;left:0;right:0;top:470px;text-align:center;color:#b8ab95;font:400 26px TF2Secondary,sans-serif;pointer-events:none}`;
   document.head.appendChild(css);
   // the screen: 1080 tall and as wide as the window's shape (no narrower than 4:3), as the game lays its menus out for any aspect ratio
@@ -160,8 +168,8 @@
       const t = it ? it.name : vgLoc(NOITEM[slot] || ''), ind = 5 * VG.SW / 640 / VG.K, tw = w - 2 * ind;
       const f = nameFont(t, VG.YRES(tw)), F = VG.font(f), tall = F ? Math.ceil(F.tall / VG.K) + 1 : 15;
       c = [{n: 'name', p: {controlname: 'CExLabel', xpos: String(ind), ypos: '54', zpos: '2', wide: String(tw), tall: String(tall), font: f, textalignment: 'north', centerwrap: '1', labeltext: t, fgcolor_override: qc, mouseinputenabled: '0'}}];
-    } else if (it) {
-      // the selection page names each item under its icon, in the smallest item font
+    } else if (it && w >= 90) {
+      // the selection page names each item under its icon, in the smallest item font (the denser grids: in its popup only)
       const ind = 2, tw = w - 2 * ind, F = VG.font('ItemFontNameSmallest'), tall = F ? Math.ceil(F.tall / VG.K) + 1 : 10;
       c = [{n: 'name', p: {controlname: 'CExLabel', xpos: String(ind), ypos: String(h - tall - 2), zpos: '2', wide: String(tw), tall: String(tall), font: 'ItemFontNameSmallest', textalignment: 'center', labeltext: it.name, fgcolor_override: qc, mouseinputenabled: '0'}}];
     }
@@ -178,10 +186,19 @@
   }
 
   // ---- the item selection page ----
-  const PER = 18, COLS = 6;
+  // the page's grid: the game's 6 x 3 (CItemSelectionPanel), or more, smaller panels in the same space; and which items it leaves out
+  // (multi-class: for some classes; all-class: for every class), kept in this browser
+  const GRIDS = [[6, 3], [8, 4], [10, 5]], VKEY = 'mannual.loadout.view';
+  let VIEW = {grid: 0, multi: false, all: false};
+  try { VIEW = Object.assign(VIEW, JSON.parse(localStorage.getItem(VKEY) || '{}') || {}); } catch (e) {}
+  const vsave = () => { try { localStorage.setItem(VKEY, JSON.stringify(VIEW)); } catch (e) {} };
+  const GRID = () => GRIDS[VIEW.grid] || GRIDS[0];
+  const PERP = () => GRID()[0] * GRID()[1];
+  const ncls = it => (it && it.classes ? it.classes.length : 0);
   function selectionList() {
     const cls = ST.cls, slot = ST.sel, q = (ST.find || '').trim().toLowerCase(), out = [];
-    for (const k in ITEMS) { const it = ITEMS[k]; if (!fits(cls, slot, it)) continue; if (q && !it.name.toLowerCase().includes(q)) continue; out.push(+k); }
+    for (const k in ITEMS) { const it = ITEMS[k]; if (!fits(cls, slot, it)) continue; if (q && !it.name.toLowerCase().includes(q)) continue;
+      const n = ncls(it); if (VIEW.all && n >= 9 || VIEW.multi && n > 1 && n < 9) continue; out.push(+k); }
     const own = id => (typeof owns === 'function' ? owns(id) : 0) ? 0 : 1;
     out.sort((a, b) => own(a) - own(b) || ITEMS[a].name.localeCompare(ITEMS[b].name));
     return WEAPON.has(slot) && !(ST && ST.zombie) ? out : [null].concat(out);   // the first panel empties the slot (#SelectNoItemSlot); a weapon slot always holds one
@@ -190,8 +207,11 @@
     const src = VG.clone(VG.data.res.itemselectionpanel), top = src.p;
     const keep = new Set(['caratlabel', 'classlabel', 'namefilterlabel', 'namefiltertextentry', 'topline', 'bottomline', 'itemslotlabel', 'noitemslabel', 'cancelbutton', 'prevpagebutton', 'curpagelabel', 'nextpagebutton']);
     const def = {n: 'ItemSelectionPanel', p: {xpos: '0', ypos: '0', zpos: '500', wide: 'f0', tall: '480', bgcolor_override: top.bgcolor_override}, c: src.c.filter(k => keep.has(String(k.n).toLowerCase()))};
+    const PER = PERP(), [COLS] = GRID();
     const list = selectionList(), pages = Math.max(1, Math.ceil(list.length / PER)); ST.page = Math.min(ST.page || 0, pages - 1); ST.pages = pages;
-    const kv = top.modelpanels_selection_kv || {}, w = +(kv.wide || 94), h = +(kv.tall || 70), x0 = +top.item_backpack_offcenter_x, xd = +top.item_backpack_xdelta, yd = +top.item_backpack_ydelta, y0 = +top.item_ypos;
+    const kv = top.modelpanels_selection_kv || {}, x0 = +top.item_backpack_offcenter_x, xd = +top.item_backpack_xdelta, yd = +top.item_backpack_ydelta, y0 = +top.item_ypos;
+    // the game's panel (94 x 70), or, for a denser grid, smaller ones filling the same width (6 panels and 5 gaps)
+    const w0 = +(kv.wide || 94), h0 = +(kv.tall || 70), span = 6 * w0 + 5 * xd, w = COLS === 6 ? w0 : (span - (COLS - 1) * xd) / COLS, h = w * h0 / w0;
     list.slice(ST.page * PER, ST.page * PER + PER).forEach((id, i) => {
       const bx = i % COLS, by = Math.floor(i / COLS), x = x0 + bx * w + xd * bx;
       const d = itemDef('pick_' + i, 'c' + x, String(y0 + by * h + yd * by), w, h, ST.sel, id, id != null);
@@ -221,12 +241,12 @@
       if (cb) colours(cb.p, !ST.taunt); if (tb) colours(tb.p, !!ST.taunt);
     } else {
       const sl = ROOT.find('ItemSlotLabel'); if (sl) sl.o.text = vgLoc(NOITEM[ST.sel] || '');
-      const nl = ROOT.find('NoItemsLabel'); if (nl) nl.vis = ST.pages === 1 && selectionList().length === 1;
+      const nl = ROOT.find('NoItemsLabel'); if (nl) nl.vis = ST.pages === 1 && selectionList().length <= 1;
       ['PrevPageButton', 'NextPageButton', 'CurPageLabel'].forEach(n => { const c = ROOT.find(n); if (c) c.vis = ST.pages > 1; });
     }
     ROOT.layout(); ROOT.paint();
     icons(); hovers();
-    if (ST.sel) searchBox(); else model();
+    if (ST.sel) { searchBox(); viewBar(); } else model();
   }
   // the item icons, as CEmbeddedItemModelPanel::Paint draws them: in the model box (loadout: model_ypos 5, 82 x 55, centred; selection:
   // 75 x 50, centred), the part of the icon items_game.txt names (image_inventory_size_w / _h of its 128 x 128, centred), fitted to the
@@ -248,13 +268,15 @@
   function icons() {
     const walk = n => { const d = n.def; if (d && d.id != null && /^(item_|pick_)/.test(n.name)) { const it = IT(d.id); if (it && typeof iconHtml === 'function') {
       const small = /^pick_/.test(n.name), Y = VG.YRES, X = v => v * VG.SW / 640;
-      const mw = small ? 75 : 82, mh = small ? 50 : 55, my = small ? 0 : 5;
+      // the selection page's icon box (75 x 50, scaled with a denser grid's panel), centred in the panel above its name
+      const kk = small ? n.w / Y(94) : 1, nmv = small && n.find && n.find('name', false), nmh = nmv ? nmv.h / VG.K + 2 : 0;
+      const mw = small ? 75 * kk : 82, mh = small ? 50 * kk : 55, my = small ? Math.max(0, (n.h / VG.K - nmh - mh) / 2) : 5;
       const r = linked() && ZLIVE.entry ? ((ZLIVE.entry('#' + it.id) || {}).r || {}) : {};
       // without the game linked, the size nearly every weapon and cosmetic has in items_game.txt (128 x 82)
       const pre = !linked() && (it.cat === 's' || it.cat === 'w' || it.cat === 'c');
       const sw = +r.image_inventory_size_w || (pre ? 128 : 0), sh = +r.image_inventory_size_h || (pre ? 82 : 0);
       const dh = Y(mh), dw = dh * (sw && sh ? sw / sh : 1);
-      const x = (n.w - dw) / 2 + X(+r.image_inventory_pos_x || 0), y = Y(my) + Y(+r.image_inventory_pos_y || 0);
+      const x = (n.w - dw) / 2 + (small ? 0 : X(+r.image_inventory_pos_x || 0)), y = Y(my) + (small ? 0 : Y(+r.image_inventory_pos_y || 0));
       const box = document.createElement('div'); box.className = 'loico'; box.style.cssText = `left:${x}px;top:${y}px;width:${dw}px;height:${dh}px;right:auto;bottom:auto;overflow:hidden`;
       const iw = sw && sh ? dw * 128 / sw : dw, ih = sw && sh ? dh * 128 / sh : dh;
       box.innerHTML = `<div class="locrop" style="position:absolute;left:${(dw - iw) / 2}px;top:${(dh - ih) / 2}px;width:${iw}px;height:${ih}px;--is:${iw}px">${iconHtml(it)}</div>`;
@@ -276,6 +298,18 @@
       n.el.addEventListener('pointerleave', () => { pop.vis = false; pop.paint(); }); }
       n.kids.forEach(walk); };
     walk(ROOT);
+  }
+  // the page's own controls, under its grid: how many items a page shows, and the multi-class / all-class items left out
+  function viewBar() {
+    const host = OV.querySelector('.lostage'), Y = VG.YRES, [c, r] = GRID();
+    const bar = document.createElement('div'); bar.className = 'loview';
+    bar.style.cssText = `left:${ST.W / 2 + Y(-288)}px;top:${Y(60 + 3 * 70 + 2 * 3 + 12)}px`;
+    bar.innerHTML = `<button type="button" class="lovb" data-lv="grid" title="Show more items at a time">${c} \u00d7 ${r}</button>`
+      + `<label class="lovc"><input type="checkbox" data-lv="multi"${VIEW.multi ? ' checked' : ''}><i></i>Hide multi-class</label>`
+      + `<label class="lovc"><input type="checkbox" data-lv="all"${VIEW.all ? ' checked' : ''}><i></i>Hide all-class</label>`;
+    host.appendChild(bar);
+    bar.querySelector('[data-lv="grid"]').addEventListener('click', () => { snd('buttonclick'); VIEW.grid = (VIEW.grid + 1) % GRIDS.length; vsave(); ST.page = 0; build(); });
+    bar.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { snd('buttonclick'); VIEW[i.dataset.lv] = i.checked; vsave(); ST.page = 0; build(); }));
   }
   function searchBox() {
     const te = ROOT.find('NameFilterTextEntry'); if (!te) return;

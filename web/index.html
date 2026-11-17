@@ -645,7 +645,7 @@ button.vg:focus-visible{outline:none}
     <div class="grow"></div>
     <div class="sync">
       <input id="sid" class="in" placeholder="Steam ID or profile link" aria-label="Steam ID or profile link" autocomplete="off" spellcheck="false">
-      <button id="syncBtn" class="btn big" type="button">Sync</button>
+      <button id="syncBtn" class="btn big" type="button">Backpack Sync</button>
       <button id="wsBtn" class="btn ibtn" type="button" title="Workshop: your compiled items" aria-label="Workshop"><span class="gi" style="--g:url(ui/glyph_steamworkshop.webp)"></span></button>
       <a id="bugBtn" class="btn ibtn" href="https://github.com/Chickenman456/TF2-Mannual/issues/new" target="_blank" rel="noopener" title="Report a bug" aria-label="Report a bug"><span class="gi" style="--g:url(ui/glyph_bug.webp)"></span></a>
       <button id="setBtn" class="btn ibtn" type="button" title="Settings" aria-label="Settings"><span class="gi" style="--g:url(ui/glyph_options.webp)"></span></button>
@@ -739,7 +739,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.16.36</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.18.1</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1980,12 +1980,12 @@ function syncBusy(on, label, quiet){
   if (!on && !quiet && b.classList.contains('busy')) sfx('trade_failure', .6);
   if (on && !b.classList.contains('busy')) sfx('mm_queue', .6);   // the casual matchmaking "searching" sound
   b.disabled = on; b.classList.remove('done'); b.classList.toggle('busy', on);
-  b.innerHTML = on ? `<img class="spin" src="${TF_LOGO}" alt="">${label || 'Syncing'}` : 'Sync';
+  b.innerHTML = on ? `<img class="spin" src="${TF_LOGO}" alt="">${label || 'Syncing'}` : 'Backpack Sync';
 }
 function syncDone(){
   sfx('item_acquired', .7);
   const b = $('#syncBtn'); b.disabled = false; b.classList.remove('busy'); b.classList.add('done'); b.innerHTML = gi('check') + ' Synced';
-  clearTimeout(syncDone.t); syncDone.t = setTimeout(() => { b.classList.remove('done'); b.innerHTML = 'Sync'; }, 5000);
+  clearTimeout(syncDone.t); syncDone.t = setTimeout(() => { b.classList.remove('done'); b.innerHTML = 'Backpack Sync'; }, 5000);
 }
 
 async function pollJob(stop){
