@@ -2289,10 +2289,13 @@ async function keptRead(p){const s=ST.src;if(!s||!s.kept||!ST.kept||!ST.kept.has
 // a model's eyeballs (studiohdr_t bodyparts -> mstudiomodel_t numeyeballs/eyeballindex -> mstudioeyeball_t: bone, org, zoffset,
 // radius, up, forward, texture, iris_scale), with the iris texture its eyeball material names ($iris), for the EyeRefract eyes
 async function npcEyes(path){const b=await mdlBuf(path.toLowerCase());if(!b)return[];const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>dv.getInt32(o,true),F=o=>dv.getFloat32(o,true);
- const tex=[];for(let i=0;i<I(204);i++){const o=I(208)+i*64;tex.push(cstr(b,o+I(o)))}const cds=[];for(let i=0;i<I(212);i++)cds.push(cstr(b,I(I(216)+i*4)));
+ // the eyeball's texture is a skin reference: through the first skin family to the texture (its name: the eyeball's material). Kept apart
+ // from tex(), which loads the $iris texture an eyeball names
+ const tn=[];for(let i=0;i<I(204);i++){const o=I(208)+i*64;tn.push(cstr(b,o+I(o)))}const nsr=I(220),skin=r=>{const v=nsr>0&&r>=0&&r<nsr?dv.getInt16(I(228)+r*2,true):r;return tn[v]||tn[r]||''};const cds=[];for(let i=0;i<I(212);i++)cds.push(cstr(b,I(I(216)+i*4)));
  const bone=i=>{const o=I(160)+i*216;return cstr(b,o+I(o))};const out=[],order=[];
- for(let bp=0;bp<I(232);bp++){const bo=I(236)+bp*16;for(let m=0;m<I(bo+4);m++){const mo=bo+I(bo+12)+m*148;const ne=I(mo+100),ei=I(mo+104),base=out.length;for(let j=0;j<I(mo+72);j++){const me=mo+I(mo+76)+j*116;if(I(me+24)===1)order.push(base+I(me+28))}for(let k=0;k<ne;k++){const e=mo+ei+k*172;
-  const t=tex[I(e+52)]||'';const E={mat:t.replace(/\\/g,'/').split('/').pop().toLowerCase(),bone:bone(I(e+4)),org:[F(e+8),F(e+12),F(e+16)],zoff:F(e+20),radius:F(e+24),up:[F(e+28),F(e+32),F(e+36)],fwd:[F(e+40),F(e+44),F(e+48)],iris:F(e+60),irisTex:'blue'};
+ for(let bp=0;bp<I(232);bp++){const bo=I(236)+bp*16;for(let m=0;m<I(bo+4);m++){const mo=bo+I(bo+12)+m*148;const ne=I(mo+100),ei=I(mo+104),base=out.length;const mat={};for(let j=0;j<I(mo+72);j++){const me=mo+I(mo+76)+j*116;if(I(me+24)===1){order.push(base+I(me+28));mat[I(me+28)]=I(me)}}for(let k=0;k<ne;k++){const e=mo+ei+k*172;
+  // its material: the eyeball mesh's own (mstudiomesh_t.material, the mesh whose materialparam is this eyeball), else the eyeball's texture
+  const t=skin(k in mat?mat[k]:I(e+52));const E={mat:t.replace(/\\/g,'/').split('/').pop().toLowerCase(),bone:bone(I(e+4)),org:[F(e+8),F(e+12),F(e+16)],zoff:F(e+20),radius:F(e+24),up:[F(e+28),F(e+32),F(e+36)],fwd:[F(e+40),F(e+44),F(e+48)],iris:F(e+60),irisTex:'blue'};
   try{const vp=await findVmt(t,cds);const R=vp&&KV(text(await read(vp)));const M=R&&R[Object.keys(R)[0]]||{};const ir=M.$iris||M.$Iris;if(ir){const sp=String(ir).toLowerCase();E.irisTex=/brown/.test(sp)?'brown':/green/.test(sp)?'green':/blue/.test(sp)?'blue':null;if(!E.irisTex)E.irisLive=await tex(ir,true)}}catch(x){}
   if(!E.irisTex&&!E.irisLive)E.irisTex='blue';out.push(E)}}}return order.map(i=>out[i]).filter(Boolean)}
 async function npcFiles(path){path=path.toLowerCase();const b=await mdlBuf(path);if(!b)return[];return [path,...incOf(b).map(x=>x.replace(/\\/g,'/').toLowerCase())]}
