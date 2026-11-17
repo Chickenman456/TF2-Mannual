@@ -3,7 +3,7 @@
    install's own sound files, found by the file's name (ZLIVE.soundFind), or else from the TF2 Wiki's own file of it. */
 (() => {
   const CLS = [['scout', 'Scout'], ['soldier', 'Soldier'], ['pyro', 'Pyro'], ['demoman', 'Demoman'], ['heavy', 'Heavy'],
-    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['ghost', 'Ghost'], ['pumpkin_bomb', 'Pumpkin Bomb'], ['morice', 'Morice'], ['redmond', 'Redmond Mann'], ['blutarch', 'Blutarch Mann'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
+    ['engineer', 'Engineer'], ['medic', 'Medic'], ['sniper', 'Sniper'], ['spy', 'Spy'], ['saxton', 'Saxton Hale'], ['santa_hale', 'Santa Hale'], ['hellfire_hale', 'Hellfire Hale'], ['gray_mann', 'Gray Mann'], ['krampus', 'Krampus'], ['bombinomicon', 'Bombinomicon'], ['hhh', 'Horseless Headless Horsemann'], ['monoculus', 'MONOCULUS'], ['merasmus', 'Merasmus'], ['ghost', 'Ghost'], ['pumpkin_bomb', 'Pumpkin Bomb'], ['morice', 'Morice'], ['redmond', 'Redmond Mann'], ['blutarch', 'Blutarch Mann'], ['botler', 'Robot Butler'], ['pauling', 'Miss Pauling'], ['administrator', 'Administrator'],
     ...['Scout', 'Soldier', 'Pyro', 'Demoman', 'Heavy', 'Engineer', 'Medic', 'Sniper', 'Spy'].map(n => ['robot_' + n.toLowerCase(), n + ' Robot'])];
   // the announcers: under a heading of their own, a megaphone where the others have a face (no model: only their voices). Besides the
   // Administrator, the community maps' own (RAW.voicelines.announcers: [key, name, [map files]]), each packed in its map
@@ -13,7 +13,7 @@
   const annPage = c => { const a = annList().find(x => x[0] === c); return a ? a[3] || '' : ''; };
   const nameOf = c => { const x = CLS.find(y => y[0] === c) || annList().find(y => y[0] === c); return x ? x[1] : c; };
   // the left panel's headings: the mercs, then each other character under his event, then the announcers
-  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ghost', 'pumpkin_bomb', 'morice', 'redmond', 'blutarch', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
+  const GROUPS = () => [['Mercenaries', CLS.slice(0, 9).map(x => x[0])], ['Mann vs. Machine', CLS.slice(0, 9).map(x => 'robot_' + x[0])], ['Versus Saxton Hale', ['saxton', 'santa_hale', 'hellfire_hale', 'gray_mann']], ['Smissmas', ['krampus']], ['Halloween', ['hhh', 'monoculus', 'merasmus', 'bombinomicon', 'ghost', 'pumpkin_bomb', 'morice', 'redmond', 'blutarch', 'ann_davy_jones']], ['Summer', ['ann_seal', 'botler']], ['Contracts', ['pauling']],
     ['Announcers', ['administrator', ...annList().map(x => x[0]).filter(c => c !== 'ann_davy_jones' && c !== 'ann_seal')]]];
   // the characters who aren't mercs, each with his TF2 Wiki page (and his map's). The Hales: the Characters' own (npc.js: Saxton Hale
   // packed in vsh_nucleus, Santa Hale in vsh_maul, Hellfire Hale in vsh_outburst), sharing the wiki's Saxton Hale lines (data: saxton),
@@ -22,6 +22,8 @@
     saxton: {npc: 'saxton', card: 'npc_saxton.webp', tile: 'vo_t_saxton.webp', level: 'Boss', mdl: 'models/vsh/player/saxton_hale.mdl', pak: 'vsh_nucleus.bsp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Saxton Hale', 'Saxton_Hale']]},
     santa_hale: {npc: 'santa_hale', card: 'npc_santa_hale.webp', level: 'Boss', mdl: 'models/vsh/player/santa_hale.mdl', pak: 'vsh_maul.bsp', dirs: ['saxton_hale_ml'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Maul', 'Maul_(map)']]},
     hellfire_hale: {npc: 'hell_hale', card: 'npc_hell_hale.webp', level: 'Boss', mdl: 'models/vsh/player/hell_hale.mdl', pak: 'vsh_outburst.bsp', dirs: ['hellfire_hale_new_ob', 'hellfire_hale_ob'], wiki: [['Saxton Hale', 'Saxton_Hale'], ['Outburst', 'Outburst']]},
+    // Gray Mann: the mercenaries' announcer in Versus Saxton Hale, his lines in the same maps' folders as Saxton's (no model of his own)
+    gray_mann: {card: 'vo_gray_mann.webp', tile: 'vo_t_gray_mann.webp', dirs: ['saxton_hale_dt', 'saxton_hale_sm', 'saxton_hale_ns', 'saxton_hale_tr'], wiki: [['Gray Mann', 'Gray_Mann'], ['Versus Saxton Hale', 'Versus_Saxton_Hale']]},
     krampus: {npc: 'krampus', card: 'npc_krampus.webp', tile: 'vo_t_krampus.webp', level: 'Smissmas Boss', mdl: 'models/bots/krampus.mdl', pak: 'koth_krampus.bsp', idle: 'krampus_idle', wiki: [['Krampus', 'Krampus']]},
     bombinomicon: {npc: 'bombinomicon', card: 'vo_bombinomicon.webp', tile: 'vo_t_bombinomicon.webp', level: 'Halloween', mdl: 'models/props_halloween/bombonomicon.mdl', idle: 'idle', nofloor: 1, wiki: [['Bombinomicon', 'Bombinomicon_(character)']]},
     hhh: {npc: 'hhh', card: 'npc_hhh.webp', tile: 'vo_t_hhh.webp', level: 'Halloween Boss', mdl: 'models/bots/headless_hatman.mdl', attach: ['models/weapons/c_models/c_bigaxe/c_bigaxe.mdl'], wiki: [['Horseless Headless Horsemann', 'Horseless_Headless_Horsemann']]},
@@ -55,7 +57,7 @@
   for (const x of ['scout', 'soldier', 'pyro', 'demoman', 'heavy', 'engineer', 'medic', 'sniper', 'spy']) { const k = 'robot_' + x, s = x === 'demoman' ? 'demo' : x;
     NPC[k] = {card: x === 'engineer' ? 'npc_bot_engineer.webp' : 'bot_' + s + '.webp', tile: 'vo_t_robot_' + s + '.webp', level: 'Robot', bot: 'bot_' + s, wiki: [[x[0].toUpperCase() + x.slice(1) + ' Robot', x[0].toUpperCase() + x.slice(1) + '_Robot']]}; }
   const HALE = c => !!(NPC[c] && NPC[c].dirs);
-  const src = c => HALE(c) ? 'saxton' : c;
+  const src = c => c === 'santa_hale' || c === 'hellfire_hale' ? 'saxton' : c;
   const WK = 'https://wiki.teamfortress.com/wiki/';
   // the wiki pages a character links to: a merc's class page, a character's own (and his map's), an announcer's map
   const wikis = c => NPC[c] && NPC[c].wiki ? NPC[c].wiki : annPage(c) ? [[annPage(c).replace(/ \(map\)$/, ''), annPage(c).replace(/ /g, '_')]] : CLS.slice(0, 9).some(x => x[0] === c) ? [[nameOf(c), nameOf(c)]] : [];
@@ -276,7 +278,8 @@
   function show3d() {
     const box = document.querySelector('.vov .vdock'), din = box && box.querySelector('.vdin'); if (!din || !window.ItemPreview) return;
     const c = V.cls, tok = V.t3 = (V.t3 || 0) + 1;
-    if (!(NPC[c] && NPC[c].mdl) && (isAnn(c) || c === 'pauling')) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = meg(c) ? '<span class="vmeg"></span>' : `<img class="vart" src="${art(c)}" alt="">`; box.classList.add('ready'); return; }
+    // a voice with no model (the announcers, Miss Pauling, Gray Mann): his art, else the megaphone
+    if (!(NPC[c] && NPC[c].mdl) && (isAnn(c) || (NPC[c] && !NPC[c].npc && !NPC[c].bot))) { if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close(); din.innerHTML = meg(c) ? '<span class="vmeg"></span>' : `<img class="vart" src="${art(c)}" alt="">`; box.classList.add('ready'); return; }
     if (window.ItemPreview && ItemPreview.isOpen()) ItemPreview.close();
     try {
       const st = NPC[c];

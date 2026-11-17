@@ -336,9 +336,11 @@ def main():
         import traceback; traceback.print_exc(); ann = []
     # Saxton Hale (Versus Saxton Hale): his own section of the mode's responses page; his lines are packed in the vsh_ maps
     # (sound/mvm/saxton_hale_<map>_<year>_<n>/), so each is named by its folder and file: "saxton_hale|charge_a_01"
-    try:
+    # Gray Mann (the mercenaries' announcer there): his own section, his lines in the same folders
+    for key, head in (("saxton", "Saxton Hale"), ("gray_mann", "Gray Mann")):
+      try:
         t = wikitext("Versus Saxton Hale responses")
-        m = re.search(r"(?ms)^==\s*Saxton Hale\s*==\s*$(.*?)(?=^==[^=])", t)
+        m = re.search(r"(?ms)^==\s*" + head + r"\s*==\s*$(.*?)(?=^==[^=])", t)
         sec = re.sub(r"(?m)^=(=+)(.*?)=(=+)\s*$", r"\1\2\3", m.group(1)) if m else ""
         cls = []
         for tn, G in parse(sec):
@@ -358,10 +360,10 @@ def main():
                     L.append(line(base, tx, fo))
                 if L: GG.append([g, L, gl] if gl else [g, L])
             if GG: cls.append([tn, GG])
-        data["saxton"] = cls
-        print("saxton", sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
-    except Exception as e:
-        print("skip Saxton Hale", e)
+        data[key] = cls
+        print(key, sum(len(g[1]) for _, G in cls for g in G), "lines in", len(cls), "tabs")
+      except Exception as e:
+        print("skip", head, e)
     print("not in the game files checked:", len(miss), miss[:12])
     json.dump({"_about": "The TF2 Wiki's class voice line pages (responses, voice commands, taunts): the lines' words, grouped as the wiki "
                          "groups them, each with its sound in the game's own files. Built by tools/voicelines.py.",
