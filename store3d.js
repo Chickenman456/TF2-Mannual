@@ -605,7 +605,8 @@ void main(){gl_FragColor=vec4(texture2D(map,vUv+t0).rgb*texture2D(map2,vUv+t2).r
       if(n>c0){const h0=half(),wx=V.ctl.target.x+cx*h0*asp,wy=V.ctl.target.y+cy*h0;V.storeZf=n;V.storeApply(cls());const h1=half();P.x+=wx-(V.ctl.target.x+cx*h1*asp);P.y+=wy-(V.ctl.target.y+cy*h1);V.storeApply(cls())}
       else{const k=c0>0?n/c0:0;P.x*=k;P.y*=k;V.storeZf=n;V.storeApply(cls())}
       if(n!==t)requestAnimationFrame(st);else V._zfa=0};st()},{passive:false})}}
- async function show(f){const c=clsOf(f);if(!KEY[c])return;try{await init()}catch(e){return}
+ // a merc shown: any character the NPC viewer had up goes (the Dialogue Player's window left behind when its page closed)
+ async function show(f){const c=clsOf(f);if(!KEY[c])return;try{await init()}catch(e){return}if(typeof NPC!=='undefined'&&NPC.g){NPC.tok=(NPC.tok||0)+1;npcDrop()}
   if(f.dataset.m3d===c&&f.querySelector('canvas')){V.go();return}// back in the page after being taken out of it (the loadout's item selection): the render loop stopped when it left, so start it again
  f.dataset.m3d=c;
   // hide whatever was on screen before so the previous merc never lingers while the new one streams in
