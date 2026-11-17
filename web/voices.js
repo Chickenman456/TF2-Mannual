@@ -33,7 +33,7 @@
     // the pumpkin bombs (their lines heard in Laughter and Bloodwater); Morice, Farmageddon's talking pumpkin: the pumpkin on the table where
     // his lines play (models/props_farmageddon/pumpkin), his lines packed in the map
     pumpkin_bomb: {card: 'vo_t_pumpkin_bomb.webp', level: 'Halloween', mdl: 'models/props_halloween/pumpkin_explode.mdl', wiki: [['Pumpkin bomb', 'Pumpkin_bomb']]},
-    morice: {level: 'Farmageddon', mdl: 'models/props_farmageddon/pumpkin.mdl', pak: 'pd_farmageddon.bsp', maps: ['pd_farmageddon'], wiki: [['Farmageddon', 'Farmageddon#Pumpkin_lines']]},
+    morice: {card: 'vo_t_morice.webp', level: 'Farmageddon', mdl: 'models/props_farmageddon/pumpkin.mdl', pak: 'pd_farmageddon.bsp', maps: ['pd_farmageddon'], wiki: [['Farmageddon', 'Farmageddon#Pumpkin_lines']]},
     // the Mann brothers: Helltower's carts, each brother's own bomb (models/props_trainyard/bomb_<name>), no art of their own
     redmond: {card: 'vo_t_redmond.webp', level: 'Helltower', noshadow: 1, mdl: 'models/props_trainyard/bomb_redmond.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Redmond Mann', 'Redmond_Mann'], ['Helltower', 'Helltower']]},
     blutarch: {card: 'vo_t_blutarch.webp', level: 'Helltower', noshadow: 1, mdl: 'models/props_trainyard/bomb_blutarch.mdl', pak: 'plr_hightower_event.bsp', wiki: [['Blutarch Mann', 'Blutarch_Mann'], ['Helltower', 'Helltower']]},
