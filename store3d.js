@@ -1519,6 +1519,11 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
  if(P.aTest&&phong&&(P.si||P.tintA))P.aTest=0;
  // CBaseShader::TextureIsTranslucent: base alpha is opacity only on $translucent / $alphatest, not when it is a selfillum / envmap / tint mask
  P.useBA=(P.translucent||P.aTest)&&!P.si&&!num(k.$basealphaenvmapmask,0)&&!num(k.$opaquetexture,0)&&!(P.tintA&&!P.si)?1:0;P.opac=num(k.$alpha,1);
+ // the skin shader (skin_ps20b.fxc) takes no opacity from base alpha holding the phong mask ($basemapalphaphongmask) either; and a $translucent
+ // material whose alpha comes out 1 throughout (the Trash Man's: base alpha its tint mask, no $alpha) draws as the solid thing it looks in game,
+ // not in the see-through pass (no depth written, its own back faces showing through)
+ if(phong&&P.mask&&!P.aTest)P.useBA=0;
+ if(P.translucent&&!P.useBA&&!P.additive&&P.opac>=1)P.translucent=0;
  if(P.aTest)P.aRef=num(k.$alphatestreference,.7)||.7;if(num(k.$nocull,0))P.nocull=1;
  return P}
 async function defCube(){if(ST.cache.defcube)return ST.cache.defcube;return ST.cache.defcube=(async()=>{try{const r=await fetch('models/env_2fort.vtf.wasm');if(!r.ok)throw 0;const b=new Uint8Array(await r.arrayBuffer());return cubeOf(b)}catch(e){return cube('hlmv/cubemap')}})()}
