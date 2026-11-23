@@ -239,7 +239,9 @@ let FXT=0;async function setFx(v){const tok=++FXT;if(!window.ZPFX)return;const i
  let o=v.inner.getObjectByName('zfx_att');if(!o){o=new THREE.Object3D();o.name='zfx_att';const A=info&&info.att||[];const a=A.find(x=>x.name===(inf.attachment||'unusual_0'))||A[0];
   // the attachment's frame in the model's own space, which is the stored vertices' (its axes are Source's, as pfx.js reads them)
   if(a)a.m.decompose(o.position,o.quaternion,o.scale);v.inner.add(o)}
- const where=()=>v.cur&&o.parent?{obj:o,merc:null}:null;
+ // the effect's other control points (control_point_1-5: the Energy Orb runs along unusual_0 to unusual_4)
+ const cps={};for(const [n,nm] of Object.entries(inf.cps||{})){let c=v.inner.getObjectByName('zfx_cp_'+nm);if(!c){const a=(info&&info.att||[]).find(x=>x.name===nm);if(!a)continue;c=new THREE.Object3D();c.name='zfx_cp_'+nm;a.m.decompose(c.position,c.quaternion,c.scale);v.inner.add(c)}cps[n]=c}
+ const where=()=>v.cur&&o.parent?{obj:o,merc:null,cps}:null;
  for(const sy of systems){let ok=false;try{ok=await ZPFX.play(sy,where,()=>1,{sc:v.sc})}catch(e){ok=false}if(tok!==FXT)return;if(ok){v.fxKey=fk;return}}
  if(window.ZWPI&&ZWPI.onFxMissing)ZWPI.onFxMissing()}
 function applySkin(v,rt){v.maps.forEach(({m,stock})=>{m.map=rt?rt.texture:stock;m.needsUpdate=true})}
