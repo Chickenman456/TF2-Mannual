@@ -572,12 +572,13 @@
   const ZPFX = {
     find, parsePCF,
     /* play(system, where) where() -> {obj: Object3D to follow, merc: the class model's root, flat: ignore the object's rotation} */
-    async play(system, where, scaleOf) {
+    /* opt.sc: the scene it belongs to (the war paint window's own): only a tick with that scene runs and draws it */
+    async play(system, where, scaleOf, opt) {
       ZPFX.stop();
       const tok = ZPFX._tok = (ZPFX._tok || 0) + 1;
       const def = await find(system); if (!def || tok !== ZPFX._tok) return !!def;
       await preload(def); if (tok !== ZPFX._tok) return true;
-      const fx = makeFx(def, where, scaleOf || (() => 1));
+      const fx = makeFx(def, where, scaleOf || (() => 1)); fx.sc = opt && opt.sc || null;
       for (const S of fx.root.all()) S.mat = (S.rend && S.def.material) ? await material(S.def.material) : null;
       if (tok !== ZPFX._tok) return true;
       // warm up a second so the effect starts already running, the way it looks on a merc that has been standing there
@@ -614,14 +615,15 @@
     clear() { ZPFX.stop(); for (const b of BURST) for (const S of b.root.all()) dispose(S); BURST.length = 0;
       for (const [k, f] of KEEP) { if (f) for (const S of f.root.all()) dispose(S); } KEEP.clear(); },
     cur: () => FX, active: () => !!FX, bursts: () => ZPFX._nb || 0,
-    tick(dt, sc, cam) {
-      for (const b of BURST.slice()) {
+    tick(dt, sc, cam, only) {
+      // (only: the unusual effect alone - the war paint window has no merc for the bursts and kept effects)
+      if (!only) for (const b of BURST.slice()) {
         b.acc += Math.min(dt, .1); b.age += dt;
         while (b.acc >= 1 / 60) { b.acc -= 1 / 60; b.frame++; b.root.step(1 / 60); }
         if (b.age > .1 && !b.root.alive() || b.age > 4) { for (const S of b.root.all()) dispose(S); BURST.splice(BURST.indexOf(b), 1); continue; }
         cam.updateMatrixWorld(); const bs = b.scaleOf(); for (const S of b.root.all()) draw(S, cam, sc, bs);
       }
-      for (const [key, k] of KEEP) {
+      if (!only) for (const [key, k] of KEEP) {
         if (!k) continue;
         const on = !!k.where(); for (const S of k.root.all()) if (S.dr) S.dr.mesh.visible = on; if (!on) continue;
         k.acc += Math.min(dt, .1);
@@ -629,11 +631,11 @@
         if (!k.root.alive()) { const n = makeFx(k.def, k.where, k.scaleOf); for (const S of n.root.all()) { const o = k.root.all().find(x => x.def === S.def); S.mat = o ? o.mat : null; } for (const S of k.root.all()) dispose(S); KEEP.set(key, n); continue; }
         cam.updateMatrixWorld(); const s = k.scaleOf(); for (const S of k.root.all()) draw(S, cam, sc, s);
       }
-      if (!FX) return; const fx = FX;
+      if (!FX || (FX.sc || null) !== (only ? sc : null)) return; const fx = FX;
       fx.acc += Math.min(dt, .1);
       while (fx.acc >= 1 / 60) { fx.acc -= 1 / 60; fx.frame++; fx.root.step(1 / 60); }
       // an effect whose systems have all finished starts over, as the game keeps re-creating a looping unusual
-      if (!fx.root.alive()) { for (const S of fx.root.all()) dispose(S); const n = makeFx(fx.def, fx.where, fx.scaleOf); for (const S of n.root.all()) { const o = fx.root.all().find(x => x.def === S.def); S.mat = o ? o.mat : null; } FX = n; return; }
+      if (!fx.root.alive()) { for (const S of fx.root.all()) dispose(S); const n = makeFx(fx.def, fx.where, fx.scaleOf); for (const S of n.root.all()) { const o = fx.root.all().find(x => x.def === S.def); S.mat = o ? o.mat : null; } n.sc = fx.sc; FX = n; return; }
       const s = fx.scaleOf();
       cam.updateMatrixWorld();
       for (const S of fx.root.all()) draw(S, cam, sc, s);
