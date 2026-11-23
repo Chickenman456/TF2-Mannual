@@ -1418,13 +1418,13 @@ function vtf(b,maxDim,face,frame,lev){const dv=new DataView(b.buffer,b.byteOffse
    case 24:{const h=k=>{const x=s[p+k]|s[p+k+1]<<8;const e=(x>>10)&31,m=x&1023;const v=e===0?m/16777216:(1+m/1024)*Math.pow(2,e-15);return Math.min(255,Math.max(0,v)*255+.5)|0};px[d]=h(0);px[d+1]=h(2);px[d+2]=h(4);px[d+3]=255;p+=8;break}
    default:throw new Error('VTF format '+fmt)}}}
  return{w,h,px,flags,faces,frames,mips,L}}
-async function tex(path,srgb,maxDim){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
+async function tex(path,srgb,maxDim){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.[^./]*$/,'').toLowerCase();const key=p+'|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T=vtf(b,maxDim);
   const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;
   t.wrapS=(T.flags&4)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.wrapT=(T.flags&8)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.anisotropy=8;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.vtf=p;t.userData.alpha=!!(T.flags&0x3000);return t})()}
 // the VTF's own mip chain uploaded as is (particle sprites): regenerated mips average the transparent texels' colour (often black) into
 // the edges, a dark rim the game's authored mips don't have; a VTF without mips is sampled without them
-async function texMips(path,srgb){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|mips|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
+async function texMips(path,srgb){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.[^./]*$/,'').toLowerCase();const key=p+'|mips|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T=vtf(b);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.magFilter=THREE.LinearFilter;
   if(T.mips>1&&!(T.flags&0x100)){const M=[{data:T.px,width:T.w,height:T.h}];for(let l=T.L+1;l<T.mips;l++){const U=vtf(b,0,0,0,l);M.push({data:U.px,width:U.w,height:U.h});if(U.w===1&&U.h===1)break}
    // WebGL1 needs the chain down to 1x1
@@ -1433,13 +1433,13 @@ async function texMips(path,srgb){if(!path)return null;let p=String(path).replac
   else{t.generateMipmaps=false;t.minFilter=THREE.LinearFilter}
   t.wrapS=(T.flags&4)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.wrapT=(T.flags&8)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.vtf=p;return t})()}
 // AnimatedTexture: every frame of the VTF stacked top to bottom in one texture (the shader picks the frame: (fract(v)+frame)/frames)
-async function texStrip(path,srgb,maxDim,maxFrames){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|strip|'+(srgb?1:0)+(maxFrames?'|'+maxFrames:'');if(ST.cache[key])return ST.cache[key];
+async function texStrip(path,srgb,maxDim,maxFrames){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.[^./]*$/,'').toLowerCase();const key=p+'|strip|'+(srgb?1:0)+(maxFrames?'|'+maxFrames:'');if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T0=vtf(b,maxDim||512);const n=Math.min(T0.frames||1,maxFrames||32);if(n<2)return null;
   const px=new Uint8Array(T0.w*T0.h*4*n);px.set(T0.px.subarray(0,T0.w*T0.h*4),0);for(let f=1;f<n;f++){const T=vtf(b,maxDim||512,0,f);px.set(T.px.subarray(0,T0.w*T0.h*4),f*T0.w*T0.h*4)}
   const t=new THREE.DataTexture(px,T0.w,T0.h*n,THREE.RGBAFormat);t.flipY=false;t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;
   t.userData.frames=n;t.userData.alpha=!!(T0.flags&0x3000);return t})()}
 // a cubemap as its texels are (no sRGB decode: the killstreak sheen pass works on them as stored, like the game's LDR path)
-async function cubeRaw(path){let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key='cuberaw|'+p;if(ST.cache[key])return ST.cache[key];
+async function cubeRaw(path){let p=String(path).replace(/\\/g,'/').replace(/\.[^./]*$/,'').toLowerCase();const key='cuberaw|'+p;if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{let b=null;try{b=await read('materials/'+p+'.vtf')}catch(e){}if(!b)return null;
   const F=[0,1,4,5,3,2].map(f=>{const T=vtf(b,256,f);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.needsUpdate=true;return t});
   const c=new THREE.CubeTexture(F);c.format=THREE.RGBAFormat;c.encoding=THREE.LinearEncoding;c.generateMipmaps=false;c.minFilter=THREE.LinearFilter;c.needsUpdate=true;return c})()}
@@ -1497,6 +1497,8 @@ const KNOWNWARP=new Set(['pyro','weapon','robot','jarate','mirv','softened_weapo
 async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[];
  const bt=k.$basetexture;const anim=k.proxies&&typeof k.proxies=='object'&&[].concat(k.proxies.animatedtexture||[]).some(q=>q&&String(q.animatedtexturevar||'').toLowerCase()=='$basetexture');
  P.map=bt&&anim?await texStrip(bt,true).catch(()=>null):null;if(P.map)P._frames=P.map.userData.frames;if(!P.map)P.map=bt?await tex(bt,true):null;
+ // a $basetexture the game files don't have: Source's error texture, the pink and black checkerboard
+ if(bt&&!P.map)P.map=(()=>{const n=4,d=new Uint8Array(n*n*4);for(let y=0;y<n;y++)for(let x=0;x<n;x++){const o=(y*n+x)*4,m=(x+y)&1;d[o]=m?0:255;d[o+1]=0;d[o+2]=m?0:255;d[o+3]=255}const t=new THREE.DataTexture(d,n,n);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.error=true;return t})();
  // UnlitTwoTexture (the flamethrower pilot light): $basetexture x $texture2, additive
  if(String(sh).toLowerCase()=='unlittwotexture'&&k.$texture2)P.map2=await tex(k.$texture2,true).catch(()=>null);
  const phong=flag(k.$phong);P.phong=phong;const et=k.$phongexponenttexture;P.expTex=et?await tex(et,false):null;
@@ -1556,7 +1558,7 @@ async function params(M){const k=M.kv,sh=M.shader;const P={shader:sh};const T=[]
 async function defCube(){if(ST.cache.defcube)return ST.cache.defcube;return ST.cache.defcube=(async()=>{try{const r=await fetch('models/env_2fort.vtf.wasm');if(!r.ok)throw 0;const b=new Uint8Array(await r.arrayBuffer());return cubeOf(b)}catch(e){return cube('hlmv/cubemap')}})()}
 function cubeOf(b){const F=[0,1,4,5,3,2].map(f=>{const T=vtf(b,256,f);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.needsUpdate=true;return t});
  const c=new THREE.CubeTexture(F);c.format=THREE.RGBAFormat;c.encoding=THREE.sRGBEncoding;c.generateMipmaps=false;c.minFilter=THREE.LinearFilter;c.needsUpdate=true;return c}
-async function cube(path){let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key='cube|'+p;if(ST.cache[key])return ST.cache[key];
+async function cube(path){let p=String(path).replace(/\\/g,'/').replace(/\.[^./]*$/,'').toLowerCase();const key='cube|'+p;if(ST.cache[key])return ST.cache[key];
  return ST.cache[key]=(async()=>{let b=null;try{b=await read('materials/'+p+'.vtf')}catch(e){}if(!b)return null;
   const F=[0,1,4,5,3,2].map(f=>{const T=vtf(b,256,f);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.needsUpdate=true;return t});
   const c=new THREE.CubeTexture(F);c.format=THREE.RGBAFormat;c.encoding=THREE.sRGBEncoding;c.generateMipmaps=false;c.minFilter=THREE.LinearFilter;c.needsUpdate=true;return c})()}
@@ -1709,7 +1711,7 @@ function flexPack(key){return ST.flex[key]||null}
 const iconPath=(e,si)=>{const st=styleOf(e,si);return (st&&st.image_inventory)||e.r.image_inventory};
 // like the game's item panels: the icon's .vmt (image_inventory[_large]) names its $basetexture; at most 6 decode at once
 let IRUN=0;const IQ=[];const islot=async f=>{if(IRUN>=6)await new Promise(r=>IQ.push(r));IRUN++;try{return await f()}finally{IRUN--;const n=IQ.shift();if(n)n()}};
-async function iconTex(ip){for(const v of [ip+'_large',ip]){try{const m=await read('materials/'+v+'.vmt');if(m){const R=KV(text(m));const M=R[Object.keys(R)[0]]||{};const bt=M.$basetexture;if(bt){const b=await read('materials/'+String(bt).replace(/\\/g,'/').replace(/\.vtf$/i,'')+'.vtf');if(b)return b}}}catch(e){}
+async function iconTex(ip){for(const v of [ip+'_large',ip]){try{const m=await read('materials/'+v+'.vmt');if(m){const R=KV(text(m));const M=R[Object.keys(R)[0]]||{};const bt=M.$basetexture;if(bt){const b=await read('materials/'+String(bt).replace(/\\/g,'/').replace(/\.[^./]*$/,'')+'.vtf');if(b)return b}}}catch(e){}
   try{const b=await read('materials/'+v+'.vtf');if(b)return b}catch(e){}}return null}
 function iconLoad(n){const k=norm(n);if(k in ST.icons)return Promise.resolve(ST.icons[k]);if(ST.iconPend[k])return ST.iconPend[k];const e=entry(n);const ip=e&&iconPath(e,0);if(!ip){ST.icons[k]=null;return Promise.resolve(null)}
  return iconRead(k,ip)}
