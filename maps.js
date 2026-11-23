@@ -99,7 +99,10 @@ body.vmap #filtBtn,body.vmap #filters,body.vmap #fsum{opacity:0;visibility:hidde
   // all five at once: the cards show a spinner until their screenshot's file is in
   function need() {
     if (window.ZMAPS || loading) return; loading = true;
-    add('mapdata.js', () => { if (typeof render === 'function') render(); });
+    add('mapdata.js', () => {
+      // a map's stamp came out with its map (its own first sale date can be weeks off: Nightfall's reads January 17, 2011)
+      if (typeof ITEMS !== 'undefined') for (const m of window.ZMAPS || []) if (m.st && ITEMS[m.st] && m.d && m.d.length === 10) ITEMS[m.st].date = m.d;
+      if (typeof render === 'function') render(); });
     for (let k = 1; k <= 4; k++) add('ui/maps/s' + k + '.js', fill);
   }
   let openF = null;
