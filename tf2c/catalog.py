@@ -16,7 +16,7 @@ import re
 
 from .kv import decode_text, parse_kv, parse_loc
 
-CATALOG_VERSION = 71
+CATALOG_VERSION = 72
 CLASSES = ["scout", "soldier", "pyro", "demoman", "heavy", "engineer", "medic", "sniper", "spy"]
 WEAPON_SLOTS = {"primary", "secondary", "melee", "pda", "pda2", "building", "utility"}
 RARITY = {"common": 1, "uncommon": 2, "rare": 3, "mythical": 4, "legendary": 5, "ancient": 6, "immortal": 7, "unusual": 8}
@@ -368,6 +368,15 @@ def build(sources, data_dir, firstseen=None, progress=lambda m: None):
     for k, v in cur.get("fixed_dates", {}).items():
         for i in _ids([k]):
             fixed[i] = v
+    # a map's stamp came out with its map (web/mapdata.js, from the TF2 Wiki): its own first_sale_date can be weeks off (Nightfall's
+    # reads January 17, 2011; the map, and its stamp, came with the Community Map Pack on February 24)
+    try:
+        t = open(os.path.join(os.path.dirname(data_dir), "web", "mapdata.js"), encoding="utf-8").read()
+        for m in json.loads(t[t.index("["):t.rindex("]") + 1]):
+            if m.get("st") and len(str(m.get("d") or "")) == 10:
+                fixed.setdefault(int(m["st"]), m["d"])
+    except (OSError, ValueError):
+        pass
 
     progress("Reading items_game.txt")
     ig_path, en_path, proto_path = sources["items_game"], sources["english"], sources["proto"]
