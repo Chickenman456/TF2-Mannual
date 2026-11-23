@@ -739,7 +739,8 @@ async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;
 // (and the robot body for the cosmetics only the MvM robots wear: m._robot, set by the preview)
 async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0,bot=!!m._robot;
  const eyes=m._eyeMesh||(m._eyeMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&x.userData.zeye)L.push(x)});return L})());eyes.forEach(x=>x.layers.set(bot&&ZLIVE.ready?31:0));
- const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
+ // (looked up each time: a mesh of the page's own that arrived after the first look stayed drawn under the game's body - a second face over his own)
+ const own=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye&&!x.userData.zx)L.push(x)});return L})();
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
  const bg={};for(const k of (m._cbg||[]))bg[String(k).toLowerCase()]=1;
  const h=m._wmOff?null:m._wmHide;if(h){const part=typeof h=='string'?h:h.part,state=typeof h=='string'?1:Number(h.st);if(part&&Number.isInteger(state)&&state>=0)bg[String(part).toLowerCase()]=state}
@@ -751,7 +752,8 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
   // a robot's own bones (its antennas, gears and plates): made under the merc bone their parent merged onto, at their rest pose
   const xb=[];const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];if(!bot)return null;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||m.o).add(nb);xb.push(nb);return pb[k]=nb};
-  const meshes=src.map(s=>{if(!bot&&/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+  const meshes=src.map(s=>{if(!bot&&/eyeball/i.test((MI0[s.material&&s.material.name]||{}).tex||s.material&&s.material.name||''))return null;   // (the mesh's material is named m0, m1...: its file name is in the manifest - read by the name alone, the game's eyeballs were drawn over the page's own)
+  const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
   drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}// the robot's animations (bot_<class>_animations.mdl: stiffer stand_ / run_ loops), in place of the class's while it's shown as the robot
 async function robotAnims(c){const m=M[c];if(!m||!m.A||!m.mx||!window.ZLIVE||!ZLIVE.setRobot)return;const on=m._robot;const tok=m._rtok=(m._rtok||0)+1;
@@ -1632,7 +1634,7 @@ async function assemble(key,p,e,si,pre,opt){pre=pre||'m';const md=await model(p,
  // visuals "material_override" (the Golden Wrench's gold_wrench.vmt): every material of the item's own model is drawn with that one
  const mo=pre=='m'&&e&&e.r?((styleOf(e,si)||{}).material_override||(e.r.visuals||{}).material_override):null;const mov=mo&&typeof mo=='string'?findVmt(mo.replace(/\.vmt$/i,''),[]):null;
  const pr=async t=>{try{const v=(mov&&await mov)||await findVmt(md.texn[t]||'',md.cds);if(!v)return null;const M=await vmt(v,0);return M?await params(M):null}catch(err){console.warn('[ZLIVE] material',md.texn[t],err);return null}};
- for(const s of md.slots){const r=md.skins[rs]?md.skins[rs][s]:s,b=md.skins[bs]?md.skins[bs][s]:r;const red=await pr(r),blu=b===r?red:await pr(b);man[pre+s]={red,blu:blu||red}}
+ for(const s of md.slots){const r=md.skins[rs]?md.skins[rs][s]:s,b=md.skins[bs]?md.skins[bs][s]:r;const red=await pr(r),blu=b===r?red:await pr(b);man[pre+s]={red,blu:blu||red,tex:md.texn[r]||''}}
  if(md.jig)man._jig=md.jig;if(pre=='m')ST.flex[key]=md.flex;
  // visuals.playback_activity: on_spawn / start_taunting activities (the Orchestrina: ACT_IDLE "stopped", ACT_RUN "started"); otherwise sequence 0
  // a worn weapon's own pack (the B.A.S.E. Jumper's c_paratrooper_pack) sits closed: its retract_idle sequence, as when the chute is put away
