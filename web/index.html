@@ -744,7 +744,7 @@ button.vg:focus-visible{outline:none}
   <span class="mannco" role="img" aria-label="Mann Co."></span>
   <p>Developed by Chickenman for the TF2 community. Uses Valve's Team Fortress 2 SDK. Special thanks to the TF2 Wiki and the TF2 Itempedia.</p>
   <p class="fine">Not affiliated with Valve.</p>
-  <p class="fine" id="appVersion">Mann-ual version 2026.11.24.2</p>
+  <p class="fine" id="appVersion">Mann-ual version 2026.11.24.3</p>
 </footer>
 <div class="modal" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="mbox panel">
@@ -1299,11 +1299,26 @@ function updTitle(k){
   return k.length > 2 ? k.slice(2) + ', no exact date' : 'No release date';
 }
 const UPD_KINDS = [['c', 'Cosmetics'], ['t', 'Taunts'], ['w', 'Weapons'], ['s', 'Stock weapons'], ['d', 'Decorated weapons'], ['p', 'War paints'], ['a', 'Action items'], ['l', 'Tools'], ['x', 'Expired items'], ['o', 'Other items'], ['m', 'Medals']];   // medals last, after the maps and effects
+// the wiki's patch for an item, unless the item only turned up in the game's files well after it: the wiki gave it the date of an earlier
+// incarnation sharing its page (a Festive weapon its original's, a Reissued Poker Night item the 2010 one's, a crate key the first key's,
+// a tournament season's medals the series' first). Nothing comes out before it is in the game's files.
+function wikiUpd(id){
+  const w = UPI[id], own = (ITEMS[id] && ITEMS[id].date) || '';
+  if (w && w.length === 10 && own.length === 10 && Date.parse(own) - Date.parse(w) > 7 * 864e5) return '';
+  return w || '';
+}
 function itemUpdDate(id){
-  if (UPI[id]) return UPI[id];
+  if (wikiUpd(id)) return wikiUpd(id);
   const it = ITEMS[id]; let d = it.date || '';
+  // first seen in the game's files on a patch outside any named update, with a named one a few days after (or a day or two before:
+  // the file history lags) it came out in that one (the Festive weapons on December 18, 2013, out with Smissmas 2013 on the 20th)
+  if (d.length === 10 && d in UPD && !UPD[d] && it.cat !== 'm'){
+    const t = Date.parse(d); let best = '';
+    for (const x in UPD) if (UPD[x]){ const dd = Date.parse(x) - t; if (dd >= -2 * 864e5 && dd <= 4 * 864e5 && (!best || Math.abs(dd) < Math.abs(Date.parse(best) - t))) best = x; }
+    if (best) return best;
+  }
   // a case: the day its collection's items came in
-  if (it.cat === 'l'){ const cs = RAW.cases.find(c => c.id === id), col = cs && COLS[cs.col]; if (col){ let cd = ''; for (const i of col.i){ const x = UPI[i] || (ITEMS[i] && ITEMS[i].date) || ''; if (x.length === 10 && (!cd || x < cd)) cd = x; } if (cd) d = cd; } }
+  if (it.cat === 'l'){ const cs = RAW.cases.find(c => c.id === id), col = cs && COLS[cs.col]; if (col){ let cd = ''; for (const i of col.i){ const x = wikiUpd(i) || (ITEMS[i] && ITEMS[i].date) || ''; if (x.length === 10 && (!cd || x < cd)) cd = x; } if (cd) d = cd; } }
   // not a patch day (a war paint's or a case's first sale, days before or after its update came out): the named update nearest it,
   // within two weeks; medals keep their own days (tournaments don't follow updates)
   if (d.length === 10 && !(d in UPD) && it.cat !== 'm'){
