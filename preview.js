@@ -389,7 +389,11 @@
       where = () => { const m = M(); if (!m) return null; const w = (m.wmesh || [])[0]; let o = w && w.userData._uatt;
         if (w && !o) { const a = (w.userData.att || []).find(x => x.name === (info.attachment || 'unusual_0')) || (w.userData.att || [])[0]; const b = a && w.skeleton && w.skeleton.bones.find(x => x.name === a.bone);
           if (b) { o = new THREE.Object3D(); const q = a.m; new THREE.Matrix4().set(q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7], q[8], q[9], q[10], q[11], 0, 0, 0, 1).decompose(o.position, o.quaternion, o.scale); b.add(o); w.userData._uatt = o; } }
-        return {obj: o || (w && w.skeleton && w.skeleton.bones[0]) || m.o, merc: m.o}; };
+        // the effect's other control points (control_point_1-5), on the attachments items_game names for them
+        let cps = w && w.userData._ucps;
+        if (w && !cps) { cps = w.userData._ucps = {}; for (const [n, nm] of Object.entries(info.cps || {})) { const a = (w.userData.att || []).find(x => x.name === nm); const b = a && w.skeleton && w.skeleton.bones.find(x => x.name === a.bone);
+          if (b) { const c = new THREE.Object3D(); const q = a.m; new THREE.Matrix4().set(q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7], q[8], q[9], q[10], q[11], 0, 0, 0, 1).decompose(c.position, c.quaternion, c.scale); b.add(c); cps[n] = c; } } }
+        return {obj: o || (w && w.skeleton && w.skeleton.bones[0]) || m.o, merc: m.o, cps}; };
     }
     const scale = () => { const m = M(); if (!m) return 1; const v = new THREE.Vector3(); m.o.getWorldScale(v); return v.y || 1; };
     const key = cn + '|' + ST.fx + '|' + ST.nm + '|' + sys0; if (ZPFX.active() && ZPFX.key === key) return;   // already running on this merc

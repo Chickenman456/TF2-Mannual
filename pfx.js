@@ -379,6 +379,20 @@
   };
   const CONS = {
     'Constrain distance to control point': (S, p, o) => { const c = cpAt(S, P(o, 'control point number', 0)), off = P(o, 'offset of center', [0, 0, 0]), w = P(o, 'global center point', 0) ? v3(off[0], off[1], off[2]) : toWorld(c, off); const cx = c.p.x + w.x, cy = c.p.y + w.y, cz = c.p.z + w.z; let dx = p.x - cx, dy = p.y - cy, dz = p.z - cz; const d = Math.hypot(dx, dy, dz) || 1e-4, a = P(o, 'minimum distance', 0), b = P(o, 'maximum distance', 100); const t = clamp(d, a, b); if (t !== d) { p.x = cx + dx / d * t; p.y = cy + dy / d * t; p.z = cz + dz / d * t; } },
+    // a particle rides a path from the start control point to the end one over its first travel time seconds (a curve through the
+    // mid point, pushed out by a random bulge), held within the maximum distance of where it has got to (the Energy Orb's: 0, on it)
+    'Constrain distance to path between two control points': (S, p, o) => {
+      const a = cpAt(S, P(o, 'start control point number', 0)).p, b = cpAt(S, P(o, 'end control point number', 0)).p;
+      const t = clamp(p.age / Math.max(1e-4, P(o, 'travel time', 1)), 0, 1), mp = clamp(P(o, 'mid point position', .5), 0, 1);
+      if (!p._bg) { const g = P(o, 'random bulge', 0), d = randDir(); p._bg = v3(d.x * g, d.y * g, d.z * g); }
+      const mx = a.x + (b.x - a.x) * mp + p._bg.x, my = a.y + (b.y - a.y) * mp + p._bg.y, mz = a.z + (b.z - a.z) * mp + p._bg.z, u = 1 - t;
+      const cx = u * u * a.x + 2 * u * t * mx + t * t * b.x, cy = u * u * a.y + 2 * u * t * my + t * t * b.y, cz = u * u * a.z + 2 * u * t * mz + t * t * b.z;
+      const d0 = P(o, 'maximum distance', 0), dm = P(o, 'maximum distance middle', -1), de = P(o, 'maximum distance end', -1);
+      const hi = dm < 0 ? (de < 0 ? d0 : d0 + (de - d0) * t) : t < mp ? d0 + (dm - d0) * (t / Math.max(mp, 1e-4)) : dm + ((de < 0 ? dm : de) - dm) * ((t - mp) / Math.max(1 - mp, 1e-4));
+      const lo = P(o, 'minimum distance', 0);
+      let dx = p.x - cx, dy = p.y - cy, dz = p.z - cz; const d = Math.hypot(dx, dy, dz);
+      const k = d > hi ? hi : d < lo ? lo : d; if (k === d) return;
+      if (d < 1e-6) { p.x = cx; p.y = cy; p.z = cz; return; } p.x = cx + dx / d * k; p.y = cy + dy / d * k; p.z = cz + dz / d * k; },
     'Collision via traces': (S, p, o) => { const g = S.fx.ground(); if (p.z < g) { if (P(o, 'kill particle on collision', 0)) { p.dead = true; return; } p.z = g; p.vz = Math.abs(p.vz) * P(o, 'amount of bounce', 0); const sl = 1 - clamp(P(o, 'amount of slide', 0), 0, 1); p.vx *= 1 - sl * .5; p.vy *= 1 - sl * .5; } },
   };
 
@@ -554,7 +568,17 @@
       fx.cp0 = { p: v3(wp.x / s, -wp.z / s, wp.y / s), f: S(ax[0]), l: S(ax[1]), u: S(ax[2]) };
       return fx.cp0;
     };
-    fx.cp = () => fx.cpNow();
+    // further control points (an unusual weapon effect's control_point_1-5: the weapon's unusual_1-5 attachments), each in its own frame
+    const cpN = {};
+    fx.cp = n => {
+      const w = n ? where() : null, o = w && w.cps && w.cps[n];
+      if (!o) return fx.cpNow();
+      const c = cpN[n]; if (c && c.f0 === fx.frame) return c.v;
+      const s = scaleOf(); o.getWorldPosition(wp); o.getWorldQuaternion(q);
+      ax[0].set(1, 0, 0).applyQuaternion(q); ax[1].set(0, 1, 0).applyQuaternion(q); ax[2].set(0, 0, 1).applyQuaternion(q);
+      const S = a => v3(a.x, -a.z, a.y);
+      const v = { p: v3(wp.x / s, -wp.z / s, wp.y / s), f: S(ax[0]), l: S(ax[1]), u: S(ax[2]) }; cpN[n] = { f0: fx.frame, v }; return v;
+    };
     fx.player = () => { const w = where(); if (!w || !w.merc) return fx.cpNow().p; w.merc.getWorldPosition(wp); const s = scaleOf(); return v3(wp.x / s, -wp.z / s, wp.y / s); };
     fx.ground = () => { const w = where(); if (!w || !w.merc) return -1e9; w.merc.getWorldPosition(wp); return wp.y / scaleOf() + 1; };
     // a random point on the merc's body (Position on Model Random / "create in model"): a bone of the class model, jittered
