@@ -170,17 +170,21 @@ async function mkView(host){await ZW.init();const r=new THREE.WebGLRenderer({ant
   // spin_vel: 0 instantly while manipulating, back to 1 over 2s (INTERPOLATOR_BIAS .75) once released
   if(v.manip){v.spin=0;v.spinT=0}else if(v.lastManip&&t-v.lastManip>2000){v.spinT=Math.min(1,v.spinT+dt/2);const b=.75,x=v.spinT;v.spin=Math.pow(x,Math.log(b)/Math.log(.5));if(v.spinT>=1)v.lastManip=0}
   v.yaw+=30*v.spin*dt;if(v.cur){v.cur.rotation.set(0,0,0);v.cur.rotateOnWorldAxis(new THREE.Vector3(1,0,0),(7+v.pitch)*Math.PI/180);v.cur.rotateOnWorldAxis(new THREE.Vector3(0,1,0),v.yaw*Math.PI/180)}
+  sheenTick(v,t);if(window.ZPFX)ZPFX.tick(dt,sc,cam,true);
   r.render(sc,cam)};v.loop=()=>{last=performance.now();v.dead=0;loop()};host.appendChild(r.domElement);loop();return v}
 // the canvas covers the whole page (W x H, panel at ox,oy inside it) so a zoomed weapon isn't cut at the panel edge; the camera is still
 // framed for the panel (setViewOffset with the panel as the 'full' view and the page as an off-centre sub-window of it)
 function sizeView(v,w,h,ox=0,oy=0,W=w,H=h){const c=v.r.domElement;v.r.setSize(W,H,false);c.style.width=W+'px';c.style.height=H+'px';c.style.left=-ox+'px';c.style.top=-oy+'px';
  c.style.maskImage=c.style.webkitMaskImage=`linear-gradient(180deg,transparent,#000 14px)`;
  v.cam.aspect=w/h;v.cam.setViewOffset(w,h,-ox,-oy,W,H);v.cam.updateProjectionMatrix();if(v.fit)v.fit()}
-async function showWeapon(v,key){if(v.key===key)return v.cur;v.key=key;if(v.cur){v.sc.remove(v.cur);v.cur=null}
+async function showWeapon(v,key){if(v.key===key)return v.cur;v.key=key;if(v.cur){v.sc.remove(v.cur);v.cur=null}v.sheenSrc=[];v.sheen=null;v.inner=null;v.info=null;if(window.ZPFX&&ZPFX.cur()&&ZPFX.cur().sc===v.sc)ZPFX.stop();
  let src,man;try{[src,man]=await Promise.all([ZW.wload(key),ZW.wman()])}catch(e){return null}if(v.key!==key)return null;
  const o=new THREE.Group(),inner=new THREE.Group();v.maps=[];
  src.forEach(s=>{const MI=(man[key]||{})[s.material.name]||{};const P=MI.red||{};const stock=P.map?ZW.tex('models/'+P.map,true):null;
-  const m=ZW.mat(P,stock);const n=new THREE.Mesh(s.geometry,m);n.frustumCulled=false;inner.add(n);v.maps.push({m,stock})});
+  const m=ZW.mat(P,stock);const n=new THREE.Mesh(s.geometry,m);n.frustumCulled=false;inner.add(n);v.maps.push({m,stock});
+  // the killstreak sheen pass draws over every material with $sheenpassenabled: the weapon's own (not the Flame Thrower's pilot light)
+  if(/^w\/c_/.test(P.map||''))(v.sheenSrc=v.sheenSrc||[]).push(s.geometry)});
+ v.inner=inner;
  inner.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(inner),sz=bb.getSize(new THREE.Vector3()),cen=bb.getCenter(new THREE.Vector3());inner.position.sub(cen);
  // lay the weapon on its side like the inspect panel: longest axis across the screen, thinnest towards the camera
  const ax=['x','y','z'].sort((a,b)=>sz[a]-sz[b]);const D3={x:new THREE.Vector3(1,0,0),y:new THREE.Vector3(0,1,0),z:new THREE.Vector3(0,0,1)};const q=new THREE.Quaternion().setFromUnitVectors(D3[ax[0]],new THREE.Vector3(0,0,1));const tmp=D3[ax[2]].clone().applyQuaternion(q).normalize();const q2=new THREE.Quaternion().setFromUnitVectors(tmp,new THREE.Vector3(1,0,0));
@@ -189,6 +193,55 @@ async function showWeapon(v,key){if(v.key===key)return v.cur;v.key=key;if(v.cur)
  v.span=()=>2*T*L*.8/Math.min(1,v.cam.aspect)*v.zoom;// world height visible at the weapon's depth
  v.clampPan=()=>{const m=L*.5*(1-v.zoom);v.px=Math.max(-m,Math.min(m,v.px));v.py=Math.max(-m,Math.min(m,v.py))};
  v.fit=()=>{const d=L*.8/T/Math.min(1,v.cam.aspect)*v.zoom;v.cam.position.set(v.px,v.py,d);v.cam.lookAt(v.px,v.py,0)};v.fit();return o}
+// ---------------- The Mann-ual: killstreak sheen and unusual effects on the previewed weapon ----------------
+// The sheen: weapon_sheen_pass_ps2x.fxc drawn over the weapon (alpha blended, depth written), driven by CProxyAnimatedWeaponSheen
+// (c_tf_player.cpp): $sheenmapmask Effects/AnimatedSheen/animatedsheen0 run at tf_sheen_framerate 25, one sweep then 5 s before the next
+// (MAX_SHEEN_WAIT, a panel with no killstreak), over $sheenmap cubemaps/cubemap_sheen001 tinted by g_KillStreakEffectsBase (Team Shine
+// takes g_KillStreakEffectsBlue on BLU). The mask is laid on the model's own (Source) coordinates, scaled by its render bounds the way
+// InitParams does it. The weapon models here keep the vertices as the MDL has them (the pass reads them so, vModelSpacePos); the render
+// bounds are in the entity's frame, where the weapon lies along x: its (x, y, z) are the vertices' (z, x, y).
+const SHEEN=[null,[200,20,15],[242,172,10],[255,75,5],[100,255,10],[40,255,70],[105,20,255],[255,30,255]],SHEEN_BLU=[40,98,200];
+// the pass runs the weapon material's own vertex shader (the same depths, so LessEqual lets it through), with the model-space position added
+const SVS=vs=>vs.replace('void main(){','varying vec3 vMS;\nvoid main(){vMS=position;');
+const SFS=`uniform sampler2D mask;uniform samplerCube cube;uniform vec3 tint;uniform float frames,frame,dir,sx,sy,ox,oy;varying vec3 vMS,vNormalV,vWPos;varying vec2 vUv;varying vec3 vViewPosition;
+void main(){vec3 ps=vMS;vec3 N=normalize((vec4(vNormalV,0.)*viewMatrix).xyz),E=normalize(cameraPosition-vWPos),R=2.*N*dot(N,E)-E;
+ vec3 env=textureCube(cube,vec3(-R.x,R.y,R.z)).rgb*tint*10.;
+ vec2 t=dir<.5?vec2(ps.z,ps.y):dir<1.5?vec2(ps.z,ps.x):vec2(ps.y,ps.x);t=vec2((t.x-ox)/sx,1.-(t.y-oy)/sy);
+ vec4 m=texture2D(mask,vec2(t.x,(fract(t.y)+frame)/frames));float a=max(max(env.r,env.g),env.b);
+ gl_FragColor=clamp(vec4(env*m.rgb,a*m.r),0.,1.);}`;
+// which model the weapon is (for its attachments and bounds): the items that wear a war paint on it name it
+function mdlOf(wk){for(const k in D.P){const it=D.P[k].it[wk];const t=it&&D.I[it[0]];const e=t&&window.ZLIVE&&ZLIVE.entry&&ZLIVE.entry('#'+t.idx);const mp=e&&e.r&&(e.r.model_player||e.r.model_world);if(mp)return{mdl:String(mp),sfx:e.r.particle_suffix?String(e.r.particle_suffix).toLowerCase():null}}return null}
+async function weaponInfo(v,wk){const key=v.key;if(v.info&&v.info.key===key)return v.info;const m=mdlOf(wk);const I=m&&await ZLIVE.mdlInfo(m.mdl).catch(()=>null);if(v.key!==key)return null;v.info={key,...(m||{}),...(I||{})};return v.info}
+async function setSheen(v){const want=ST&&ST.sheen;if(!want||!v.cur||!v.sheenSrc||!v.sheenSrc.length){if(v.sheen)v.sheen.on=0;if(v.sheen)v.sheen.ms.forEach(x=>x.visible=false);return}
+ if(!v.sheen){const key=v.key;const [mask,cube,info]=await Promise.all([ZLIVE.strip('effects/animatedsheen/animatedsheen0',64),ZLIVE.cubeRaw('cubemaps/cubemap_sheen001'),weaponInfo(v,ST.wk)]);
+  if(v.key!==key||!mask||!cube||!v.inner)return;
+  // InitParams: the render bounds' longest side, x first, then y, then z (each only when longer than the one before)
+  const b=info&&info.bb;let mn,mx;if(b){mn=b.min;mx=b.max}else{const bb=new THREE.Box3();v.sheenSrc.forEach(g=>{g.computeBoundingBox();bb.union(g.boundingBox)});mn=[bb.min.z,bb.min.x,bb.min.y];mx=[bb.max.z,bb.max.x,bb.max.y]}
+  let sx=mx[0]-mn[0],ox=mn[0],sy=mx[2]-mn[2],oy=mn[2],dir=0;
+  if(mx[1]-mn[1]>sx){sx=mx[1]-mn[1];ox=mn[1];sy=mx[0]-mn[0];oy=mn[0];dir=1}
+  if(mx[2]-mn[2]>sx){sx=mx[2]-mn[2];ox=mn[2];sy=mx[1]-mn[1];oy=mn[1];dir=2}
+  const U={mask:{value:mask},cube:{value:cube},tint:{value:new THREE.Vector3()},frames:{value:mask.userData.frames||1},frame:{value:0},dir:{value:dir},sx:{value:sx||1},sy:{value:sy||1},ox:{value:ox},oy:{value:oy}};
+  const base=v.maps[0]&&v.maps[0].m;if(!base||!base.vertexShader)return;
+  const mat=new THREE.ShaderMaterial({uniforms:U,vertexShader:SVS(base.vertexShader),fragmentShader:SFS,side:base.side,transparent:true,depthWrite:true,depthFunc:THREE.LessEqualDepth});
+  const ms=v.sheenSrc.map(g=>{const n=new THREE.Mesh(g,mat);n.frustumCulled=false;n.renderOrder=2;n.visible=false;v.inner.add(n);return n});
+  v.sheen={U,ms,start:performance.now()/1000,on:0}}
+ const c=ST.sheen==1&&ST.team=='BLU'?SHEEN_BLU:SHEEN[ST.sheen];v.sheen.U.tint.value.set(c[0]/255,c[1]/255,c[2]/255);if(!v.sheen.on){v.sheen.on=1;v.sheen.start=performance.now()/1000}}
+function sheenTick(v,tms){const S=v.sheen;if(!S)return;if(!S.on){S.ms.forEach(x=>x.visible=false);return}const t=tms/1000,n=S.U.frames.value;
+ let f=Math.floor(25*(t-S.start));if(f>=n){S.start=t+5;f=-1}   // the sweep ends: the next one in 5 s
+ const vis=f>=0;S.ms.forEach(x=>x.visible=vis);if(vis)S.U.frame.value=f%n}
+// The unusual effect: weapon_unusual_<effect>_<the weapon's particle_suffix> (else _base, else the plain system), on the weapon's
+// effect attachment (unusual_0, else its first), as in the item preview
+let FXT=0;async function setFx(v){const tok=++FXT;if(!window.ZPFX)return;const id=ST&&ST.fx;if(!id||!v.cur){if(ZPFX.cur()&&ZPFX.cur().sc===v.sc)ZPFX.stop();return}
+ const inf=ZLIVE._st&&ZLIVE._st.pfx&&ZLIVE._st.pfx[String(id)];const info=await weaponInfo(v,ST.wk);if(tok!==FXT||!v.inner)return;if(!inf){ZPFX.stop();return}
+ const sys0=ST.team==='BLU'?String(inf.system).replace(/_teamcolor_red/i,'_teamcolor_blue'):String(inf.system).replace(/_teamcolor_blue/i,'_teamcolor_red');
+ const fk=ST.wk+'|'+id+'|'+sys0;if(ZPFX.cur()&&ZPFX.cur().sc===v.sc&&v.fxKey===fk)return;v.fxKey=null;
+ const systems=info&&info.sfx?[sys0+'_'+info.sfx,sys0+'_base',sys0]:[sys0+'_base',sys0];
+ let o=v.inner.getObjectByName('zfx_att');if(!o){o=new THREE.Object3D();o.name='zfx_att';const A=info&&info.att||[];const a=A.find(x=>x.name===(inf.attachment||'unusual_0'))||A[0];
+  // the attachment's frame in the model's own space, which is the stored vertices' (its axes are Source's, as pfx.js reads them)
+  if(a)a.m.decompose(o.position,o.quaternion,o.scale);v.inner.add(o)}
+ const where=()=>v.cur&&o.parent?{obj:o,merc:null}:null;
+ for(const sy of systems){let ok=false;try{ok=await ZPFX.play(sy,where,()=>1,{sc:v.sc})}catch(e){ok=false}if(tok!==FXT)return;if(ok){v.fxKey=fk;return}}
+ if(window.ZWPI&&ZWPI.onFxMissing)ZWPI.onFxMissing()}
 function applySkin(v,rt){v.maps.forEach(({m,stock})=>{m.map=rt?rt.texture:stock;m.needsUpdate=true})}
 
 // ---------------- vgui controls the .res needs (ComboBox, Slider, TextEntry, CNavigationPanel) ----------------
@@ -266,6 +319,7 @@ async function update(){const pc=ROOT.find('PaintkitPreviewContainer');repop();c
  const nl=ROOT.find('namelabel');const base=WNAME[ST.wk];nl.o.text=on?`${pkName(ST.pk)} ${base} (${VG.loc(WEAR[ST.wear])})`:base;nl.o.fg=VG.rgba('QualityColorUnique')||[255,215,0,255];
  layout();
  const g=++GEN;await showWeapon(VIEW,D.W[ST.wk]);if(g!==GEN)return;
+ setSheen(VIEW);setFx(VIEW);
  if(!on){applySkin(VIEW,null);return}
  const seed=seedInt(ST.seed);const size=1024;const rt=await composite(VIEW.r,ST.pk,ST.wk,ST.wear,ST.team,seed,size).catch(e=>{console.warn('composite',e);return null});
  if(g!==GEN){rt&&rt.dispose();return}if(VIEW.rt)VIEW.rt.dispose();VIEW.rt=rt;applySkin(VIEW,rt)}
@@ -295,9 +349,12 @@ async function open(host,pre){VG=window.VG;await Promise.all([VG.ready(),load()]
  VIEW.px=0;VIEW.py=0;VIEW.zoom=1;VIEW.onZoom(1);
  if(!window.__wpSubReset){window.__wpSubReset=1;const rs=()=>{const el=document.getElementById('subtabs');if(el){el.style.opacity='';el.style.pointerEvents=''}};
   document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button.nav,[data-act=back]'))rs()},true);document.addEventListener('keydown',e=>{if(e.key=='Escape')rs()},true)}
+ ST.sheen=0;ST.fx=null;   // (the window opens with no sheen and no effect, as its dropdowns do)
  ip.find('SeedTextEntry').input.value=ST.seed;navSel();await update()}
 // footer Zoom button (shown on this page too, stage.css) toggles the inspection close-up
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-act=z3dzoom]')&&VIEW&&HOST&&HOST.isConnected&&VIEW.r.domElement.isConnected)VIEW.toggleZoom()});
 window.addEventListener('keydown',e=>{if(e.key=='Escape'&&HOST&&HOST.querySelector('.vgcmenu')){e.stopImmediatePropagation();e.preventDefault();closeMenu()}},true);
-window.ZWPI={ip:()=>ROOT&&ROOT._ip,open,match:async n=>{await load();return parse(n)},dbg:async(pk,wk,wear,team,seed,size=512,node)=>{const r=VIEW.r;const rt=await composite(r,pk,wk,wear||1,team||'RED',seed||0,size);const o=new THREE.WebGLRenderTarget(size,size);const m=new THREE.ShaderMaterial({uniforms:{t:{value:rt.texture}},vertexShader:CVS,fragmentShader:'varying vec2 vUv;uniform sampler2D t;vec3 l2s(vec3 c){return mix(12.92*c,1.055*pow(max(c,vec3(0.)),vec3(1./2.4))-.055,step(vec3(.0031308),c));}void main(){vec4 c=texture2D(t,vUv);gl_FragColor=vec4(l2s(c.rgb),1.);}'});const sc=new THREE.Scene();sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),m));r.setRenderTarget(o);r.render(sc,new THREE.Camera());const px=new Uint8Array(size*size*4);r.readRenderTargetPixels(o,0,0,size,size,px);r.setRenderTarget(null);const c=document.createElement('canvas');c.width=c.height=size;const id=c.getContext('2d').createImageData(size,size);id.data.set(px);c.getContext('2d').putImageData(id,0,0);return c.toDataURL()},set:o=>{Object.assign(ST,o);return update()},composite:(...a)=>composite(...a),resolve:(...a)=>resolve(...a),get D(){return D},get ST(){return ST},get VIEW(){return VIEW}};
+// The Mann-ual: the sheen (0 none, 1-7 Attrib_KillStreakIdleEffect1-7) and unusual effect (its id) shown on the weapon
+const sheenNames=async()=>{let L={};try{const b=await ZLIVE._read('resource/tf_english.txt');if(b){const u=b instanceof Uint8Array?b:new Uint8Array(b);const t=new TextDecoder(u[0]==0xFF&&u[1]==0xFE?'utf-16le':'utf-8').decode(u);for(const m of t.matchAll(/"Attrib_KillStreakIdleEffect([1-7])"\s+"([^"\n]*)"/gi))L[m[1]]=m[2]}}catch(e){}return[1,2,3,4,5,6,7].map(i=>[i,L[i]||null])};
+window.ZWPI={sheenNames,sheen:i=>{if(!ST)return;ST.sheen=+i||0;if(VIEW)setSheen(VIEW)},fx:id=>{if(!ST)return;ST.fx=id?+id:null;if(VIEW)setFx(VIEW)},stopFx:()=>{FXT++;if(window.ZPFX&&VIEW&&ZPFX.cur()&&ZPFX.cur().sc===VIEW.sc)ZPFX.stop()},ip:()=>ROOT&&ROOT._ip,open,match:async n=>{await load();return parse(n)},dbg:async(pk,wk,wear,team,seed,size=512,node)=>{const r=VIEW.r;const rt=await composite(r,pk,wk,wear||1,team||'RED',seed||0,size);const o=new THREE.WebGLRenderTarget(size,size);const m=new THREE.ShaderMaterial({uniforms:{t:{value:rt.texture}},vertexShader:CVS,fragmentShader:'varying vec2 vUv;uniform sampler2D t;vec3 l2s(vec3 c){return mix(12.92*c,1.055*pow(max(c,vec3(0.)),vec3(1./2.4))-.055,step(vec3(.0031308),c));}void main(){vec4 c=texture2D(t,vUv);gl_FragColor=vec4(l2s(c.rgb),1.);}'});const sc=new THREE.Scene();sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),m));r.setRenderTarget(o);r.render(sc,new THREE.Camera());const px=new Uint8Array(size*size*4);r.readRenderTargetPixels(o,0,0,size,size,px);r.setRenderTarget(null);const c=document.createElement('canvas');c.width=c.height=size;const id=c.getContext('2d').createImageData(size,size);id.data.set(px);c.getContext('2d').putImageData(id,0,0);return c.toDataURL()},set:o=>{Object.assign(ST,o);return update()},composite:(...a)=>composite(...a),resolve:(...a)=>resolve(...a),get D(){return D},get ST(){return ST},get VIEW(){return VIEW}};
 })();

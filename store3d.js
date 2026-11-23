@@ -738,7 +738,8 @@ async function setLod(c,n){if(!window.ZLIVE||!ZLIVE.ready||!ZLIVE.setLod)return;
 // (and the robot body for the cosmetics only the MvM robots wear: m._robot, set by the preview)
 async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE.lod|0,bot=!!m._robot;
  const eyes=m._eyeMesh||(m._eyeMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&x.userData.zeye)L.push(x)});return L})());eyes.forEach(x=>x.layers.set(bot&&ZLIVE.ready?31:0));
- const own=m._ownMesh||(m._ownMesh=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye)L.push(x)});return L})());
+ // (looked up each time: a mesh of the page's own that arrived after the first look stayed drawn under the game's body - a second face over his own)
+ const own=(()=>{const L=[];m.o.traverse(x=>{if(x.isMesh&&!x.userData.srcMat&&!x.userData.zbody&&!x.userData.zeye&&!x.userData.zx)L.push(x)});return L})();
  const drop=()=>{if(m._lbody){m._lbody.forEach(x=>x.parent&&x.parent.remove(x));m._lbody=null}};
  const ped=ZLIVE.vmtEdited&&ZLIVE.vmtEdited().some(p=>/^materials\/models\/(player|bots)\//.test(p));if((n<=0&&!bot&&!ped)||!ZLIVE.ready){m._lbodySig=null;m._lodTok=(m._lodTok||0)+1;if(m._lbody){drop();own.forEach(x=>x.layers.set(0))}return}
  const bg={};for(const k in (m.BG||{}))bg[k.toLowerCase()]=(m._cbg&&m._cbg.has(k))||k===m._wmHide&&!m._wmOff?1:0;
@@ -747,7 +748,8 @@ async function lodBody(c){const m=M[c];if(!m||!window.ZLIVE)return;const n=ZLIVE
   // the eyeballs stay the page's own (drawn with the eye shader: iris and pupil), at every LOD
   // a robot's own bones (its antennas, gears and plates): made under the merc bone their parent merged onto, at their rest pose
   const xb=[];const mk=b=>{const k=b.name.toLowerCase();if(pb[k])return pb[k];if(!bot)return null;const nb=new THREE.Bone();nb.name=b.name;nb.userData.zx=1;nb.position.copy(b.position);nb.quaternion.copy(b.quaternion);const par=b.parent&&b.parent.isBone?mk(b.parent):null;(par||m.o).add(nb);xb.push(nb);return pb[k]=nb};
-  const meshes=src.map(s=>{if(!bot&&/eyeball/i.test(s.material&&s.material.name||''))return null;const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
+  const meshes=src.map(s=>{if(!bot&&/eyeball/i.test((MI0[s.material&&s.material.name]||{}).tex||s.material&&s.material.name||''))return null;   // (the mesh's material is named m0, m1...: its file name is in the manifest - read by the name alone, the game's eyeballs were drawn over the page's own)
+  const bones=s.skeleton.bones.map(mk);if(bones.some(b=>!b))return null;const wm=s.clone();const MI=MI0[s.material.name]||{};const P=(team=='BLU'&&MI.blu)?MI.blu:MI.red;
    wm.material=P?wmat(P):s.material;wm.userData.mi=MI;wm.userData.zbody=1;wm.userData.lteam=team;wm.frustumCulled=false;wm.castShadow=true;m.o.add(wm);wm.bind(new THREE.Skeleton(bones,s.skeleton.boneInverses),new THREE.Matrix4());return wm}).filter(Boolean);
   drop();if(meshes.length){m._lbody=meshes.concat(xb);own.forEach(x=>x.layers.set(31))}else{xb.forEach(b=>b.parent&&b.parent.remove(b));own.forEach(x=>x.layers.set(0))}}catch(e){console.warn('[ZLIVE] LOD body',e)}}
 // the robot's animations (bot_<class>_animations.mdl: stiffer stand_ / run_ loops), in place of the class's while it's shown as the robot
@@ -1423,11 +1425,27 @@ async function texMips(path,srgb){if(!path)return null;let p=String(path).replac
   else{t.generateMipmaps=false;t.minFilter=THREE.LinearFilter}
   t.wrapS=(T.flags&4)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;t.wrapT=(T.flags&8)?THREE.ClampToEdgeWrapping:THREE.RepeatWrapping;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;t.userData.vtf=p;return t})()}
 // AnimatedTexture: every frame of the VTF stacked top to bottom in one texture (the shader picks the frame: (fract(v)+frame)/frames)
-async function texStrip(path,srgb,maxDim){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|strip|'+(srgb?1:0);if(ST.cache[key])return ST.cache[key];
- return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T0=vtf(b,maxDim||512);const n=Math.min(T0.frames||1,32);if(n<2)return null;
+async function texStrip(path,srgb,maxDim,maxFrames){if(!path)return null;let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key=p+'|strip|'+(srgb?1:0)+(maxFrames?'|'+maxFrames:'');if(ST.cache[key])return ST.cache[key];
+ return ST.cache[key]=(async()=>{const b=await read('materials/'+p+'.vtf');if(!b)return null;const T0=vtf(b,maxDim||512);const n=Math.min(T0.frames||1,maxFrames||32);if(n<2)return null;
   const px=new Uint8Array(T0.w*T0.h*4*n);px.set(T0.px.subarray(0,T0.w*T0.h*4),0);for(let f=1;f<n;f++){const T=vtf(b,maxDim||512,0,f);px.set(T.px.subarray(0,T0.w*T0.h*4),f*T0.w*T0.h*4)}
   const t=new THREE.DataTexture(px,T0.w,T0.h*n,THREE.RGBAFormat);t.flipY=false;t.generateMipmaps=false;t.minFilter=t.magFilter=THREE.LinearFilter;t.wrapS=THREE.RepeatWrapping;t.wrapT=THREE.ClampToEdgeWrapping;if(srgb)t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;
   t.userData.frames=n;t.userData.alpha=!!(T0.flags&0x3000);return t})()}
+// a cubemap as its texels are (no sRGB decode: the killstreak sheen pass works on them as stored, like the game's LDR path)
+async function cubeRaw(path){let p=String(path).replace(/\\/g,'/').replace(/\.vtf$/i,'').toLowerCase();const key='cuberaw|'+p;if(ST.cache[key])return ST.cache[key];
+ return ST.cache[key]=(async()=>{let b=null;try{b=await read('materials/'+p+'.vtf')}catch(e){}if(!b)return null;
+  const F=[0,1,4,5,3,2].map(f=>{const T=vtf(b,256,f);const t=new THREE.DataTexture(T.px,T.w,T.h,THREE.RGBAFormat);t.flipY=false;t.needsUpdate=true;return t});
+  const c=new THREE.CubeTexture(F);c.format=THREE.RGBAFormat;c.encoding=THREE.LinearEncoding;c.generateMipmaps=false;c.minFilter=THREE.LinearFilter;c.needsUpdate=true;return c})()}
+// a model's attachments in its own (Source) model space - bone (poseToBone inverted) times the attachment's local matrix - and the
+// first sequence's bounding box (what C_BaseAnimating::GetRenderBounds gives an item panel's model): for the war paint window
+async function mdlInfo(path){const key='mdlinfo|'+String(path).toLowerCase();if(ST.cache[key])return ST.cache[key];
+ return ST.cache[key]=(async()=>{const b=await read(String(path).replace(/\\/g,'/'));if(!b)return null;const M=new DataView(b.buffer,b.byteOffset,b.byteLength);const I=o=>M.getInt32(o,true),Fl=o=>M.getFloat32(o,true);
+  const cs=o=>{let e=o;while(e<b.length&&b[e])e++;return new TextDecoder().decode(b.subarray(o,e))};
+  const m34=o=>{const q=[];for(let k=0;k<12;k++)q.push(Fl(o+4*k));return new THREE.Matrix4().set(q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8],q[9],q[10],q[11],0,0,0,1)};
+  const nb=I(156),bi=I(160),B=[];for(let k=0;k<nb;k++){const o=bi+k*216;B.push(m34(o+96).invert())}
+  const att=[];{const na=I(240),ai=I(244);for(let k=0;k<na;k++){const o=ai+k*92;const lb=I(o+8);att.push({name:cs(o+I(o)).toLowerCase(),m:(B[lb]||new THREE.Matrix4()).clone().multiply(m34(o+12))})}}
+  let bb=null;if(I(188)>0){const o=I(192);bb={min:[Fl(o+32),Fl(o+36),Fl(o+40)],max:[Fl(o+44),Fl(o+48),Fl(o+52)]}}
+  if(!bb)bb={min:[Fl(104),Fl(108),Fl(112)],max:[Fl(116),Fl(120),Fl(124)]};
+  return{att,bb}})()}
 // material proxies the loadout shader runs (index.html PROX): Sine, LinearRamp, TextureTransform, TextureScroll, AnimatedTexture on $basetexture
 function proxies(k,P){const X=k.proxies;if(!X||typeof X!='object')return;const out=[];const L=[];for(const n in X){const v=X[n];if(Array.isArray(v))v.forEach(x=>L.push([n,x]));else L.push([n,v])}
  for(const [n,q] of L){if(!q||typeof q!='object')continue;const rv=String(q.resultvar||'').toLowerCase();
@@ -1623,7 +1641,7 @@ async function assemble(key,p,e,si,pre,opt){pre=pre||'m';const md=await model(p,
  // visuals "material_override" (the Golden Wrench's gold_wrench.vmt): every material of the item's own model is drawn with that one
  const mo=pre=='m'&&e&&e.r?((styleOf(e,si)||{}).material_override||(e.r.visuals||{}).material_override):null;const mov=mo&&typeof mo=='string'?findVmt(mo.replace(/\.vmt$/i,''),[]):null;
  const pr=async t=>{try{const v=(mov&&await mov)||await findVmt(md.texn[t]||'',md.cds);if(!v)return null;const M=await vmt(v,0);return M?await params(M):null}catch(err){console.warn('[ZLIVE] material',md.texn[t],err);return null}};
- for(const s of md.slots){const r=md.skins[rs]?md.skins[rs][s]:s,b=md.skins[bs]?md.skins[bs][s]:r;const red=await pr(r),blu=b===r?red:await pr(b);man[pre+s]={red,blu:blu||red}}
+ for(const s of md.slots){const r=md.skins[rs]?md.skins[rs][s]:s,b=md.skins[bs]?md.skins[bs][s]:r;const red=await pr(r),blu=b===r?red:await pr(b);man[pre+s]={red,blu:blu||red,tex:md.texn[r]||''}}
  if(md.jig)man._jig=md.jig;if(pre=='m')ST.flex[key]=md.flex;
  // visuals.playback_activity: on_spawn / start_taunting activities (the Orchestrina: ACT_IDLE "stopped", ACT_RUN "started"); otherwise sequence 0
  // a worn weapon's own pack (the B.A.S.E. Jumper's c_paratrooper_pack) sits closed: its retract_idle sequence, as when the chute is put away
@@ -2348,7 +2366,7 @@ async function npcClip(path,name,boneSet){const F=await npcFiles(path);for(const
 function seqWeights(b,name,clip){if(!clip||clip.zskip)return;const S=seqList(b).find(x=>x.name.toLowerCase()===String(name).toLowerCase());if(!S)return;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
  const wl=dv.getInt32(S.o+156,true),nb=dv.getInt32(156,true),bi=dv.getInt32(160,true);if(!wl)return;const z=new Set();for(let k=0;k<nb;k++)if(dv.getFloat32(S.o+wl+4*k,true)===0){const q=bi+k*216;z.add(cstr(b,q+dv.getInt32(q,true)))}
  if(!z.size||z.size>=nb)return;clip.zskip=z;clip.tracks=clip.tracks.filter(t=>!z.has(t.name.split('.')[0]))}
-window.ZLIVE={mapSounds,mapSoundURL,tauntActions,soundFind,soundFindAsync,phonemes,soundMaps:()=>soundFindAsync('|'),soundAll:nm=>{soundFind('');return((SNDALL&&SNDALL.get(String(nm).toLowerCase()))||[]).map(p=>p.slice(6))},zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
+window.ZLIVE={strip:(p,n)=>texStrip(p,false,128,n),cubeRaw:p=>cubeRaw(p),mdlInfo:p=>mdlInfo(p),mapSounds,mapSoundURL,tauntActions,soundFind,soundFindAsync,phonemes,soundMaps:()=>soundFindAsync('|'),soundAll:nm=>{soundFind('');return((SNDALL&&SNDALL.get(String(nm).toLowerCase()))||[]).map(p=>p.slice(6))},zipDir,zipGet,kv:t=>KV(t,true),hasFile:p=>has(p),vmtEdit,vmtOrig,vmtEdited,mdlSource,npcSeqSounds,npcSeqBg,sndURL,npcGesture,playerMats,attr:itemAttr,setRobot,robotSeqs,npcLoad,npcClip,npcEyes,mountPak,get lod(){return ST.lod|0},setLod:n=>{ST.lod=Math.max(0,Math.min(2,n|0))},body,models:()=>{if(!ST.ready)return[];const o=new Set();for(const k of ['tf2_misc','hl2_misc']){const V=ST.vpk[k];if(V)for(const n of V.E.keys())if(n.endsWith('.mdl'))o.add(n)}return[...o].sort()},
  mdlSkins:async p=>{const b=await mdlBuf(p);if(!b||b.length<232)return 1;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);return Math.max(1,dv.getInt32(224,true))},iconAt,workshop:{list:wsList,open:wsOpen,blob:it=>srcBlob(WSDIR+'/'+it.name.toLowerCase())},custom:{get can(){return !!(ST.src&&ST.src.custom)},access:()=>ST.src&&ST.src.writable?ST.src.writable():Promise.resolve(false),save:(n,b)=>ST.src.custom(n,b)},source,gesture,mercAtts,tauntSound,tauntWeaponModel,expressions,specialTaunt,weaponTaunt,fireInfo,attachments,autoplay,get on(){return ST.on},get ready(){return ST.ready},pick,connect,off,load,loadXW,styleLabel,propClip,propOwn,propEvents,noiseSounds,hasXW,wornWep,wmHide,tauntSlot,poseLayers,particle,spriteTex:async p=>{const v=await vmt('materials/'+String(p).replace(/\\/g,'/').replace(/\.vmt$/i,'')+'.vmt',0).catch(()=>null);const bt=v&&v.kv&&v.kv.$basetexture;return bt?await tex(bt,true).catch(()=>null):null},classes,holiday,quality,skinOverride,conflicts:()=>ST.conf||{},has:hasItem,hasWep,wepSlot,animSlot,bg,icon,iconLoad,hasIcon,iconPH,lazy,list,styles,paintable,regions,flexPack,taunt,hasTaunt,prop,seq,entry,get count(){return ST.ncos},dirSource,listSource,_st:ST,_read:read,_scene:p=>scene(p),_anims:c=>animMdls(clsKey(c)),_seqEvents:(b,n)=>seqEvents(b,n),_vtf:vtf,_anim:decodeAnim,_vmt:vmt,_tex:tex,_texm:texMips};
 })();
 // Halloween paint spells (Die Job, Chromatic Corruption, Putrescent Pigmentation, Spectral Spectrum, Sinister Staining): the paint
